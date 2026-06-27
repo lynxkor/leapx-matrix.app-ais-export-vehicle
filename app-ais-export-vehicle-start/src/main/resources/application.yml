@@ -1,0 +1,91 @@
+server:
+  port: 8084
+  shutdown: graceful
+  servlet:
+    context-path: /vehicle
+    encoding:
+      charset: UTF-8
+      force: false
+      enabled: true
+
+spring:
+  profiles:
+    active: dev
+  lifecycle:
+    timeout-per-shutdown-phase: 3M
+  banner:
+    charset: UTF-8
+  cache:
+    ehcache:
+      config: classpath:ehcache.xml
+    jackson:
+      time-zone: GMT+8
+      date-format: yyyy-MM-dd HH:mm:ss
+  servlet:
+    enabled: true
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  jackson:
+    property-naming-strategy: LOWER_CAMEL_CASE
+#mybatis-plus
+mybatis-plus:
+  #自动填充设置
+  auto-field:
+    date:
+      dateType: dateTime
+      insert: createTime
+      update: updateTime
+  #映射文件,此处有坑,必须使用classpath*
+  mapper-locations: classpath*:/mapper/*.xml,classpath*:/mapper/**/*.xml
+  #实体类包，数组
+  typeAliasesPackage: com.leapmotor.export.vehicle.**.model
+  global-config:
+    db-config:
+      #关闭全局字符串like查询，使用需单独在字段使用@TableField(condition=SqlCondition.LIKE_RIGHT)
+      column-like: false
+      id-type: auto
+      field-strategy: not_null
+      capital-mode: false
+      #sql-injector: com.baomidou.mybatisplus.extension.injector.LogicSqlInjector
+#       db-type: mysql
+  configuration:
+    default-statement-timeout: 60  # 单位：秒
+    #是否开启mapper二级缓存
+    cache-enabled: false
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+management:
+  health:
+    elasticsearch:
+      enabled: false
+    mail:
+      enabled: false
+    redis:
+      enabled: false
+    db:
+      enabled: false
+  server:
+    port: 18084
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+      base-path: /vehicle/actuator
+  endpoint:
+    service-registry:
+      enabled: true
+    shutdown:
+      enabled: true
+    nacos-discovery:
+      enabled: false
+    nacos-config:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html

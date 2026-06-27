@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.leapmotor</groupId>
+        <artifactId>app-ais-export-vehicle</artifactId>
+        <version>${version}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>app-ais-export-vehicle-domain</artifactId>
+    <packaging>jar</packaging>
+    <name>app-ais-export-vehicle-domain</name>
+
+    <dependencies>
+        <!-- ais-common components -->
+        <dependency>
+            <groupId>com.leapmotor.platform</groupId>
+            <artifactId>ais-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.leapmotor.platform</groupId>
+            <artifactId>ais-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.leapmotor.platform</groupId>
+            <artifactId>ais-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.leapmotor.platform</groupId>
+            <artifactId>ais-permission</artifactId>
+        </dependency>
+        <!-- ais-common components -->
+
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-vehicle-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok-mapstruct-binding</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>leapx-model</artifactId>
+        </dependency>
+        <!-- leapx 登录用户Filter -->
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>leapx-security</artifactId>
+        </dependency>
+
+        <!-- o API -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.leapmotor</groupId>
+        <artifactId>app-ais-export-vehicle</artifactId>
+        <version>${version}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>app-ais-export-vehicle-start</artifactId>
+    <packaging>jar</packaging>
+    <name>app-ais-export-vehicle-start</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-vehicle-adapter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-vehicle-infrastructure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+
+    </dependencies>
+    <build>
+        <finalName>app</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                            <!-- 关键：重新打包为可执行JAR -->
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <configuration>
+                    <!-- 关键：设置为true，直接跳过source生成 -->
+                    <skipSource>true</skipSource>
+                </configuration>
+            </plugin>
+
+
+        </plugins>
+    </build>
+</project>

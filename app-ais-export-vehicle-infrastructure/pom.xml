@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.leapmotor</groupId>
+        <artifactId>app-ais-export-vehicle</artifactId>
+        <version>${version}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>app-ais-export-vehicle-infrastructure</artifactId>
+    <packaging>jar</packaging>
+    <name>app-ais-export-vehicle-infrastructure</name>
+
+    <dependencies>
+        <!-- project module -->
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-vehicle-domain</artifactId>
+        </dependency>
+        <!-- project module -->
+
+        <!-- ais-common components -->
+        <dependency>
+            <groupId>com.leapmotor.platform</groupId>
+            <artifactId>ais-mybatis</artifactId>
+        </dependency>
+        <!-- ais-common components -->
+
+        <!-- 二方包依赖 开始 -->
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-account-api</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>leapx-swagger</artifactId>
+                    <groupId>com.leapmotor</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- 二方包依赖 END  -->
+
+        <!-- SpringCloud Alibaba Nacos -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!-- SpringCloud Alibaba Nacos Config -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+
+        <!-- Sentinel Datasource Nacos -->
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-datasource-nacos</artifactId>
+        </dependency>
+
+        <!-- SpringBoot Actuator -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-loadbalancer</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+
+        <!-- baomidou Spring boot 3+ -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+        </dependency>
+    </dependencies>
+</project>

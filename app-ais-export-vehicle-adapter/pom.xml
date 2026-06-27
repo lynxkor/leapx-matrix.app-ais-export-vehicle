@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.leapmotor</groupId>
+        <artifactId>app-ais-export-vehicle</artifactId>
+        <version>${version}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>app-ais-export-vehicle-adapter</artifactId>
+    <packaging>jar</packaging>
+    <name>app-ais-export-vehicle-adapter</name>
+
+    <dependencies>
+        <!-- project module -->
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-vehicle-app</artifactId>
+        </dependency>
+        <!-- project module -->
+    </dependencies>
+</project>

@@ -47,13 +47,13 @@ mybatis-plus:
       id-type: auto
       field-strategy: not_null
       capital-mode: false
-      #sql-injector: com.baomidou.mybatisplus.extension.injector.LogicSqlInjector
-#       db-type: mysql
+#      sql-injector: com.baomidou.mybatisplus.extension.injector.LogicSqlInjector
+#      db-type: mysql
   configuration:
     default-statement-timeout: 60  # 单位：秒
     #是否开启mapper二级缓存
     cache-enabled: false
-    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 management:
   health:

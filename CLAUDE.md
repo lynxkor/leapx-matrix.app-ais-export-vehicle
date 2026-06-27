@@ -63,6 +63,19 @@ cd app-ais-export-vehicle-start && mvn spring-boot:run
 - **端口**：8084，context-path `/vehicle`；Actuator 18084，base-path `/vehicle/actuator`
 - **Nacos**：`leapx-nacos-test.leapmotor.com`，namespace `483de891-cc67-4c6b-80b6-53727bba98db`
 
+### 本地启动环境变量
+
+本地启动前需配置以下环境变量覆盖 Nacos 连接，并将 `namespace` 改为**个人 namespace**（勿用代码默认的公共 namespace，避免互相影响）：
+
+```
+spring.cloud.nacos.discovery.server-addr=https://leapx-nacos-test.leapmotor.com
+spring.cloud.nacos.discovery.namespace=<个人namespace>
+spring.cloud.nacos.discovery.username=nAdmin
+spring.cloud.nacos.discovery.password=<密码>
+```
+
+个人 namespace 申请方式见内网 Wiki：https://wiki-intra.leapmotor.com/pages/viewpage.action?pageId=118531368 。这些变量同时作用于 `discovery` 与 `config`（`bootstrap.yml` 已用 `${spring.cloud.nacos.discovery.*}` 引用）。
+
 ## start 模块 resources 静态文件
 
 `app-ais-export-vehicle-start/src/main/resources/` 下的静态资源：
@@ -92,3 +105,8 @@ infra    demo.entity.DemoOrder(extends LpBaseEntity) / demo.mapper.DemoOrderMapp
 ```
 
 建表 SQL：`app-ais-export-vehicle-start/src/main/resources/sql/demo-order.sql`。
+
+## 参考文档（内网 Wiki）
+
+- 框架介绍：https://wiki-intra.leapmotor.com/pages/viewpage.action?pageId=90433541
+- 本地启动 Nacos 个人 namespace 配置：https://wiki-intra.leapmotor.com/pages/viewpage.action?pageId=118531368

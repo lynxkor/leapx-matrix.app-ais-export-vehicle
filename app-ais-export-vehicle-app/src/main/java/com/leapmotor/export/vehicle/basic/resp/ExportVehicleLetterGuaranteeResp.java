@@ -4,6 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.LgStatusEnum;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.OrderTypeEnum;
+import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -26,11 +31,15 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
 
     @Schema(description = "客户ID")
     private String customerId;
+    private String customerCode;
+    private String customerName;
 
     @Schema(description = "保函类型(字典 letter_guarantee_lg_type: PREPAYMENT 预付款保函;G117 红旗项目目前仅启用预付款;新增时必填,无默认值)")
+    @DictEnumType(type = LgTypeEnum.class)
     private String lgType;
 
     @Schema(description = "订单类型(字典 letter_guarantee_order_type: CBU/SKD/CKD;新增时必填,无默认值;仅草稿/驳回可编辑)")
+    @DictEnumType(type = OrderTypeEnum.class)
     private String orderType;
 
     @Schema(description = "开户银行(开立银行+支行合并,如\"中国工商银行杭州武林支行\")")
@@ -58,9 +67,11 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     private LocalDate expiryDate;
 
     @Schema(description = "审核状态(字典 letter_guarantee_approval_status: 10草稿 20已提交 30审核通过 40驳回 50作废)")
+    @DictEnumType(type = ApprovalStatusEnum.class)
     private String approvalStatus;
 
     @Schema(description = "保函状态(字典 letter_guarantee_lg_status):10=未生效(草稿/提交/驳回/作废,默认值),20=有效(审核通过时置),30=失效(到期/手动失效时置)")
+    @DictEnumType(type = LgStatusEnum.class)
     private String lgStatus;
 
     @Schema(description = "提交人ID")

@@ -1,8 +1,10 @@
 package com.leapmotor.export.vehicle.basic.resp;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.RecordTypeEnum;
+import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -30,12 +32,16 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     private String lgCode;
 
     @Schema(description = "保函类型(冗余,字典 letter_guarantee_lg_type)")
+    @DictEnumType(type = LgTypeEnum.class)
     private String lgType;
 
     @Schema(description = "客户ID")
     private String customerId;
+    private String customerCode;
+    private String customerName;
 
     @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)")
+    @DictEnumType(type = RecordTypeEnum.class)
     private String transactionType;
 
     @Schema(description = "变动金额(始终为正)")

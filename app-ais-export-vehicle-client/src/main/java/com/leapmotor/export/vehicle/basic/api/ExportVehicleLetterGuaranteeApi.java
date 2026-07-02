@@ -15,7 +15,7 @@ import java.util.List;
  * @author wangkai2527148
  * @since 2026-07-02
  */
-@FeignClient(name = "app-ais-export-vehicle",contextId="ExportVehicleLetterGuaranteeApi",path = "${appPath}/api/basic/exportVehicleLetterGuarantee", fallbackFactory = ExportVehicleLetterGuaranteeApiFallbackFactory.class)
+@FeignClient(name = "app-ais-export-vehicle",contextId="ExportVehicleLetterGuaranteeApi",path = "app-ais-export-vehicle/api/basic/exportVehicleLetterGuarantee", fallbackFactory = ExportVehicleLetterGuaranteeApiFallbackFactory.class)
 public interface ExportVehicleLetterGuaranteeApi {
 
     /**

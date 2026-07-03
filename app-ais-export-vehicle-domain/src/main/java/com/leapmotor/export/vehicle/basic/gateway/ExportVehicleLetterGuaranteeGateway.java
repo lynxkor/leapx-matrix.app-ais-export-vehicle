@@ -1,10 +1,12 @@
 package com.leapmotor.export.vehicle.basic.gateway;
 
-import com.leapmotor.paltform.ais.common.model.response.PageResult;
-import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.response.PageResult;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -14,7 +16,7 @@ import java.util.List;
  * @author wangkai2527148
  * @since 2026-07-02
  */
-public interface ExportVehicleLetterGuaranteeGateway  {
+public interface ExportVehicleLetterGuaranteeGateway {
 
     /**
      * 新增ExportVehicleLetterGuarantee
@@ -102,8 +104,7 @@ public interface ExportVehicleLetterGuaranteeGateway  {
      * 仅 lg_status=20 可冻结;available -= amount, occupied += amount
      * <p>操作人由内部通过 {@code LoginUserUtils.getCurrentUser()} 获取
      */
-    boolean freeze(String lgId, BigDecimal amount, String orderId, String orderNo,
-                   String poNo, String soNo, String vin, String remark);
+    boolean freeze(String lgId, BigDecimal amount, String orderId, String orderNo, String poNo, String soNo, String vin, String remark);
 
     /**
      * 解冻(占用 → 可用,record_type=20)
@@ -117,23 +118,31 @@ public interface ExportVehicleLetterGuaranteeGateway  {
      * 仅 lg_status=20 可转;occupied -= amount, receivable += amount
      * <p>操作人由内部通过 {@code LoginUserUtils.getCurrentUser()} 获取
      */
-    boolean transferToReceivable(String lgId, BigDecimal amount, String orderId,
-                                 String soNo, String vin, String reason);
+    boolean transferToReceivable(String lgId, BigDecimal amount, String orderId, String soNo, String vin, String reason);
 
     /**
      * 释放应收(应收清账,record_type=40)
      * receivable -= amount(核销完毕,保函不补回)
      * <p>操作人由内部通过 {@code LoginUserUtils.getCurrentUser()} 获取
      */
-    boolean releaseReceivable(String lgId, BigDecimal amount, String orderId,
-                              String soNo, String reason);
+    boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String soNo, String reason);
 
     /**
-     * 列出指定客户+订单类型下可用的保函(可被锁定的,优先级按金额)
-     * approval_status=30 AND lg_status=20 AND available>=amount
+     * 列出指定客户+订单类型下满足资金校验条件的保函。
+     * <p>过滤条件(全部 AND 关系):
+     * <ul>
+     *   <li>a. 订单类型 = {@code orderType}</li>
+     *   <li>b. lg_status = 20(有效)</li>
+     *   <li>c. approval_status = 30(审核通过)</li>
+     *   <li>d. effective_date ≤ {@code orderCreateTime}(生效起始日 ≤ 订单创建时间)</li>
+     *   <li>e. expiry_date ≥ {@code orderCreateTime} + coverDays(失效日期 ≥ 订单创建时间 + coverDays)</li>
+     * </ul>
+     * 返回所有满足 a~e 的保函;资金校验通过性(SUM(availableAmount) ≥ requiredAmount)由调用方自行累加判断。
+     * <p>若 {@code orderCreateTime} 为空,d/e 两条不过滤。
+     *
+     * @param orderCreateTime 订单创建时间(可空;为空则不过滤生效/失效日期)
      */
-    List<ExportVehicleLetterGuaranteeDo> listAvailableForCustomer(String customerId, String orderType,
-                                                                  BigDecimal requiredAmount);
+    List<ExportVehicleLetterGuaranteeDo> listAvailableForCustomer(String customerId, String orderType, LocalDate orderCreateTime);
 
     /**
      * 列出到期需要失效的保函(凌晨任务用)

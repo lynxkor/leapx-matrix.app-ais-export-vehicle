@@ -38,13 +38,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/app/basic/exportVehicleLetterGuarantee")
 public class ExportVehicleLetterGuaranteeAppController {
 
-    private ExportVehicleLetterGuaranteeService service;
+    private ExportVehicleLetterGuaranteeService exportVehicleLetterGuaranteeService;
 
     @Operation(summary = "资金校验 — PO 提交前置步骤")
     @ResourcePermission(value = "app:basic:exportVehicleLetterGuarantee:validate", desc = "PO 资金校验")
     @PostMapping("/validate")
     public AjaxResult<ExportVehicleLetterGuaranteeValidateResp> validate(@RequestBody ExportVehicleLetterGuaranteeValidateReq req) {
-        ExportVehicleLetterGuaranteeValidateResp resp = service.validateForPo(req);
+        ExportVehicleLetterGuaranteeValidateResp resp = exportVehicleLetterGuaranteeService.validateForPo(req);
         return AjaxResult.success(resp);
     }
 
@@ -52,7 +52,7 @@ public class ExportVehicleLetterGuaranteeAppController {
     @ResourcePermission(value = "app:basic:exportVehicleLetterGuarantee:batchFreeze", desc = "PO 批量冻结")
     @PostMapping("/batchFreeze")
     public AjaxResult<ExportVehicleLetterGuaranteeBatchFreezeResp> batchFreeze(@RequestBody ExportVehicleLetterGuaranteeBatchFreezeReq req) {
-        ExportVehicleLetterGuaranteeBatchFreezeResp resp = service.batchFreeze(req);
+        ExportVehicleLetterGuaranteeBatchFreezeResp resp = exportVehicleLetterGuaranteeService.batchFreeze(req);
         return AjaxResult.success(resp);
     }
 
@@ -60,7 +60,7 @@ public class ExportVehicleLetterGuaranteeAppController {
     @ResourcePermission(value = "app:basic:exportVehicleLetterGuarantee:unfreeze", desc = "PO 解冻")
     @PostMapping("/unfreeze")
     public AjaxResult<Void> unfreeze(@RequestBody ExportVehicleLetterGuaranteeUnfreezeReq req) {
-        service.unfreeze(req);
+        exportVehicleLetterGuaranteeService.unfreeze(req);
         return AjaxResult.success();
     }
 
@@ -68,7 +68,7 @@ public class ExportVehicleLetterGuaranteeAppController {
     @ResourcePermission(value = "app:basic:exportVehicleLetterGuarantee:transferToReceivable", desc = "质检转应收")
     @PostMapping("/transferToReceivable")
     public AjaxResult<Void> transferToReceivable(@RequestBody ExportVehicleLetterGuaranteeTransferReq req) {
-        service.transferToReceivable(req);
+        exportVehicleLetterGuaranteeService.transferToReceivable(req);
         return AjaxResult.success();
     }
 
@@ -76,7 +76,7 @@ public class ExportVehicleLetterGuaranteeAppController {
     @ResourcePermission(value = "app:basic:exportVehicleLetterGuarantee:releaseReceivable", desc = "SAP 清账")
     @PostMapping("/releaseReceivable")
     public AjaxResult<Void> releaseReceivable(@RequestBody ExportVehicleLetterGuaranteeReleaseReq req) {
-        service.releaseReceivable(req);
+        exportVehicleLetterGuaranteeService.releaseReceivable(req);
         return AjaxResult.success();
     }
 }

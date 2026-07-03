@@ -7,7 +7,10 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGa
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
 import com.leapmotor.export.vehicle.basic.req.*;
-import com.leapmotor.export.vehicle.basic.resp.*;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
@@ -18,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -210,14 +212,11 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
 
     // ============== 查询 ==============
 
-    @Override
-    public List<ExportVehicleLetterGuaranteeListAvailableResp> listAvailableForCustomer(ExportVehicleLetterGuaranteeListAvailableReq req) {
-        return exportVehicleLetterGuaranteeQryExe.listAvailableForCustomer(req);
-    }
-
     /**
-     * 资金校验(§8.5.1) — 校验 PO 所需金额是否可由客户可用保函覆盖,
-     * 并附带 coverDays 校验(失效日期 ≥ 订单创建时间 + coverDays,Nacos 配置 letterGuarantee.coverDays,默认 100)
+     * 资金校验(§8.5.1) — 校验 PO 所需金额是否可由客户可用保函覆盖。
+     * <p>coverDays 校验(失效日期 ≥ 订单创建时间 + coverDays,默认 100 天)已下沉到
+     * {@code listAvailableForCustomer} 的 SQL 层:把 {@code orderCreateTime} 透传给查询,
+     * 由 Gateway 在 Qo.expiryDateGe 上做 {@code expiry_date >= orderCreateTime + coverDays} 过滤。
      */
     @Override
     public ExportVehicleLetterGuaranteeValidateResp validateForPo(ExportVehicleLetterGuaranteeValidateReq req) {
@@ -226,10 +225,10 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
         listReq.setCustomerId(req.getCustomerId());
         listReq.setOrderType(req.getOrderType());
         listReq.setRequiredAmount(req.getRequiredAmount());
-        List<ExportVehicleLetterGuaranteeListAvailableResp> candidates = exportVehicleLetterGuaranteeQryExe.listAvailableForCustomer(listReq);
+        listReq.setOrderCreateTime(req.getOrderCreateTime());
+        List<ExportVehicleLetterGuaranteeDo> candidates = exportVehicleLetterGuaranteeQryExe.listAvailableForCustomer(listReq);
         resp.setCandidates(candidates);
         resp.setRequiredAmount(req.getRequiredAmount());
-
         // 1. 必须有候选保函
         if (candidates == null || candidates.isEmpty()) {
             resp.setPassed(false);
@@ -240,38 +239,18 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
 
         // 2. 总可用 ≥ 申请冻结金额
         BigDecimal totalAvailable = candidates.stream()
-                .map(ExportVehicleLetterGuaranteeListAvailableResp::getAvailableAmount)
+                .map(ExportVehicleLetterGuaranteeDo::getAvailableAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         resp.setTotalAvailable(totalAvailable);
         if (totalAvailable.compareTo(req.getRequiredAmount()) < 0) {
             resp.setPassed(false);
             resp.setFailCode("dict.letterGuarantee.validate.fail.insufficient");
-            resp.setFailMessage("可用保函总金额不足:可用=" + totalAvailable + ", 申请=" + req.getRequiredAmount());
-            return resp;
-        }
-
-        // 3. coverDays 校验(失效日期 ≥ 订单创建时间 + coverDays)
-        long coverDays = resolveCoverDays();
-        LocalDate deadline = req.getOrderCreateTime().plusDays(coverDays);
-        boolean ok = candidates.stream().allMatch(c ->
-                c.getExpiryDate() != null && !c.getExpiryDate().isBefore(deadline));
-        if (!ok) {
-            resp.setPassed(false);
-            resp.setFailCode("dict.letterGuarantee.validate.fail.expiryTooEarly");
-            resp.setFailMessage("存在保函失效日期早于订单创建时间 + " + coverDays + " 天");
+            resp.setFailMessage("提交失败,资金校验未通过,请联系商务。可用保函总金额=" + totalAvailable + ", 订单总金额=" + req.getRequiredAmount());
             return resp;
         }
 
         resp.setPassed(true);
         return resp;
-    }
-
-    /**
-     * 从 Nacos 配置 letterGuarantee.coverDays 读取覆盖天数(默认 100)。
-     * 实际实现应通过 ExportVehicleLetterGuaranteeProperties 注入;此处先留可替换点。
-     */
-    private long resolveCoverDays() {
-        return 100L;
     }
 }

@@ -27,14 +27,14 @@ import java.util.List;
 @AllArgsConstructor
 public class ExportVehicleLetterGuaranteeExpireJob {
 
-    private ExportVehicleLetterGuaranteeGateway gateway;
+    private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
 
     @XxlJob("letterGuaranteeExpireJob")
     @Transactional(rollbackFor = Exception.class)
     public void expire() {
         LocalDate today = LocalDate.now();
         log.info("保函凌晨失效任务开始: today={}", today);
-        List<ExportVehicleLetterGuaranteeDo> expired = gateway.listExpiredBefore(today);
+        List<ExportVehicleLetterGuaranteeDo> expired = exportVehicleLetterGuaranteeGateway.listExpiredBefore(today);
         int total = expired == null ? 0 : expired.size();
         log.info("扫描出待失效保函 {} 条", total);
 
@@ -45,7 +45,7 @@ public class ExportVehicleLetterGuaranteeExpireJob {
         if (expired != null) {
             for (ExportVehicleLetterGuaranteeDo lg : expired) {
                 try {
-                    gateway.expireEarly(lg.getId(), "凌晨任务自动失效");
+                    exportVehicleLetterGuaranteeGateway.expireEarly(lg.getId(), "凌晨任务自动失效");
                     success++;
                 } catch (Exception e) {
                     log.error("保函自动失效失败: id={}, err={}", lg.getId(), e.getMessage(), e);

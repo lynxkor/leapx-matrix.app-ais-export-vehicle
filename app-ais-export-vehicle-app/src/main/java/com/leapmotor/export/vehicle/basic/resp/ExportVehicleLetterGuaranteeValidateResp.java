@@ -1,9 +1,12 @@
 package com.leapmotor.export.vehicle.basic.resp;
 
+import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.platform.ais.common.web.serializer.BigDecimalFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -24,13 +27,13 @@ public class ExportVehicleLetterGuaranteeValidateResp implements Serializable {
     private String failMessage;
 
     @Schema(description = "候选保函列表(供 PO 提交后批量冻结)")
-    private List<ExportVehicleLetterGuaranteeListAvailableResp> candidates;
+    private List<ExportVehicleLetterGuaranteeDo> candidates;
 
     @Schema(description = "本次申请所需金额")
     @BigDecimalFormat(pattern = "#.########")
-    private java.math.BigDecimal requiredAmount;
+    private BigDecimal requiredAmount;
 
     @Schema(description = "候选保函可用总金额")
     @BigDecimalFormat(pattern = "#.########")
-    private java.math.BigDecimal totalAvailable;
+    private BigDecimal totalAvailable;
 }

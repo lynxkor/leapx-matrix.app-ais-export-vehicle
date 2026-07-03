@@ -12,8 +12,7 @@ import org.mapstruct.factory.Mappers;
  */
 @Mapper
 public interface ExportVehicleLetterGuaranteeListAvailableMapper {
-    ExportVehicleLetterGuaranteeListAvailableMapper INSTANCE =
-        Mappers.getMapper(ExportVehicleLetterGuaranteeListAvailableMapper.class);
+    ExportVehicleLetterGuaranteeListAvailableMapper INSTANCE = Mappers.getMapper(ExportVehicleLetterGuaranteeListAvailableMapper.class);
 
     ExportVehicleLetterGuaranteeListAvailableResp doToResp(ExportVehicleLetterGuaranteeDo source);
 }

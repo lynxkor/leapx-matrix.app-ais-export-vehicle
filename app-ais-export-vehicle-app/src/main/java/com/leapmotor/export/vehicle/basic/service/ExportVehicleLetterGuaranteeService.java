@@ -2,7 +2,10 @@ package com.leapmotor.export.vehicle.basic.service;
 
 
 import com.leapmotor.export.vehicle.basic.req.*;
-import com.leapmotor.export.vehicle.basic.resp.*;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 
@@ -103,11 +106,6 @@ public interface ExportVehicleLetterGuaranteeService {
      * 释放应收(SAP 清账)
      */
     boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req);
-
-    /**
-     * 列出指定客户可用保函(供 PO 资金校验)
-     */
-    List<ExportVehicleLetterGuaranteeListAvailableResp> listAvailableForCustomer(ExportVehicleLetterGuaranteeListAvailableReq req);
 
     // ============== 查询:获取已有 AppController 校验所需保函 ==============
 

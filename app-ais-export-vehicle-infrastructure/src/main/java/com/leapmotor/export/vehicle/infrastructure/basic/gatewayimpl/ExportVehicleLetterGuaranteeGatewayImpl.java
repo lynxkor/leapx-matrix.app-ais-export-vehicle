@@ -1,11 +1,14 @@
 package com.leapmotor.export.vehicle.infrastructure.basic.gatewayimpl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRecordGateway;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
+import com.leapmotor.export.vehicle.constant.ExportVehicleConstant;
 import com.leapmotor.export.vehicle.infrastructure.basic.convertor.ExportVehicleLetterGuaranteeStructMapper;
 import com.leapmotor.export.vehicle.infrastructure.basic.dao.ExportVehicleLetterGuaranteeDao;
 import com.leapmotor.export.vehicle.infrastructure.basic.entity.ExportVehicleLetterGuarantee;
@@ -25,8 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -208,6 +213,8 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         return updateResult != null;
     }
 
+
+    //-------------------------------------------------------------------------------------------------------------------
     @Override
     public boolean freeze(String lgId, BigDecimal amount, String orderId, String orderNo,
                           String poNo, String soNo, String vin, String remark) {
@@ -326,24 +333,27 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
-    public List<ExportVehicleLetterGuaranteeDo> listAvailableForCustomer(String customerId, String orderType, BigDecimal requiredAmount) {
+    public List<ExportVehicleLetterGuaranteeDo> listAvailableForCustomer(String customerId, String orderType, LocalDate orderCreateTime) {
         if (!StringUtils.hasText(customerId)) {
             throw new BizException("客户ID不能为空");
         }
+        if (!StringUtils.hasText(orderType)) {
+            throw new BizException("订单类型不能为空");
+        }
+        if (orderCreateTime == null) {
+            throw new BizException("订单创建时间不能为空");
+        }
+
         ExportVehicleLetterGuaranteeQo qo = new ExportVehicleLetterGuaranteeQo();
         qo.setCustomerId(customerId);
         qo.setOrderType(orderType);
         qo.setApprovalStatus(ApprovalStatusEnum.APPROVED.getCode());
         qo.setLgStatus(LgStatusEnum.EFFECTIVE.getCode());
-        // 可按金额过滤;为简化,通过 list 后内存过滤
-        List<ExportVehicleLetterGuaranteeDo> all = listExportVehicleLetterGuarantee(qo);
-        if (requiredAmount == null || requiredAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            return all;
-        }
-        return all.stream()
-                .filter(lg -> lg.getAvailableAmount() != null && lg.getAvailableAmount().compareTo(requiredAmount) >= 0)
-                .sorted((a, b) -> b.getAvailableAmount().compareTo(a.getAvailableAmount()))
-                .toList();
+        qo.setEffectiveDateLe(orderCreateTime);
+        // e. 失效日期 ≥ 订单创建时间 + coverDays
+        qo.setExpiryDateGe(orderCreateTime.plusDays(ExportVehicleConstant.LETTER_GUARANTEE_COVER_DAYS));
+        // 列出所有满足 a~e 的保函,f 由调用方累加 SUM(availableAmount) 与 requiredAmount 比较
+        return listExportVehicleLetterGuarantee(qo);
     }
 
     @Override
@@ -352,19 +362,16 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
             date = java.time.LocalDate.now();
         }
         // 直接基于 Entity 查(凌晨任务用,内部基础设施层操作)
-        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ExportVehicleLetterGuarantee> qw =
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        QueryWrapper<ExportVehicleLetterGuarantee> qw = new QueryWrapper<>();
         qw.eq("approval_status", ApprovalStatusEnum.APPROVED.getCode());
         qw.eq("lg_status", LgStatusEnum.EFFECTIVE.getCode());
         qw.lt("expiry_date", date);
         // ServiceImpl 提供 list API;这里走 queryList
-        com.baomidou.mybatisplus.extension.service.IService<ExportVehicleLetterGuarantee> svc = (com.baomidou.mybatisplus.extension.service.IService<ExportVehicleLetterGuarantee>) exportVehicleLetterGuaranteeDao;
+        IService<ExportVehicleLetterGuarantee> svc = exportVehicleLetterGuaranteeDao;
         @SuppressWarnings("unchecked")
         List<ExportVehicleLetterGuarantee> entities = svc.list(qw);
-        if (entities == null || entities.isEmpty()) return java.util.Collections.emptyList();
-        return entities.stream()
-                .map(ExportVehicleLetterGuaranteeStructMapper.INSTANCE::dataObjectToDomain)
-                .toList();
+        if (entities == null || entities.isEmpty()) return Collections.emptyList();
+        return entities.stream().map(ExportVehicleLetterGuaranteeStructMapper.INSTANCE::dataObjectToDomain).toList();
     }
 
     private ExportVehicleLetterGuaranteeDo mustGet(String id) {

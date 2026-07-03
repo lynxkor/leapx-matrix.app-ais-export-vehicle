@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 批量状态机操作响应 — 提交/审核/作废
  *
- * <p>与 {@link ExportVehicleLetterGuaranteeBatchFreezeResp} 不同:
+ * <p>与 {@link ExportVehicleLetterGuaranteeFreezeResp} 不同:
  * 状态机批量每条独立事务,1 条失败不影响其他条,故响应需逐条返回结果。
  * 资金批量(batchFreeze)整体回滚,任一失败统一 failCode/failMessage。
  *

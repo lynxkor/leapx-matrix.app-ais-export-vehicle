@@ -2,7 +2,8 @@ package com.leapmotor.export.vehicle.basic.service;
 
 
 import com.leapmotor.export.vehicle.basic.req.*;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
@@ -83,19 +84,27 @@ public interface ExportVehicleLetterGuaranteeService {
     // ============== 资金流(由 PO/APP 内部调用) ==============
 
     /**
-     * 单张冻结
+     * 单 PO 冻结(单个 PO 提交用,§8.5.3)
+     * <p>服务端自动选保函,逐步拆冻至覆盖 requiredAmount,任一保函冻结失败整体回滚。
      */
-    boolean freeze(ExportVehicleLetterGuaranteeFreezeReq req);
+    ExportVehicleLetterGuaranteeFreezeResp freeze(ExportVehicleLetterGuaranteeFreezeReq req);
 
     /**
-     * 批量冻结(PO 提交用)
+     * 批量 PO 冻结(多个 PO 提交用)
+     * <p>每个 PO 独立事务,返回每 PO 的冻结结果。
      */
-    ExportVehicleLetterGuaranteeBatchFreezeResp batchFreeze(ExportVehicleLetterGuaranteeBatchFreezeReq req);
+    List<ExportVehicleLetterGuaranteeFreezeResp> batchFreeze(List<ExportVehicleLetterGuaranteeFreezeReq> list);
 
     /**
      * 解冻(PO 驳回用)
      */
     boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req);
+
+    /**
+     * 批量 PO 解冻(多个 PO 驳回用)
+     * <p>每个 PO 独立事务,返回每 PO 的解冻结果。
+     */
+    List<ExportVehicleLetterGuaranteeUnfreezeResp> batchUnfreeze(List<ExportVehicleLetterGuaranteeUnfreezeReq> list);
 
     /**
      * 转应收(质检通过)
@@ -112,5 +121,5 @@ public interface ExportVehicleLetterGuaranteeService {
     /**
      * PO 资金校验(给 PO 模块调用,§8.5.1)
      */
-    ExportVehicleLetterGuaranteeValidateResp validateForPo(ExportVehicleLetterGuaranteeValidateReq req);
+    ExportVehicleLetterGuaranteeValidateResp validateForPo(ExportVehicleLetterGuaranteeFreezeReq req);
 }

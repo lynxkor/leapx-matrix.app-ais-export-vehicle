@@ -208,7 +208,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
             // 写失效流水 record_type=50(可用→0 系统调整;占用/应收保留)
             writeRecord(lg, RecordTypeEnum.EXPIRE.getCode(), beforeAvailable,
                     beforeAvailable, afterAvailable, null, null, null, null,
-                    null, null, null, reason, null, null);
+                    null, null, null, reason);
         }
         return updateResult != null;
     }
@@ -216,8 +216,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
 
     //-------------------------------------------------------------------------------------------------------------------
     @Override
-    public boolean freeze(String lgId, BigDecimal amount, String orderId, String orderNo,
-                          String poNo, String soNo, String vin, String remark) {
+    public boolean freeze(String lgId, BigDecimal amount, String orderId, String orderNo, String poNo, String soNo, String vin, String remark) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BizException("冻结金额必须大于 0");
         }
@@ -225,7 +224,6 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         ensureEffective(lg);
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
         BigDecimal beforeOccupied = lg.getOccupiedAmount() == null ? BigDecimal.ZERO : lg.getOccupiedAmount();
-        BigDecimal beforeReceivable = lg.getReceivableAmount() == null ? BigDecimal.ZERO : lg.getReceivableAmount();
         if (beforeAvailable.compareTo(amount) < 0) {
             throw new BizException("可用金额不足: 可用=" + beforeAvailable + ", 申请=" + amount);
         }
@@ -235,16 +233,12 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         lg.setOccupiedAmount(afterOccupied);
         if (updateExportVehicleLetterGuarantee(lg) != null) {
             writeRecord(lg, RecordTypeEnum.FREEZE.getCode(), amount,
-                    beforeAvailable, afterAvailable,
-                    beforeOccupied, afterOccupied,
-                    beforeReceivable, beforeReceivable, // 应收未变
-                    poNo, soNo, vin, remark, orderId, orderNo);
+                    beforeAvailable, afterAvailable, beforeOccupied, afterOccupied, null, null, // 应收未变
+                    poNo, soNo, vin, remark);
             return true;
         }
         return false;
     }
-
-    // ============== 查询 ==============
 
     @Override
     public boolean unfreeze(String lgId, BigDecimal amount, String orderId, String poNo, String reason) {
@@ -252,37 +246,47 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
             throw new BizException("解冻金额必须大于 0");
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
-        ensureEffective(lg);
+        if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
+            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + lg.getLgStatus());
+        }
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
         BigDecimal beforeOccupied = lg.getOccupiedAmount() == null ? BigDecimal.ZERO : lg.getOccupiedAmount();
-        BigDecimal beforeReceivable = lg.getReceivableAmount() == null ? BigDecimal.ZERO : lg.getReceivableAmount();
         if (beforeOccupied.compareTo(amount) < 0) {
             throw new BizException("占用金额不足: 占用=" + beforeOccupied + ", 申请解冻=" + amount);
         }
+
         BigDecimal afterAvailable = beforeAvailable.add(amount);
+        if (LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
+            lg.setAvailableAmount(afterAvailable);
+        }
+
         BigDecimal afterOccupied = beforeOccupied.subtract(amount);
         lg.setOccupiedAmount(afterOccupied);
-        lg.setAvailableAmount(afterAvailable);
+
         if (updateExportVehicleLetterGuarantee(lg) != null) {
-            writeRecord(lg, RecordTypeEnum.UNFREEZE.getCode(), amount,
-                    beforeAvailable, afterAvailable,
-                    beforeOccupied, afterOccupied,
-                    beforeReceivable, beforeReceivable, // 应收未变
-                    poNo, null, null, reason, orderId, null);
+            if (LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
+                writeRecord(lg, RecordTypeEnum.UNFREEZE.getCode(), amount,
+                        beforeAvailable, afterAvailable, beforeOccupied, afterOccupied, null, null, // 应收未变
+                        poNo, null, null, reason);
+            } else {
+                writeRecord(lg, RecordTypeEnum.UNFREEZE.getCode(), amount,
+                        null, null, beforeOccupied, afterOccupied, null, null, // 应收未变
+                        poNo, null, null, reason);
+            }
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean transferToReceivable(String lgId, BigDecimal amount, String orderId,
-                                        String soNo, String vin, String reason) {
+    public boolean transferToReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String vin, String reason) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BizException("转应收金额必须大于 0");
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
-        ensureEffective(lg);
-        BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
+        if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
+            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + lg.getLgStatus());
+        }
         BigDecimal beforeOccupied = lg.getOccupiedAmount() == null ? BigDecimal.ZERO : lg.getOccupiedAmount();
         BigDecimal beforeReceivable = lg.getReceivableAmount() == null ? BigDecimal.ZERO : lg.getReceivableAmount();
         if (beforeOccupied.compareTo(amount) < 0) {
@@ -294,44 +298,56 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         lg.setReceivableAmount(afterReceivable);
         if (updateExportVehicleLetterGuarantee(lg) != null) {
             writeRecord(lg, RecordTypeEnum.TRANSFER_RECEIVABLE.getCode(), amount,
-                    beforeAvailable, beforeAvailable, // 可用未变
-                    beforeOccupied, afterOccupied,
-                    beforeReceivable, afterReceivable,
-                    null, soNo, vin, reason, orderId, null);
+                    null, null, beforeOccupied, afterOccupied, beforeReceivable, afterReceivable,// 可用未变
+                    poNo, soNo, vin, reason);
             return true;
         }
         return false;
     }
 
-    // ============== 内部工具 ==============
-
     @Override
-    public boolean releaseReceivable(String lgId, BigDecimal amount, String orderId,
-                                     String soNo, String reason) {
+    public boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String reason) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BizException("释放应收金额必须大于 0");
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
+        if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
+            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + lg.getLgStatus());
+        }
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
-        BigDecimal beforeOccupied = lg.getOccupiedAmount() == null ? BigDecimal.ZERO : lg.getOccupiedAmount();
         BigDecimal beforeReceivable = lg.getReceivableAmount() == null ? BigDecimal.ZERO : lg.getReceivableAmount();
         if (beforeReceivable.compareTo(amount) < 0) {
             throw new BizException("应收金额不足: 应收=" + beforeReceivable + ", 申请释放=" + amount);
         }
+
+        BigDecimal afterAvailable = beforeAvailable.add(amount);
+        if (LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
+            lg.setAvailableAmount(afterAvailable);
+        }
+
         // 释放应收:应收 - amount(保函不补回,核销完毕)
         BigDecimal afterReceivable = beforeReceivable.subtract(amount);
         lg.setReceivableAmount(afterReceivable);
+
+
         if (updateExportVehicleLetterGuarantee(lg) != null) {
-            writeRecord(lg, RecordTypeEnum.RELEASE_RECEIVABLE.getCode(), amount,
-                    beforeAvailable, beforeAvailable, // 可用未变
-                    beforeOccupied, beforeOccupied,   // 占用未变
-                    beforeReceivable, afterReceivable,
-                    null, null, null, reason, orderId, soNo);
+            if (LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
+                writeRecord(lg, RecordTypeEnum.RELEASE_RECEIVABLE.getCode(), amount,
+                        beforeAvailable, afterAvailable, null, null, beforeReceivable, afterReceivable, // 可用加 占用未变 应收减
+                        poNo, soNo, null, reason);
+            } else {
+                writeRecord(lg, RecordTypeEnum.RELEASE_RECEIVABLE.getCode(), amount,
+                        null, null, null, null, beforeReceivable, afterReceivable, // 可用未变 占用未变 应收减
+                        poNo, soNo, null, reason);
+            }
+
+
             return true;
         }
         return false;
     }
 
+    // ============== 查询 ==============
     @Override
     public List<ExportVehicleLetterGuaranteeDo> listAvailableForCustomer(String customerId, String orderType, LocalDate orderCreateTime) {
         if (!StringUtils.hasText(customerId)) {
@@ -352,7 +368,6 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         qo.setEffectiveDateLe(orderCreateTime);
         // e. 失效日期 ≥ 订单创建时间 + coverDays
         qo.setExpiryDateGe(orderCreateTime.plusDays(ExportVehicleConstant.LETTER_GUARANTEE_COVER_DAYS));
-        // 列出所有满足 a~e 的保函,f 由调用方累加 SUM(availableAmount) 与 requiredAmount 比较
         return listExportVehicleLetterGuarantee(qo);
     }
 
@@ -408,8 +423,6 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
      * @param afterOccupied     变动后占用金额
      * @param beforeReceivable  变动前应收金额
      * @param afterReceivable   变动后应收金额
-     * @param orderId           订单ID(可空,部分流水如 expireEarly 无订单)
-     * @param orderNo           订单号(可空)
      */
     private void writeRecord(ExportVehicleLetterGuaranteeDo lg, String recordType,
                              BigDecimal transactionAmount,
@@ -417,7 +430,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
                              BigDecimal beforeOccupied, BigDecimal afterOccupied,
                              BigDecimal beforeReceivable, BigDecimal afterReceivable,
                              String poNo, String soNo, String vin,
-                             String remark, String orderId, String orderNo) {
+                             String remark) {
         ExportVehicleLetterGuaranteeRecordDo record = new ExportVehicleLetterGuaranteeRecordDo();
         record.setId(UUID.randomUUID().toString().replace("-", ""));
         record.setLgRecordCode(genRecordCode());

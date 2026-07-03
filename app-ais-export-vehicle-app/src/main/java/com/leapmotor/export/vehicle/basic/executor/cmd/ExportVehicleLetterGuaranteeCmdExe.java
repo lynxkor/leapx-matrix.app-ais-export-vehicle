@@ -1,10 +1,19 @@
 package com.leapmotor.export.vehicle.basic.executor.cmd;
 
 
+import com.alibaba.fastjson.JSON;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
+import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRecordGateway;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
-import com.leapmotor.export.vehicle.basic.req.*;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchFreezeResp;
+import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
+import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeRecordQo;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeFreezeReq;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeReleaseReq;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeTransferReq;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfreezeReq;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.RecordTypeEnum;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
@@ -13,8 +22,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -33,6 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ExportVehicleLetterGuaranteeCmdExe {
 
     private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
+    private ExportVehicleLetterGuaranteeRecordGateway exportVehicleLetterGuaranteeRecordGateway;
 
     // ============== 基础 CRUD ==============
 
@@ -79,110 +89,64 @@ public class ExportVehicleLetterGuaranteeCmdExe {
 
     // ============== 资金流 ==============
 
-    @Transactional(rollbackFor = Exception.class)
-    public boolean freeze(ExportVehicleLetterGuaranteeFreezeReq req) {
-        log.info("保函冻结: lgId={}, amount={}, poNo={}",
-                req.getLgId(), req.getAmount(), req.getPoNo());
-        return exportVehicleLetterGuaranteeGateway.freeze(req.getLgId(), req.getAmount(),
-                req.getOrderId(), req.getOrderNo(), req.getPoNo(), req.getSoNo(), req.getVin(),
-                req.getRemark());
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req) {
-        log.info("保函解冻: lgId={}, amount={}, poNo={}",
-                req.getLgId(), req.getAmount(), req.getPoNo());
-        return exportVehicleLetterGuaranteeGateway.unfreeze(req.getLgId(), req.getAmount(),
-                req.getOrderId(), req.getPoNo(), req.getReason());
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public boolean transferToReceivable(ExportVehicleLetterGuaranteeTransferReq req) {
-        log.info("保函转应收: lgId={}, amount={}, soNo={}, vin={}",
-                req.getLgId(), req.getAmount(), req.getSoNo(), req.getVin());
-        return exportVehicleLetterGuaranteeGateway.transferToReceivable(req.getLgId(), req.getAmount(),
-                req.getOrderId(), req.getSoNo(), req.getVin(), req.getReason());
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req) {
-        log.info("保函释放应收: lgId={}, amount={}, soNo={}",
-                req.getLgId(), req.getAmount(), req.getSoNo());
-        return exportVehicleLetterGuaranteeGateway.releaseReceivable(req.getLgId(), req.getAmount(),
-                req.getOrderId(), req.getSoNo(), req.getReason());
-    }
-
     /**
-     * 批量冻结 — 整体事务,任一失败回滚(设计文档 §3.4.3)
+     * 单 PO 冻结 — 整体事务 all-or-nothing:任一保函冻结失败立即抛异常,事务整体回滚(设计文档 §3.4.3 / §8.5.3)
+     * <p>候选保函由服务端按 {@code listAvailableForCustomer} 自动选取(失效日期升序 + 同日按可用金额倒序 + 完全相同随机)。
+     * <p>无「单张保函失败」状态 — 任一失败抛 BizException,由 @Transactional 整体回滚。
+     * <p>成功时每次 {@code gateway.freeze} 会写一条 {@code record_type=10(冻结)} 的保函交易记录。
      */
     @Transactional(rollbackFor = Exception.class)
-    public ExportVehicleLetterGuaranteeBatchFreezeResp batchFreeze(ExportVehicleLetterGuaranteeBatchFreezeReq req) {
-        log.info("保函批量冻结: customer={}, orderType={}, required={}, candidates={}",
-                req.getCustomerId(), req.getOrderType(), req.getRequiredAmount(),
-                req.getCandidateLgIds());
+    public ExportVehicleLetterGuaranteeFreezeResp freeze(ExportVehicleLetterGuaranteeFreezeReq req) {
+        log.info("保函单 PO 冻结: req={}", JSON.toJSONString(req));
 
-        ExportVehicleLetterGuaranteeBatchFreezeResp resp = new ExportVehicleLetterGuaranteeBatchFreezeResp();
-        List<ExportVehicleLetterGuaranteeBatchFreezeResp.FrozenItem> frozen = new ArrayList<>();
-        List<ExportVehicleLetterGuaranteeBatchFreezeResp.FailedItem> failed = new ArrayList<>();
+        // 1. 自动选保函(透传 orderCreateTime 用于 coverDays SQL 过滤)
+        List<ExportVehicleLetterGuaranteeDo> auto = exportVehicleLetterGuaranteeGateway.listAvailableForCustomer(req.getCustomerId(), req.getOrderType(), req.getOrderCreateTime());
+        if (auto == null || auto.isEmpty()) {
+            throw new BizException("客户无可用保函");
+        }
+        // 总可用 ≥ 申请冻结金额,否则整体回滚
+        BigDecimal totalAvailable = auto.stream().map(ExportVehicleLetterGuaranteeDo::getAvailableAmount).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalAvailable.compareTo(req.getRequiredAmount()) < 0) {
+            throw new BizException("可用保函总金额不足以覆盖需求:可用=" + totalAvailable + ", 申请=" + req.getRequiredAmount());
+        }
+
+        // 排序规则(业务规则,设计文档 §8.5.3):
+        // a. 失效日期升序 — 优先冻结最先到期的保函
+        // b. 失效日期相同时,可用订单金额倒序 — 同日到期时先用大额
+        // c. 两者均相同则随机 — 先 shuffle 再稳定排序,相等的元素保留随机相对顺序
+        List<ExportVehicleLetterGuaranteeDo> shuffled = new ArrayList<>(auto);
+        Collections.shuffle(shuffled, ThreadLocalRandom.current());
+        List<ExportVehicleLetterGuaranteeDo> sorted = shuffled.stream()
+                .sorted(Comparator
+                        .comparing((ExportVehicleLetterGuaranteeDo d) -> d.getExpiryDate(),
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing((ExportVehicleLetterGuaranteeDo d) -> d.getAvailableAmount(),
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        // 2. 逐步拆冻,任一失败 → 抛 BizException → @Transactional 整体回滚
+        ExportVehicleLetterGuaranteeFreezeResp resp = new ExportVehicleLetterGuaranteeFreezeResp();
+        resp.setPoNo(req.getPoNo());
+        List<ExportVehicleLetterGuaranteeFreezeResp.FrozenItem> frozen = new ArrayList<>();
         AtomicLong totalFrozen = new AtomicLong(0);
-
-        // 1. 选取候选保函
-        List<String> candidates = req.getCandidateLgIds();
-        if (candidates == null || candidates.isEmpty()) {
-            // 自动按可用金额降序选 — 这里仅做一轮 lookup;若不足一次性补齐
-            List<ExportVehicleLetterGuaranteeDo> auto = exportVehicleLetterGuaranteeGateway.listAvailableForCustomer(
-                    req.getCustomerId(), req.getOrderType(), null);
-            if (auto != null) {
-                candidates = auto.stream().map(ExportVehicleLetterGuaranteeDo::getId).toList();
-            } else {
-                candidates = List.of();
-            }
-        }
-        if (candidates.isEmpty()) {
-            resp.setSuccess(false);
-            resp.setFailCode("LG_NO_AVAILABLE");
-            resp.setFailMessage("客户无可用保函");
-            return resp;
-        }
-
-        // 2. 逐步拆冻,任一不可用 → 全部回滚(@Transactional)
         BigDecimal remaining = req.getRequiredAmount();
-        for (String lgId : candidates) {
+        for (ExportVehicleLetterGuaranteeDo candidate : sorted) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
-            // 单张最大可冻金额由 Service 内询 Gateway 后传入;此处简化用 remaining
-            BigDecimal amount = remaining;
-            ExportVehicleLetterGuaranteeFreezeReq single = new ExportVehicleLetterGuaranteeFreezeReq();
-            single.setLgId(lgId);
-            single.setAmount(amount);
-            single.setOrderId(req.getOrderId());
-            single.setOrderNo(req.getOrderNo());
-            single.setPoNo(req.getPoNo());
-            single.setRemark(req.getRemark());
-            try {
-                boolean ok = freeze(single);
-                if (!ok) {
-                    throw new BizException("保函冻结失败: " + lgId);
-                }
-                ExportVehicleLetterGuaranteeDo lg = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(lgId);
-                ExportVehicleLetterGuaranteeBatchFreezeResp.FrozenItem item = new ExportVehicleLetterGuaranteeBatchFreezeResp.FrozenItem();
-                item.setLgId(lgId);
-                item.setLgCode(lg == null ? null : lg.getLgCode());
-                item.setFrozenAmount(amount);
-                item.setPoNo(req.getPoNo());
-                frozen.add(item);
-                totalFrozen.addAndGet(amount.longValue());
-                remaining = remaining.subtract(amount);
-            } catch (BizException e) {
-                ExportVehicleLetterGuaranteeDo lg = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(lgId);
-                ExportVehicleLetterGuaranteeBatchFreezeResp.FailedItem item = new ExportVehicleLetterGuaranteeBatchFreezeResp.FailedItem();
-                item.setLgId(lgId);
-                item.setLgCode(lg == null ? null : lg.getLgCode());
-                item.setRequiredAmount(amount);
-                item.setAvailableAmount(lg == null ? null : lg.getAvailableAmount());
-                item.setReason(e.getMessage());
-                failed.add(item);
-                throw e; // 任一失败整体回滚
+            BigDecimal available = candidate.getAvailableAmount() == null ? BigDecimal.ZERO : candidate.getAvailableAmount();
+            if (available.compareTo(BigDecimal.ZERO) <= 0) continue;
+            BigDecimal amount = remaining.compareTo(available) <= 0 ? remaining : available;
+            boolean ok = exportVehicleLetterGuaranteeGateway.freeze(candidate.getId(), amount, req.getOrderId(), req.getOrderNo(), req.getPoNo(), null, null, req.getRemark());
+            if (!ok) {
+                throw new BizException("保函冻结失败: " + candidate.getId());
             }
+            ExportVehicleLetterGuaranteeFreezeResp.FrozenItem item = new ExportVehicleLetterGuaranteeFreezeResp.FrozenItem();
+            item.setLgId(candidate.getId());
+            item.setLgCode(candidate.getLgCode());
+            item.setFrozenAmount(amount);
+            item.setPoNo(req.getPoNo());
+            frozen.add(item);
+            totalFrozen.addAndGet(amount.longValue());
+            remaining = remaining.subtract(amount);
         }
 
         if (remaining.compareTo(BigDecimal.ZERO) > 0) {
@@ -191,7 +155,231 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         resp.setSuccess(true);
         resp.setTotalFrozenAmount(BigDecimal.valueOf(totalFrozen.get()));
         resp.setFrozenItems(frozen);
-        resp.setFailedItems(failed);
         return resp;
     }
+
+    /**
+     * 批量 PO 冻结 — 每个 PO 独立事务,任一 PO 失败不影响其他 PO。
+     * <p>每个 PO 通过 cross-bean 调用 {@link #freeze(ExportVehicleLetterGuaranteeFreezeReq)} 进入各自事务。
+     */
+    public List<ExportVehicleLetterGuaranteeFreezeResp> batchFreeze(List<ExportVehicleLetterGuaranteeFreezeReq> list) {
+        if (list == null || list.isEmpty()) {
+            return List.of();
+        }
+        log.info("保函批量 PO 冻结: 共 {} 个 PO", list.size());
+        List<ExportVehicleLetterGuaranteeFreezeResp> results = new ArrayList<>();
+        for (ExportVehicleLetterGuaranteeFreezeReq singlePo : list) {
+            ExportVehicleLetterGuaranteeFreezeResp poResp;
+            try {
+                poResp = freeze(singlePo);
+            } catch (BizException e) {
+                poResp = new ExportVehicleLetterGuaranteeFreezeResp();
+                poResp.setPoNo(singlePo.getPoNo());
+                poResp.setSuccess(false);
+                poResp.setFailMessage(e.getMessage());
+            } catch (Exception e) {
+                poResp = new ExportVehicleLetterGuaranteeFreezeResp();
+                poResp.setPoNo(singlePo.getPoNo());
+                poResp.setSuccess(false);
+                poResp.setFailMessage(e.getMessage());
+            }
+            results.add(poResp);
+        }
+        return results;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req) {
+        log.info("保函 PO 解冻: req={}", JSON.toJSONString(req));
+        // 1. 查该 PO 下所有冻结记录(transaction_type=10),按保函逐张全额解冻
+        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
+        qo.setPoNo(req.getPoNo());
+        qo.setTransactionType(RecordTypeEnum.FREEZE.getCode());
+        List<ExportVehicleLetterGuaranteeRecordDo> frozen = exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(qo);
+        if (frozen == null || frozen.isEmpty()) {
+            log.info("PO {} 下无冻结记录,无需解冻", req.getPoNo());
+            return true;
+        }
+        int unfrozenCount = 0;
+        for (ExportVehicleLetterGuaranteeRecordDo rec : frozen) {
+            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
+            if (amt.compareTo(BigDecimal.ZERO) <= 0) continue;
+            boolean ok = exportVehicleLetterGuaranteeGateway.unfreeze(rec.getLgId(), amt,
+                    req.getOrderId(), req.getPoNo(), req.getReason());
+            if (!ok) {
+                throw new BizException("保函解冻失败: lgId=" + rec.getLgId());
+            }
+            unfrozenCount++;
+        }
+        log.info("PO {} 解冻完成: 共解冻 {} 张保函", req.getPoNo(), unfrozenCount);
+        return true;
+    }
+
+    /**
+     * 批量 PO 解冻 — 每个 PO 独立事务,任一 PO 失败不影响其他 PO。
+     * <p>每个 PO 通过 cross-bean 调用 {@link #unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq)} 进入各自事务。
+     */
+    public List<ExportVehicleLetterGuaranteeUnfreezeResp> batchUnfreeze(List<ExportVehicleLetterGuaranteeUnfreezeReq> list) {
+        if (list == null || list.isEmpty()) {
+            return List.of();
+        }
+        log.info("保函批量 PO 解冻: 共 {} 个 PO", list.size());
+        List<ExportVehicleLetterGuaranteeUnfreezeResp> results = new ArrayList<>();
+        for (ExportVehicleLetterGuaranteeUnfreezeReq singlePo : list) {
+            ExportVehicleLetterGuaranteeUnfreezeResp poResp;
+            try {
+                unfreeze(singlePo);
+                poResp = new ExportVehicleLetterGuaranteeUnfreezeResp();
+                poResp.setPoNo(singlePo.getPoNo());
+                poResp.setSuccess(true);
+            } catch (BizException e) {
+                poResp = new ExportVehicleLetterGuaranteeUnfreezeResp();
+                poResp.setPoNo(singlePo.getPoNo());
+                poResp.setSuccess(false);
+                poResp.setFailMessage(e.getMessage());
+            } catch (Exception e) {
+                poResp = new ExportVehicleLetterGuaranteeUnfreezeResp();
+                poResp.setPoNo(singlePo.getPoNo());
+                poResp.setSuccess(false);
+                poResp.setFailMessage(e.getMessage());
+            }
+            results.add(poResp);
+        }
+        return results;
+    }
+
+    /**
+     * 单 PO 转应收(质检通过) — 整体事务 all-or-nothing:任一保函转应收失败立即抛异常,事务整体回滚(设计文档 §3.4.3)
+     *
+     * <p>输入是 SO 单粒度(poNo + soNo + frozenAmount + vin),服务端:
+     * <ol>
+     *   <li>查该 PO 下所有冻结明细(transaction_type=10),按 lgId 汇总 PO当前累计占用金额</li>
+     *   <li>校验累计占用 ≥ SO冻结金额(否则整体回滚)</li>
+     *   <li>排序规则:
+     *     <ul>
+     *       <li>a. 失效日期升序 — 优先使用最早到期的保函</li>
+     *       <li>b. 同日时,PO当前累计占用金额倒序 — 优先用大额</li>
+     *       <li>c. 两者均相同 → 随机</li>
+     *     </ul>
+     *   </li>
+     *   <li>按排序依次转应收,每张金额 = min(剩余 SO冻结金额, 该保函 PO累计占用金额),直至累计 = SO冻结金额</li>
+     * </ol>
+     *
+     * <p>每次 {@code gateway.transferToReceivable} 会写一条 {@code record_type=30(转应收)} 的保函交易记录。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean transferToReceivable(ExportVehicleLetterGuaranteeTransferReq req) {
+        log.info("保函单 PO 转应收: req={} ", JSON.toJSONString(req));
+
+        // 1. 查该 PO 下所有冻结明细,按 lgId 汇总 PO当前累计占用金额
+        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
+        qo.setPoNo(req.getPoNo());
+        qo.setTransactionType(RecordTypeEnum.FREEZE.getCode());
+        List<ExportVehicleLetterGuaranteeRecordDo> frozen = exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(qo);
+        if (frozen == null || frozen.isEmpty()) {
+            throw new BizException("PO " + req.getPoNo() + " 下无冻结记录,无法转应收");
+        }
+        Map<String, BigDecimal> occupiedByLgId = new LinkedHashMap<>();
+        for (ExportVehicleLetterGuaranteeRecordDo rec : frozen) {
+            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
+            occupiedByLgId.merge(rec.getLgId(), amt, BigDecimal::add);
+        }
+
+        // 2. 校验累计占用 ≥ SO冻结金额
+        BigDecimal totalOccupied = occupiedByLgId.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalOccupied.compareTo(req.getFrozenAmount()) < 0) {
+            throw new BizException("PO 累计占用金额不足以转应收:占用=" + totalOccupied + ", SO冻结金额=" + req.getFrozenAmount());
+        }
+
+        // 3. 加载保函主表获取 expiryDate
+        List<ExportVehicleLetterGuaranteeDo> candidates = new ArrayList<>();
+        for (String lgId : occupiedByLgId.keySet()) {
+            ExportVehicleLetterGuaranteeDo lg = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(lgId);
+            if (lg == null) {
+                throw new BizException("保函不存在: " + lgId);
+            }
+            candidates.add(lg);
+        }
+
+        // 4. 排序:失效日期 ASC → PO累计占用 DESC → 都相同随机
+        Map<String, BigDecimal> finalOccMap = occupiedByLgId;
+        List<ExportVehicleLetterGuaranteeDo> shuffled = new ArrayList<>(candidates);
+        Collections.shuffle(shuffled, ThreadLocalRandom.current());
+        List<ExportVehicleLetterGuaranteeDo> sorted = shuffled.stream()
+                .sorted(Comparator
+                        .comparing((ExportVehicleLetterGuaranteeDo d) -> d.getExpiryDate(),
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing((ExportVehicleLetterGuaranteeDo d) -> finalOccMap.get(d.getId()),
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        // 5. 逐步转应收,任一失败 → 抛 BizException → @Transactional 整体回滚
+        BigDecimal remaining = req.getFrozenAmount();
+        int transferredCount = 0;
+        for (ExportVehicleLetterGuaranteeDo lg : sorted) {
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+            BigDecimal lgOcc = occupiedByLgId.get(lg.getId());
+            BigDecimal transferAmount = remaining.compareTo(lgOcc) <= 0 ? remaining : lgOcc;
+            boolean ok = exportVehicleLetterGuaranteeGateway.transferToReceivable(lg.getId(), transferAmount,
+                    req.getOrderId(), req.getPoNo(), req.getSoNo(), req.getVin(), req.getReason());
+            if (!ok) {
+                throw new BizException("保函转应收失败: lgId=" + lg.getId());
+            }
+            remaining = remaining.subtract(transferAmount);
+            transferredCount++;
+        }
+        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            throw new BizException("转应收累计金额不足,缺 " + remaining);
+        }
+        log.info("PO {} 转应收完成: SO冻结金额={}, 处理保函 {} 张", req.getPoNo(), req.getFrozenAmount(), transferredCount);
+        return true;
+    }
+
+    /**
+     * 单 PO 释放应收(SAP 清账) — 整体事务 all-or-nothing:任一保函释放失败立即抛异常,事务整体回滚
+     *
+     * <p>输入是 PO 单粒度(poNo + soNo),服务端:
+     * <ol>
+     *   <li>查该 PO 下所有转应收明细(transaction_type=30),按 lgId 汇总应收金额</li>
+     *   <li>逐张保函调用 {@code gateway.releaseReceivable} 释放对应金额</li>
+     *   <li>每张保函单独写一条 {@code record_type=40(释放应收)} 流水</li>
+     * </ol>
+     *
+     * <p>释放后保函不补回(应收冲销完毕),可用/占用金额不变,只减少 receivable。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req) {
+        log.info("保函单 PO 释放应收: req={} ", JSON.toJSONString(req));
+
+        // 1. 查该 PO + SO 下所有转应收明细(transaction_type=30),按 lgId 汇总应收金额
+        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
+        qo.setPoNo(req.getPoNo());
+        qo.setSoNo(req.getSoNo());
+        qo.setTransactionType(RecordTypeEnum.TRANSFER_RECEIVABLE.getCode());
+        List<ExportVehicleLetterGuaranteeRecordDo> receivableRecords = exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(qo);
+        if (receivableRecords == null || receivableRecords.isEmpty()) {
+            throw new BizException("PO " + req.getPoNo() + " / SO " + req.getSoNo() + " 下无转应收记录,无法释放应收");
+        }
+        Map<String, BigDecimal> receivableByLgId = new LinkedHashMap<>();
+        for (ExportVehicleLetterGuaranteeRecordDo rec : receivableRecords) {
+            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
+            receivableByLgId.merge(rec.getLgId(), amt, BigDecimal::add);
+        }
+
+        // 2. 逐张保函释放,任一失败 → 抛 BizException → @Transactional 整体回滚
+        int releasedCount = 0;
+        for (Map.Entry<String, BigDecimal> e : receivableByLgId.entrySet()) {
+            String lgId = e.getKey();
+            BigDecimal amount = e.getValue();
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) continue;
+            boolean ok = exportVehicleLetterGuaranteeGateway.releaseReceivable(lgId, amount, req.getOrderId(), req.getPoNo(), req.getSoNo(), req.getReason());
+            if (!ok) {
+                throw new BizException("保函释放应收失败: lgId=" + lgId);
+            }
+            releasedCount++;
+        }
+        log.info("PO:{} SO:{} 释放应收完成: 共处理 {} 张保函", req.getPoNo(), req.getSoNo(), releasedCount);
+        return true;
+    }
+
 }

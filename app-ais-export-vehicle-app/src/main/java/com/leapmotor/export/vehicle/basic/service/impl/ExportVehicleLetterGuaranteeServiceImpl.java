@@ -7,7 +7,8 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGa
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
 import com.leapmotor.export.vehicle.basic.req.*;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
@@ -186,18 +187,23 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     // ============== 资金流 ==============
 
     @Override
-    public boolean freeze(ExportVehicleLetterGuaranteeFreezeReq req) {
+    public ExportVehicleLetterGuaranteeFreezeResp freeze(ExportVehicleLetterGuaranteeFreezeReq req) {
         return exportVehicleLetterGuaranteeCmdExe.freeze(req);
     }
 
     @Override
-    public ExportVehicleLetterGuaranteeBatchFreezeResp batchFreeze(ExportVehicleLetterGuaranteeBatchFreezeReq req) {
-        return exportVehicleLetterGuaranteeCmdExe.batchFreeze(req);
+    public List<ExportVehicleLetterGuaranteeFreezeResp> batchFreeze(List<ExportVehicleLetterGuaranteeFreezeReq> list) {
+        return exportVehicleLetterGuaranteeCmdExe.batchFreeze(list);
     }
 
     @Override
     public boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req) {
         return exportVehicleLetterGuaranteeCmdExe.unfreeze(req);
+    }
+
+    @Override
+    public List<ExportVehicleLetterGuaranteeUnfreezeResp> batchUnfreeze(List<ExportVehicleLetterGuaranteeUnfreezeReq> list) {
+        return exportVehicleLetterGuaranteeCmdExe.batchUnfreeze(list);
     }
 
     @Override
@@ -219,7 +225,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
      * 由 Gateway 在 Qo.expiryDateGe 上做 {@code expiry_date >= orderCreateTime + coverDays} 过滤。
      */
     @Override
-    public ExportVehicleLetterGuaranteeValidateResp validateForPo(ExportVehicleLetterGuaranteeValidateReq req) {
+    public ExportVehicleLetterGuaranteeValidateResp validateForPo(ExportVehicleLetterGuaranteeFreezeReq req) {
         ExportVehicleLetterGuaranteeValidateResp resp = new ExportVehicleLetterGuaranteeValidateResp();
         ExportVehicleLetterGuaranteeListAvailableReq listReq = new ExportVehicleLetterGuaranteeListAvailableReq();
         listReq.setCustomerId(req.getCustomerId());
@@ -238,6 +244,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
         }
 
         // 2. 总可用 ≥ 申请冻结金额
+        // 列出所有满足 a~e 的保函,f 由调用方累加 SUM(availableAmount) 与 requiredAmount 比较
         BigDecimal totalAvailable = candidates.stream()
                 .map(ExportVehicleLetterGuaranteeDo::getAvailableAmount)
                 .filter(Objects::nonNull)

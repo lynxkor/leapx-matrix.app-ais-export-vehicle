@@ -38,45 +38,45 @@ import java.util.Objects;
 @Service
 public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLetterGuaranteeService {
 
-    private ExportVehicleLetterGuaranteeCmdExe cmd;
-    private ExportVehicleLetterGuaranteeQryExe qry;
-    private ExportVehicleLetterGuaranteeGateway gateway;
+    private ExportVehicleLetterGuaranteeCmdExe exportVehicleLetterGuaranteeCmdExe;
+    private ExportVehicleLetterGuaranteeQryExe exportVehicleLetterGuaranteeQryExe;
+    private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
 
     // ============== 基础 CRUD ==============
 
     @Override
     public ExportVehicleLetterGuaranteeResp getExportVehicleLetterGuaranteeById(String id) {
-        ExportVehicleLetterGuaranteeDo d = gateway.getExportVehicleLetterGuaranteeById(id);
+        ExportVehicleLetterGuaranteeDo d = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(id);
         return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainToResp(d);
     }
 
     @Override
     public List<ExportVehicleLetterGuaranteeResp> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam param) {
         ExportVehicleLetterGuaranteeQo qo = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.paramToQuery(param);
-        List<ExportVehicleLetterGuaranteeDo> list = gateway.listExportVehicleLetterGuarantee(qo);
+        List<ExportVehicleLetterGuaranteeDo> list = exportVehicleLetterGuaranteeGateway.listExportVehicleLetterGuarantee(qo);
         return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToResps(list);
     }
 
     @Override
     public PageResult<ExportVehicleLetterGuaranteeResp> pageExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam param) {
-        PageResult<ExportVehicleLetterGuaranteeDo> page = qry.pageExportVehicleLetterGuarantee(param);
+        PageResult<ExportVehicleLetterGuaranteeDo> page = exportVehicleLetterGuaranteeQryExe.pageExportVehicleLetterGuarantee(param);
         return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToRespPage(page);
     }
 
     @Override
     public String addOrUpdateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeAddOrUpdateReq req) {
         ExportVehicleLetterGuaranteeDo d = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.addCmdToDomain(req);
-        return cmd.addOrUpdateExportVehicleLetterGuarantee(d);
+        return exportVehicleLetterGuaranteeCmdExe.addOrUpdateExportVehicleLetterGuarantee(d);
     }
 
     @Override
     public boolean deleteExportVehicleLetterGuaranteeByIds(List<String> ids) {
-        return cmd.deleteExportVehicleLetterGuaranteeByIds(ids);
+        return exportVehicleLetterGuaranteeCmdExe.deleteExportVehicleLetterGuaranteeByIds(ids);
     }
 
     @Override
     public boolean enableOrDisableExportVehicleLetterGuaranteeByIds(LpBaseParam param) {
-        return cmd.enableOrDisableExportVehicleLetterGuaranteeByIds(param);
+        return exportVehicleLetterGuaranteeCmdExe.enableOrDisableExportVehicleLetterGuaranteeByIds(param);
     }
 
     // ============== 状态机(单条/批量统一入口) ==============
@@ -84,20 +84,20 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     @Override
     public ExportVehicleLetterGuaranteeBatchStateMachineResp submit(ExportVehicleLetterGuaranteeSubmitReq req) {
         List<String> ids = resolveIds(req.getId(), req.getIds());
-        return runBatch(ids, id -> cmd.submit(id));
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.submit(id));
     }
 
     @Override
     public ExportVehicleLetterGuaranteeBatchStateMachineResp approve(ExportVehicleLetterGuaranteeApproveReq req) {
         List<String> ids = resolveIds(req.getId(), req.getIds());
         boolean approved = Boolean.TRUE.equals(req.getApproved());
-        return runBatch(ids, id -> cmd.approve(id, approved, req.getApproveRemark()));
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.approve(id, approved, req.getApproveRemark()));
     }
 
     @Override
     public ExportVehicleLetterGuaranteeBatchStateMachineResp cancel(ExportVehicleLetterGuaranteeCancelReq req) {
         List<String> ids = resolveIds(req.getId(), req.getIds());
-        return runBatch(ids, id -> cmd.cancel(id, req.getRemark()));
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.cancel(id, req.getRemark()));
     }
 
     /**
@@ -122,14 +122,14 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     @Override
     public boolean expireEarly(ExportVehicleLetterGuaranteeExpireEarlyReq req) {
         // 操作人由 Gateway 内部通过 LoginUserUtils.getCurrentUser() 获取
-        return cmd.expireEarly(req.getId(), req.getReason());
+        return exportVehicleLetterGuaranteeCmdExe.expireEarly(req.getId(), req.getReason());
     }
 
     // ============== 状态机批量编排 ==============
 
     /**
      * 批量状态机编排 — 遍历 ids 逐条调用 action,任一条失败不影响其他条。
-     * 每条通过 cross-bean 调用(cmd 是 Spring Bean)进入各自 @Transactional,失败回滚单条。
+     * 每条通过 cross-bean 调用(commandExecutor 是 Spring Bean)进入各自 @Transactional,失败回滚单条。
      */
     private ExportVehicleLetterGuaranteeBatchStateMachineResp runBatch(
             List<String> ids, java.util.function.Function<String, Boolean> action) {
@@ -154,7 +154,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
                 if (Boolean.FALSE.equals(ok)) {
                     throw new BizException("操作返回 false");
                 }
-                ExportVehicleLetterGuaranteeDo lg = gateway.getExportVehicleLetterGuaranteeById(id);
+                ExportVehicleLetterGuaranteeDo lg = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(id);
                 item.setLgCode(lg == null ? null : lg.getLgCode());
                 item.setSuccess(true);
                 success++;
@@ -185,34 +185,34 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
 
     @Override
     public boolean freeze(ExportVehicleLetterGuaranteeFreezeReq req) {
-        return cmd.freeze(req);
+        return exportVehicleLetterGuaranteeCmdExe.freeze(req);
     }
 
     @Override
     public ExportVehicleLetterGuaranteeBatchFreezeResp batchFreeze(ExportVehicleLetterGuaranteeBatchFreezeReq req) {
-        return cmd.batchFreeze(req);
+        return exportVehicleLetterGuaranteeCmdExe.batchFreeze(req);
     }
 
     @Override
     public boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req) {
-        return cmd.unfreeze(req);
+        return exportVehicleLetterGuaranteeCmdExe.unfreeze(req);
     }
 
     @Override
     public boolean transferToReceivable(ExportVehicleLetterGuaranteeTransferReq req) {
-        return cmd.transferToReceivable(req);
+        return exportVehicleLetterGuaranteeCmdExe.transferToReceivable(req);
     }
 
     @Override
     public boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req) {
-        return cmd.releaseReceivable(req);
+        return exportVehicleLetterGuaranteeCmdExe.releaseReceivable(req);
     }
 
     // ============== 查询 ==============
 
     @Override
     public List<ExportVehicleLetterGuaranteeListAvailableResp> listAvailableForCustomer(ExportVehicleLetterGuaranteeListAvailableReq req) {
-        return qry.listAvailableForCustomer(req);
+        return exportVehicleLetterGuaranteeQryExe.listAvailableForCustomer(req);
     }
 
     /**
@@ -226,7 +226,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
         listReq.setCustomerId(req.getCustomerId());
         listReq.setOrderType(req.getOrderType());
         listReq.setRequiredAmount(req.getRequiredAmount());
-        List<ExportVehicleLetterGuaranteeListAvailableResp> candidates = qry.listAvailableForCustomer(listReq);
+        List<ExportVehicleLetterGuaranteeListAvailableResp> candidates = exportVehicleLetterGuaranteeQryExe.listAvailableForCustomer(listReq);
         resp.setCandidates(candidates);
         resp.setRequiredAmount(req.getRequiredAmount());
 

@@ -7,6 +7,7 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGa
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
 import com.leapmotor.export.vehicle.basic.req.*;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
@@ -214,6 +215,40 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     @Override
     public boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req) {
         return exportVehicleLetterGuaranteeCmdExe.releaseReceivable(req);
+    }
+
+    // ============== 刷新订单价格联动(§3.5) ==============
+
+    /**
+     * 调增补冻(§3.5.2):
+     * 与 {@link #freeze} 算法相同,仅入参语义差异(amountDiff 作为补冻结金额)。
+     * 在 Service 层映射为 {@link ExportVehicleLetterGuaranteeFreezeReq} 复用 freeze 流程,避免重复实现排序与拆冻。
+     */
+    @Override
+    public ExportVehicleLetterGuaranteeFreezeResp adjustFreeze(ExportVehicleLetterGuaranteeAdjustFreezeReq req) {
+        if (req.getAmountDiff() == null || req.getAmountDiff().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BizException("amountDiff 必须大于 0");
+        }
+        ExportVehicleLetterGuaranteeFreezeReq fr = new ExportVehicleLetterGuaranteeFreezeReq();
+        fr.setCustomerId(req.getCustomerId());
+        fr.setOrderType(req.getOrderType());
+        fr.setOrderId(req.getOrderId());
+        fr.setOrderNo(req.getOrderNo());
+        fr.setPoNo(req.getPoNo());
+        fr.setRequiredAmount(req.getAmountDiff());
+        fr.setOrderCreateTime(req.getOrderCreateTime());
+        fr.setRemark(req.getReason());
+        ExportVehicleLetterGuaranteeFreezeResp resp = exportVehicleLetterGuaranteeCmdExe.freeze(fr);
+        // 调增场景无 separate reason 文案,沿用 freeze 自身的 success/fail 字段
+        return resp;
+    }
+
+    /**
+     * 调减退差(§3.5.3):CmdExe.adjustUnfreeze 内部完成保函选择与单张解冻。
+     */
+    @Override
+    public ExportVehicleLetterGuaranteeAdjustUnfreezeResp adjustUnfreeze(ExportVehicleLetterGuaranteeAdjustUnfreezeReq req) {
+        return exportVehicleLetterGuaranteeCmdExe.adjustUnfreeze(req);
     }
 
     // ============== 查询 ==============

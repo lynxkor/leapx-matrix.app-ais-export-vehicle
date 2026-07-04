@@ -7,10 +7,8 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRe
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeRecordQo;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeFreezeReq;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeReleaseReq;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeTransferReq;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfreezeReq;
+import com.leapmotor.export.vehicle.basic.req.*;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.RecordTypeEnum;
@@ -382,4 +380,111 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         return true;
     }
 
+    // ============== PO 刷新订单价格联动(§3.5) ==============
+
+    /**
+     * 调减退差(§3.5.3):部分解冻 — 按失效日期倒序循环解冻多张保函,直到累计解冻金额 = amountDiff。
+     *
+     * <p>算法(单一 {@code @Transactional(rollbackFor=Exception.class)} 事务,all-or-nothing):
+     * <ol>
+     *   <li>校验 amountDiff > 0</li>
+     *   <li>查该 PO 下所有冻结明细(transaction_type=10),按 lgId 汇总 PO 当前累计占用</li>
+     *   <li>取主表校验保函存在 → 形成候选集(失效/作废由 gateway.unfreeze 内 ensureLgStatus 兜底)</li>
+     *   <li>排序:失效日期 DESC(最晚优先,nullsLast 保证 null 排末位)</li>
+     *   <li>空候选集 → 抛 BizException("无可解冻保函")</li>
+     *   <li>循环:对每张候选执行 gateway.unfreeze(本张占用 / 剩余金额,取小),
+     *       累计解冻金额;remaining 归零即终止</li>
+     *   <li>循环结束若 remaining > 0 → 抛 BizException("累计占用不足")整体回滚</li>
+     * </ol>
+     *
+     * <p>与 {@link #unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq)} 区别:这里是部分解冻(退金额差,可能跨多张保函),
+     * {@code unfreeze} 是全解冻(逐张全额释放)。
+     *
+     * <p>响应含所有被解冻保函的明细(按失效日期倒序,可多张),便于 PO 模块回写关联保函信息。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ExportVehicleLetterGuaranteeAdjustUnfreezeResp adjustUnfreeze(ExportVehicleLetterGuaranteeAdjustUnfreezeReq req) {
+        log.info("保函 PO 刷新价格调减: req={}", JSON.toJSONString(req));
+
+        if (req.getAmountDiff() == null || req.getAmountDiff().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BizException("amountDiff 必须大于 0");
+        }
+
+        // 1. 查该 PO 下所有冻结明细,按 lgId 汇总 PO 当前累计占用
+        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
+        qo.setPoNo(req.getPoNo());
+        qo.setTransactionType(RecordTypeEnum.FREEZE.getCode());
+        List<ExportVehicleLetterGuaranteeRecordDo> frozen = exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(qo);
+        if (frozen == null || frozen.isEmpty()) {
+            throw new BizException("PO " + req.getPoNo() + " 下无冻结记录,无法调减");
+        }
+        Map<String, BigDecimal> occupiedByLgId = new LinkedHashMap<>();
+        for (ExportVehicleLetterGuaranteeRecordDo rec : frozen) {
+            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
+            occupiedByLgId.merge(rec.getLgId(), amt, BigDecimal::add);
+        }
+
+        // 2. 取主表形成候选集(失效/作废 由 gateway.unfreeze 内 ensureLgStatus 兜底)
+        List<ExportVehicleLetterGuaranteeDo> candidates = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> e : occupiedByLgId.entrySet()) {
+            ExportVehicleLetterGuaranteeDo lg = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(e.getKey());
+            if (lg == null) {
+                continue;
+            }
+            candidates.add(lg);
+        }
+
+        // 3. 排序:失效日期 DESC(最晚优先,nullsLast 保证 null 排末位)
+        candidates.sort(Comparator
+                .comparing((ExportVehicleLetterGuaranteeDo d) -> d.getExpiryDate(),
+                        Comparator.nullsLast(Comparator.reverseOrder())));
+
+        // 4. 空候选集 → 抛错(整体回滚,无副作用)
+        if (candidates.isEmpty()) {
+            throw new BizException("无可解冻保函(PO 下有冻结记录但主表缺失)");
+        }
+
+        // 5. 循环解冻:每张解冻 min(本张 PO 占用, remaining),remaining 归零即终止
+        BigDecimal remaining = req.getAmountDiff();
+        List<ExportVehicleLetterGuaranteeAdjustUnfreezeResp.UnfreezeItem> items = new ArrayList<>();
+        for (ExportVehicleLetterGuaranteeDo lg : candidates) {
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                break;
+            }
+            BigDecimal lgOccupied = occupiedByLgId.getOrDefault(lg.getId(), BigDecimal.ZERO);
+            if (lgOccupied.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            BigDecimal unfreezeAmount = remaining.compareTo(lgOccupied) <= 0 ? remaining : lgOccupied;
+            boolean ok = exportVehicleLetterGuaranteeGateway.unfreeze(
+                    lg.getId(), unfreezeAmount,
+                    req.getOrderId(), req.getPoNo(), req.getReason());
+            if (!ok) {
+                throw new BizException("保函调减解冻失败: lgId=" + lg.getId());
+            }
+            ExportVehicleLetterGuaranteeAdjustUnfreezeResp.UnfreezeItem item = new ExportVehicleLetterGuaranteeAdjustUnfreezeResp.UnfreezeItem();
+            item.setLgId(lg.getId());
+            item.setLgCode(lg.getLgCode());
+            item.setUnfrozenAmount(unfreezeAmount);
+            item.setPoNo(req.getPoNo());
+            items.add(item);
+            remaining = remaining.subtract(unfreezeAmount);
+            log.info("PO {} 调减退差部分解冻: 选中保函={}, 本次解冻={}, 剩余={}", req.getPoNo(), lg.getLgCode(), unfreezeAmount, remaining);
+        }
+
+        // 6. 累计占用不足 → 抛错整体回滚
+        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            throw new BizException("累计占用不足: amountDiff=" + req.getAmountDiff() + ", 已解冻=" + req.getAmountDiff().subtract(remaining) + ", 剩余=" + remaining);
+        }
+
+        // 7. 组装响应
+        ExportVehicleLetterGuaranteeAdjustUnfreezeResp resp = new ExportVehicleLetterGuaranteeAdjustUnfreezeResp();
+        resp.setSuccess(true);
+        resp.setPoNo(req.getPoNo());
+        resp.setTotalUnfrozenAmount(req.getAmountDiff());
+        resp.setUnfreezeItems(items);
+        log.info("PO {} 调减退差完成: 共解冻 {} 张保函, 累计金额={}", req.getPoNo(), items.size(), req.getAmountDiff());
+        return resp;
+    }
 }
+

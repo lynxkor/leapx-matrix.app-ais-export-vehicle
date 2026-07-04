@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.basic.service;
 
 
 import com.leapmotor.export.vehicle.basic.req.*;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
@@ -115,6 +116,22 @@ public interface ExportVehicleLetterGuaranteeService {
      * 释放应收(SAP 清账)
      */
     boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req);
+
+    // ============== PO 刷新订单价格联动(§3.5) ==============
+
+    /**
+     * 刷新价格-调增(补冻金额差,§3.5.2)
+     * <p>与 {@link #freeze} 算法相同(失效日期 ASC → 可用 DESC → 随机),仅入参语义差异;
+     * 入参 amountDiff 复用为 requiredAmount 走 freeze 流程。
+     */
+    ExportVehicleLetterGuaranteeFreezeResp adjustFreeze(ExportVehicleLetterGuaranteeAdjustFreezeReq req);
+
+    /**
+     * 刷新价格-调减(退差金额差,§3.5.3)
+     * <p>部分解冻:从该 PO 已冻结保函中选失效日期最晚 + PO 当前累计占用 > amountDiff 的单张保函,
+     * 解冻金额差;不满足条件降级或抛错。
+     */
+    ExportVehicleLetterGuaranteeAdjustUnfreezeResp adjustUnfreeze(ExportVehicleLetterGuaranteeAdjustUnfreezeReq req);
 
     // ============== 查询:获取已有 AppController 校验所需保函 ==============
 

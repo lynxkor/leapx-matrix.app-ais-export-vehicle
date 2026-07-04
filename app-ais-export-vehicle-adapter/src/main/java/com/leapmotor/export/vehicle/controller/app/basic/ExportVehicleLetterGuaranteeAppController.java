@@ -1,9 +1,12 @@
 package com.leapmotor.export.vehicle.controller.app.basic;
 
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeAdjustFreezeReq;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeAdjustUnfreezeReq;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeFreezeReq;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeReleaseReq;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeTransferReq;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfreezeReq;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
@@ -33,6 +36,8 @@ import java.util.List;
  *   <li>{@code /unfreeze} — PO 驳回:解冻占用金额(§8.5.1)</li>
  *   <li>{@code /transferToReceivable} — 质检通过(§8.5.1)</li>
  *   <li>{@code /releaseReceivable} — SAP 清账(§8.5.1)</li>
+ *   <li>{@code /adjustFreeze} — PO 刷新价格-调增:补冻金额差(§3.5.2)</li>
+ *   <li>{@code /adjustUnfreeze} — PO 刷新价格-调减:退差金额差(§3.5.3)</li>
  * </ul>
  *
  * @author wangkai2527148
@@ -94,5 +99,19 @@ public class ExportVehicleLetterGuaranteeAppController {
     public AjaxResult<Void> releaseReceivable(@RequestBody ExportVehicleLetterGuaranteeReleaseReq req) {
         exportVehicleLetterGuaranteeService.releaseReceivable(req);
         return AjaxResult.success();
+    }
+
+    @Operation(summary = "调增补冻 — PO 刷新价格,新总金额上升")
+    @PostMapping("/adjustFreeze")
+    public AjaxResult<ExportVehicleLetterGuaranteeFreezeResp> adjustFreeze(@RequestBody ExportVehicleLetterGuaranteeAdjustFreezeReq req) {
+        ExportVehicleLetterGuaranteeFreezeResp resp = exportVehicleLetterGuaranteeService.adjustFreeze(req);
+        return AjaxResult.success(resp);
+    }
+
+    @Operation(summary = "调减退差 — PO 刷新价格,新总金额下降")
+    @PostMapping("/adjustUnfreeze")
+    public AjaxResult<ExportVehicleLetterGuaranteeAdjustUnfreezeResp> adjustUnfreeze(@RequestBody ExportVehicleLetterGuaranteeAdjustUnfreezeReq req) {
+        ExportVehicleLetterGuaranteeAdjustUnfreezeResp resp = exportVehicleLetterGuaranteeService.adjustUnfreeze(req);
+        return AjaxResult.success(resp);
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderParam;
 import com.leapmotor.export.vehicle.po.resp.PurchaseOrderResp;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderAddOrUpdateReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSaveReq;
 import com.leapmotor.export.vehicle.po.convertor.PurchaseOrderDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.PurchaseOrderService;
 import org.springframework.web.bind.annotation.*;
@@ -90,6 +91,14 @@ public class PurchaseOrderController {
             return AjaxResult.fail("状态参数错误");
         }
         purchaseOrderService.enableOrDisablePurchaseOrderByIds(param);
+        return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单编辑保存(仅草稿态,改销售公司+明细生产备注)")
+    @ResourcePermission(value="web:po:purchaseOrder:save",desc="PO订单编辑保存")
+    @PostMapping("/save")
+    public AjaxResult<Void> save(@RequestBody @Validated PurchaseOrderSaveReq req) {
+        purchaseOrderService.savePurchaseOrder(req);
         return AjaxResult.success();
     }
 }

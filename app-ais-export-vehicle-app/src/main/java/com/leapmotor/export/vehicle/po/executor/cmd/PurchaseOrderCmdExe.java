@@ -14,8 +14,11 @@ import com.leapmotor.export.vehicle.po.query.PurchaseOrderQo;
 import com.leapmotor.export.vehicle.po.enums.PurchaseOrderStatusEnum;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuOrderDetailReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderDetailSaveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSaveReq;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
+import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -184,5 +187,40 @@ public class PurchaseOrderCmdExe {
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
         String seq = String.format("%05d", new Random().nextInt(100000));
         return "POD" + ts + seq;
+    }
+
+    // ==================== 4.2 订单编辑保存（仅草稿态；仅销售公司 + 明细生产备注） ====================
+
+    /**
+     * 草稿态编辑保存：仅改销售公司（抬头）+ 明细生产备注（逐行）。
+     * 防篡改：update Do 只 set 可编辑字段，updateById 走 not_null 策略只更新这几项，其余字段不动。
+     * 防并发：@DistributeLock 按 poId 加锁。
+     */
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:save", value = "#req.poId",
+            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在被他人编辑，请稍后重试")
+    @Transactional(rollbackFor = Exception.class)
+    public void savePurchaseOrder(PurchaseOrderSaveReq req) {
+        // 1. 查订单 + 草稿态校验
+        PurchaseOrderDo order = purchaseOrderGateway.getPurchaseOrderById(req.getPoId());
+        if (order == null) {
+            throw new BizException("PO订单不存在");
+        }
+        if (!PurchaseOrderStatusEnum.DRAFT.getCode().equals(order.getOrderStatus())) {
+            throw new BizException("仅草稿态订单可编辑");
+        }
+
+        // 2. 改抬头销售公司（只 set id + salesCompany，其余字段不更新）
+        PurchaseOrderDo headerUpdate = new PurchaseOrderDo();
+        headerUpdate.setId(req.getPoId());
+        headerUpdate.setSalesCompany(req.getSalesCompany());
+        purchaseOrderGateway.updatePurchaseOrder(headerUpdate);
+
+        // 3. 明细生产备注逐行更新（按 detailId，只 set id + productionRemark）
+        for (PurchaseOrderDetailSaveReq d : req.getDetailList()) {
+            PurchaseOrderDetailDo detailUpdate = new PurchaseOrderDetailDo();
+            detailUpdate.setId(d.getDetailId());
+            detailUpdate.setProductionRemark(d.getProductionRemark());
+            purchaseOrderDetailGateway.updatePurchaseOrderDetail(detailUpdate);
+        }
     }
 }

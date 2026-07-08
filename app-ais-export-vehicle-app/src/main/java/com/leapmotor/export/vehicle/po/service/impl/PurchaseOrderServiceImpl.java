@@ -11,6 +11,7 @@ import com.leapmotor.export.vehicle.po.model.PurchaseOrderDo;
 import com.leapmotor.export.vehicle.po.resp.PurchaseOrderResp;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSaveReq;
 import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.po.service.PurchaseOrderService;
 import org.springframework.stereotype.Service;
@@ -71,5 +72,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     public String createFromHongqi(HongqiCbuPurchaseOrderReq req) {
         return purchaseOrderCmdExe.createFromHongqi(req);
+    }
+
+    @Override
+    public void savePurchaseOrder(PurchaseOrderSaveReq req) {
+        purchaseOrderCmdExe.savePurchaseOrder(req);
     }
 }

@@ -14,6 +14,8 @@ import com.leapmotor.export.vehicle.po.req.PurchaseOrderParam;
 import com.leapmotor.export.vehicle.po.resp.PurchaseOrderResp;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSaveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSubmitReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderRejectReq;
 import com.leapmotor.export.vehicle.po.convertor.PurchaseOrderDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.PurchaseOrderService;
 import org.springframework.web.bind.annotation.*;
@@ -99,6 +101,22 @@ public class PurchaseOrderController {
     @PostMapping("/save")
     public AjaxResult<Void> save(@RequestBody @Validated PurchaseOrderSaveReq req) {
         purchaseOrderService.savePurchaseOrder(req);
+        return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单销售提交")
+    @ResourcePermission(value="web:po:purchaseOrder:submit",desc="PO订单销售提交")
+    @PostMapping("/submit")
+    public AjaxResult<Void> submit(@RequestBody @Validated PurchaseOrderSubmitReq req) {
+        purchaseOrderService.submitPurchaseOrder(req);
+        return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单销售驳回")
+    @ResourcePermission(value="web:po:purchaseOrder:reject",desc="PO订单销售驳回")
+    @PostMapping("/reject")
+    public AjaxResult<Void> reject(@RequestBody @Validated PurchaseOrderRejectReq req) {
+        purchaseOrderService.rejectPurchaseOrder(req);
         return AjaxResult.success();
     }
 }

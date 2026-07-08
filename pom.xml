@@ -3,7 +3,7 @@
   <parent>
     <groupId>com.leapmotor.platform</groupId>
     <artifactId>ais-parent</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.6</version>
   </parent>
   <artifactId>app-ais-export-vehicle</artifactId>
   <groupId>com.leapmotor</groupId>

@@ -7,6 +7,14 @@ import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.acl.http.hongqi.request.CbuApprovalResultReq;
+import com.leapmotor.export.vehicle.acl.http.so.SoClient;
+import com.leapmotor.export.vehicle.acl.http.so.request.SoCreateReq;
+import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfreezeReq;
+import com.leapmotor.export.vehicle.po.model.PurchaseOrderGuaranteeDo;
+import com.leapmotor.export.vehicle.po.query.PurchaseOrderGuaranteeQo;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyApproveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.enums.PurchaseOrderStatusEnum;
 import com.leapmotor.export.vehicle.po.gateway.PlaceholderCustomerDataGateway;
 import com.leapmotor.export.vehicle.po.gateway.PlaceholderMaterialDataGateway;
@@ -60,6 +68,8 @@ public class PurchaseOrderApprovalCmdExe {
     private ExportVehicleLetterGuaranteeService letterGuaranteeService;
     /** 事件发布（推红旗，T03 事件机制） */
     private EventHandlerHelper eventHandlerHelper;
+    /** SO 订单服务（4.4 供需审核通过生成 SO，契约待 SO 侧） */
+    private SoClient soClient;
 
     // ==================== 4.3 销售提交（4 步编排，任一步失败整体回滚） ====================
 
@@ -191,6 +201,114 @@ public class PurchaseOrderApprovalCmdExe {
         purchaseOrderGateway.updatePurchaseOrder(update);
 
         // 推红旗审批结果（事件机制：落 event_notify_task，XXL-Job 异步重试，订单状态不因推送回滚）
+        CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
+        pushReq.setPoNo(order.getPoNumber());
+        pushReq.setResult("REJECTED");
+        pushReq.setOpinion(req.getRejectReason());
+        eventHandlerHelper.publishAsync(
+                HongqiThirdTargetPlatformEnum.HONGQI,
+                HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
+                order.getId(),
+                pushReq);
+    }
+
+    // ==================== 4.4 供需审核通过（生成 SO 单） ====================
+
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:supplyApprove", value = "#req.poId",
+            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @Transactional(rollbackFor = Exception.class)
+    public void supplyApprove(PurchaseOrderSupplyApproveReq req) {
+        PurchaseOrderDo order = purchaseOrderGateway.getPurchaseOrderById(req.getPoId());
+        if (order == null) {
+            throw new BizException("PO订单不存在");
+        }
+        if (!PurchaseOrderStatusEnum.SALES_SUBMITTED.getCode().equals(order.getOrderStatus())) {
+            throw new BizException("仅销售已提交态可供需审核");
+        }
+        // 状态→供需审核通过 + 审核时间/人（只 set 这些，updateById 防篡改）
+        PurchaseOrderDo update = new PurchaseOrderDo();
+        update.setId(req.getPoId());
+        update.setOrderStatus(PurchaseOrderStatusEnum.SUPPLY_DEMAND_APPROVED.getCode());
+        update.setSupplyDemandApproveTime(LocalDateTime.now());
+        update.setSupplyDemandApprover(String.valueOf(LoginUserUtils.getUserId()));
+        purchaseOrderGateway.updatePurchaseOrder(update);
+
+        // 调 SO 创建（一车一单，PO 传参；SO 侧拆行号/生成单号）
+        PurchaseOrderDetailQo detailQo = new PurchaseOrderDetailQo();
+        detailQo.setPoNumber(order.getPoNumber());
+        List<PurchaseOrderDetailDo> details = purchaseOrderDetailGateway.listPurchaseOrderDetail(detailQo);
+        SoCreateReq soReq = buildSoCreateReq(order, details);
+        SoResult soResult = soClient.createSo(soReq);
+        if (soResult == null || soResult.getCode() != 200) {
+            throw new BizException("SO 单创建失败: " + (soResult == null ? "null" : soResult.getMessage()));
+        }
+        // TODO SO 单号是否回写 PO（评审未提，PO 不存 SO 单号）；SO 契约到后确认
+    }
+
+    private SoCreateReq buildSoCreateReq(PurchaseOrderDo order, List<PurchaseOrderDetailDo> details) {
+        SoCreateReq req = new SoCreateReq();
+        req.setPoNo(order.getPoNumber());
+        req.setOrderType(order.getOrderType());
+        req.setSalesCompany(order.getSalesCompany());
+        req.setCustomerCode(order.getCustomerCode());
+        req.setCustomerName(order.getCustomerName());
+        req.setExternalCustomerCode(order.getExternalCustomerCode());
+        req.setPlanVersion(order.getPlanVersion());
+        req.setDetails(details.stream().map(d -> {
+            SoCreateReq.SoDetailReq sd = new SoCreateReq.SoDetailReq();
+            sd.setPoDetailNumber(d.getPoDetailNumber());
+            sd.setDemandQuantity(d.getDemandQuantity());
+            sd.setUnitPrice(d.getUnitPrice());
+            sd.setVinYear(d.getVinYear());
+            sd.setExpectedOfflineDate(d.getExpectedOfflineDate() == null ? null : d.getExpectedOfflineDate().toString());
+            sd.setProductionRemark(d.getProductionRemark());
+            return sd;
+        }).toList());
+        return req;
+    }
+
+    // ==================== 4.4 供需审核驳回（解冻保函 + 推红旗） ====================
+
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:supplyReject", value = "#req.poId",
+            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @Transactional(rollbackFor = Exception.class)
+    public void supplyReject(PurchaseOrderSupplyRejectReq req) {
+        PurchaseOrderDo order = purchaseOrderGateway.getPurchaseOrderById(req.getPoId());
+        if (order == null) {
+            throw new BizException("PO订单不存在");
+        }
+        if (!PurchaseOrderStatusEnum.SALES_SUBMITTED.getCode().equals(order.getOrderStatus())) {
+            throw new BizException("仅销售已提交态可供需审核驳回");
+        }
+
+        // 状态→供需审核驳回（终态）+ 驳回信息
+        PurchaseOrderDo update = new PurchaseOrderDo();
+        update.setId(req.getPoId());
+        update.setOrderStatus(PurchaseOrderStatusEnum.SUPPLY_DEMAND_REJECTED.getCode());
+        update.setRejectTime(LocalDateTime.now());
+        update.setRejectUser(String.valueOf(LoginUserUtils.getUserId()));
+        update.setRejectReason(req.getRejectReason());
+        purchaseOrderGateway.updatePurchaseOrder(update);
+
+        // 保函解冻（传 poNo + orderId，保函侧完成主数据更新 + 交易明细）
+        ExportVehicleLetterGuaranteeUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeUnfreezeReq();
+        unfreezeReq.setPoNo(order.getPoNumber());
+        unfreezeReq.setOrderId(order.getId());
+        unfreezeReq.setReason("供需审核驳回");
+        letterGuaranteeService.unfreeze(unfreezeReq);
+
+        // PO-保函关联表占用金额清零（按 poNumber 查 + 逐条 update po_current_occupied_amount=0）
+        PurchaseOrderGuaranteeQo gqo = new PurchaseOrderGuaranteeQo();
+        gqo.setPoNumber(order.getPoNumber());
+        List<PurchaseOrderGuaranteeDo> guarantees = purchaseOrderGuaranteeGateway.listPurchaseOrderGuarantee(gqo);
+        for (PurchaseOrderGuaranteeDo g : guarantees) {
+            PurchaseOrderGuaranteeDo gUpdate = new PurchaseOrderGuaranteeDo();
+            gUpdate.setId(g.getId());
+            gUpdate.setPoCurrentOccupiedAmount(BigDecimal.ZERO);
+            purchaseOrderGuaranteeGateway.updatePurchaseOrderGuarantee(gUpdate);
+        }
+
+        // 推红旗审批结果（事件机制）
         CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
         pushReq.setPoNo(order.getPoNumber());
         pushReq.setResult("REJECTED");

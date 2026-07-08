@@ -15,6 +15,8 @@ import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSaveReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSubmitReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderRejectReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyApproveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.gateway.PurchaseOrderGateway;
 import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.po.service.PurchaseOrderService;
@@ -92,5 +94,15 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     public void rejectPurchaseOrder(PurchaseOrderRejectReq req) {
         purchaseOrderApprovalCmdExe.rejectPurchaseOrder(req);
+    }
+
+    @Override
+    public void supplyApprove(PurchaseOrderSupplyApproveReq req) {
+        purchaseOrderApprovalCmdExe.supplyApprove(req);
+    }
+
+    @Override
+    public void supplyReject(PurchaseOrderSupplyRejectReq req) {
+        purchaseOrderApprovalCmdExe.supplyReject(req);
     }
 }

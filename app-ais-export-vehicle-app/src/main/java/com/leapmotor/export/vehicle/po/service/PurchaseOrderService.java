@@ -10,6 +10,8 @@ import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSaveReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSubmitReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderRejectReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyApproveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyRejectReq;
 
 import java.util.List;
 
@@ -41,10 +43,16 @@ public interface PurchaseOrderService {
     /** 4.2 草稿态编辑保存（仅销售公司 + 明细生产备注） */
     void savePurchaseOrder(PurchaseOrderSaveReq req);
 
-    /** 4.3 销售提交（4 步编排：数据校验→价格匹配→保函冻结→完成） */
+    /** 4.3 销售提交 */
     void submitPurchaseOrder(PurchaseOrderSubmitReq req);
 
-    /** 4.3 销售驳回（终态 + 推红旗） */
+    /** 4.3 销售驳回 */
     void rejectPurchaseOrder(PurchaseOrderRejectReq req);
+
+    /** 4.4 供需审核通过（生成 SO 单） */
+    void supplyApprove(PurchaseOrderSupplyApproveReq req);
+
+    /** 4.4 供需审核驳回（解冻保函 + 推红旗） */
+    void supplyReject(PurchaseOrderSupplyRejectReq req);
 
 }

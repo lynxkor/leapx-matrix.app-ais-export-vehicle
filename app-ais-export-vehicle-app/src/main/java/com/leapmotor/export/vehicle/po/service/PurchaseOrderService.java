@@ -6,6 +6,7 @@ import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderParam;
 import com.leapmotor.export.vehicle.po.resp.PurchaseOrderResp;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderAddOrUpdateReq;
+import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 
 import java.util.List;
 
@@ -68,5 +69,13 @@ public interface PurchaseOrderService {
      * @return 结果
      */
     boolean enableOrDisablePurchaseOrderByIds(LpBaseParam param);
+
+    /**
+     * 4.1 红旗CBU推送创建草稿订单（主表+明细联保存，匹配类字段留空待提交校验）
+     *
+     * @param req 红旗CBU订单采购申请
+     * @return 创建的 PO 主键ID
+     */
+    String createFromHongqi(HongqiCbuPurchaseOrderReq req);
 
 }

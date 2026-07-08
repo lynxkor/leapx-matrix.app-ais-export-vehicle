@@ -18,4 +18,12 @@ public interface SoClient {
     /** 创建 SO 单（一车一单，SO 侧拆分行号 1..N） */
     @PostMapping("/create")
     SoResult createSo(@RequestBody SoCreateReq req);
+
+    /** 查 PO 下所有 SO 状态（4.5 驳回校验用） */
+    @PostMapping("/queryStatus")
+    SoResult queryStatus(@RequestBody String poNo);
+
+    /** SO 作废（4.5 驳回，PO 下所有 SO → 已作废；已是已作废的不重复处理） */
+    @PostMapping("/cancel")
+    SoResult cancel(@RequestBody String poNo);
 }

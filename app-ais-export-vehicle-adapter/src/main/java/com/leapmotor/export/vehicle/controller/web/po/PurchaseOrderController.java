@@ -18,6 +18,8 @@ import com.leapmotor.export.vehicle.po.req.PurchaseOrderSubmitReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderRejectReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyRejectReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderBalanceApproveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderBalanceRejectReq;
 import com.leapmotor.export.vehicle.po.convertor.PurchaseOrderDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.PurchaseOrderService;
 import org.springframework.web.bind.annotation.*;
@@ -135,6 +137,22 @@ public class PurchaseOrderController {
     @PostMapping("/supplyReject")
     public AjaxResult<Void> supplyReject(@RequestBody @Validated PurchaseOrderSupplyRejectReq req) {
         purchaseOrderService.supplyReject(req);
+        return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单产销平衡审核通过")
+    @ResourcePermission(value="web:po:purchaseOrder:balanceApprove",desc="PO订单产销平衡审核通过")
+    @PostMapping("/balanceApprove")
+    public AjaxResult<Void> balanceApprove(@RequestBody @Validated PurchaseOrderBalanceApproveReq req) {
+        purchaseOrderService.balanceApprove(req);
+        return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单产销平衡审核驳回")
+    @ResourcePermission(value="web:po:purchaseOrder:balanceReject",desc="PO订单产销平衡审核驳回")
+    @PostMapping("/balanceReject")
+    public AjaxResult<Void> balanceReject(@RequestBody @Validated PurchaseOrderBalanceRejectReq req) {
+        purchaseOrderService.balanceReject(req);
         return AjaxResult.success();
     }
 }

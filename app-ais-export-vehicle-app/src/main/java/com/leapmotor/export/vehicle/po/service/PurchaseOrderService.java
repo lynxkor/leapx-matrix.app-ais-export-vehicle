@@ -12,6 +12,8 @@ import com.leapmotor.export.vehicle.po.req.PurchaseOrderSubmitReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderRejectReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.PurchaseOrderSupplyRejectReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderBalanceApproveReq;
+import com.leapmotor.export.vehicle.po.req.PurchaseOrderBalanceRejectReq;
 
 import java.util.List;
 
@@ -40,7 +42,7 @@ public interface PurchaseOrderService {
     /** 4.1 红旗CBU推送创建草稿订单 */
     String createFromHongqi(HongqiCbuPurchaseOrderReq req);
 
-    /** 4.2 草稿态编辑保存（仅销售公司 + 明细生产备注） */
+    /** 4.2 草稿态编辑保存 */
     void savePurchaseOrder(PurchaseOrderSaveReq req);
 
     /** 4.3 销售提交 */
@@ -54,5 +56,11 @@ public interface PurchaseOrderService {
 
     /** 4.4 供需审核驳回（解冻保函 + 推红旗） */
     void supplyReject(PurchaseOrderSupplyRejectReq req);
+
+    /** 4.5 产销平衡审核通过（终态 + 推红旗） */
+    void balanceApprove(PurchaseOrderBalanceApproveReq req);
+
+    /** 4.5 产销平衡审核驳回（SO 作废 + APS + 保函解冻 + 推红旗） */
+    void balanceReject(PurchaseOrderBalanceRejectReq req);
 
 }

@@ -206,25 +206,46 @@
 
 ## 进度跟踪
 
-- [x] T01 验证（id-type / ais-event / LpBaseEntity）
-- [x] T01 建表 SQL / 生成器配置 / 状态枚举
-- [ ] T01 建表 + 跑生成器（**待用户**）
-- [ ] T02 三表 CRUD 骨架落地
-- [ ] T03 事件机制基础设施
-- [ ] T04 4.1 红旗同步创建
-- [ ] T05 4.2 编辑保存
-- [ ] T06 4.3 销售提交/驳回
-- [ ] T07 4.4 供需审核
-- [ ] T08 4.5 产销平衡审核
+- [x] T01 前置（建表/生成骨架/状态枚举/验证）— 全完成
+- [x] T02 三表 CRUD 骨架（编译过；筛选对齐/数据权限/主子表联查/单测待）
+- [x] T03 事件机制基础设施（代码完成；XXL-Job + 链路测试待）
+- [x] T04 4.1 红旗同步创建（代码完成；红旗入站契约/联调待）
+- [x] T05 4.2 编辑保存（代码完成；单测待）
+- [x] T06 4.3 销售提交/驳回（代码完成；保函/红旗联调 + 单测待）
+- [x] T07 4.4 供需审核（代码完成；SO 契约/联调 + 单测待）
+- [x] T08 4.5 产销平衡审核（代码完成；SO/APS 契约/联调 + 单测待）
 - [ ] T09 4.6 刷新价格
 - [ ] T10 3.8 明细列表 + 批量
-- [ ] T11 权限 + 联调 + 测试覆盖
+- [ ] T11 权限 + 数据权限 + 联调收尾 + 单测覆盖
 
-## 关键依赖（外部，需提前推动）
+## 遗留清单（2026-07-08 暂停整理）
 
-- 红旗 CBU 入站接口契约（T04）
-- 红旗 CBU 出站（审批结果反馈）接口契约（T03/T06~T08）
-- SO 创建/作废/状态查询/价格更新接口契约（T07/T08/T09）
-- APS「SO订单作废同步」接口契约（T08）
-- 客户/整编主数据/价格主数据查询接口归属确认（T04）
-- ais-event 本地消息表 DDL（T03，从 ais-event 制品或 maintain 找）
+> 三级审批核心（T04–T08）代码全打通、编译过；下列为占位/外部契约/待补项。
+
+### A. 占位待团队真代码
+- 主数据查询 `PlaceholderCustomer/Material/PriceDataGateway`（返回 null）→ 客户/整编/价格主数据表 + 真 Gateway 实现
+- SO 接口 `SoClient`（createSo/queryStatus/cancel）→ SO 微服务契约
+- APS 接口 `ApsClient.soCancelSync` → APS 契约 + 改事件机制（评审要求最终一致，当前同步占位）
+
+### B. 外部契约待定（推动外部团队）
+- 红旗 CBU 入站（T04 Request 字段/路径）
+- 红旗 CBU 出站 审批结果反馈（T03 `CbuApprovalResultReq` + `HongqiClient` URL/服务名）
+- SO 接口（创建/作废/查询/价格更新）
+- APS 接口
+- 客户/整编/价格主数据表名（同库，待 `SHOW TABLES` 确认）
+
+### C. T03 事件机制待收尾
+- XXL-Job `notifyEventJob` 任务配置（推红旗轮询消费，T06 推红旗前配）
+- T03 链路实测（reject → `event_notify_task` 落表 → 消费 → HongqiClient，红旗先 mock）
+- `HongqiClient` 红旗反馈契约
+
+### D. 各任务未完项
+- T02：筛选条件对齐评审 8 项（前端联调时）、`@DataPermission`（推 T11）、主子表联查（详情）、单测
+- T04–T08：单测全未写、外部联调待契约
+- T09 / T10 / T11：未开始
+
+### E. 代码 TODO
+- `generatePoDetailNumber`（Random 占位）→ `@AutoCode`/`NoGenerator`（防并发冲突）
+- `freeze.customerId`（暂用 customerCode，待保函侧确认）
+- 数据来源/订单类型硬编码（"红旗"/"CBU"）→ 建 `DataSourceEnum`/`OrderTypeEnum`
+- `reject_user` 存 userId（Long→String），若要姓名改 `LoginUserUtils.getCurrentUser()`

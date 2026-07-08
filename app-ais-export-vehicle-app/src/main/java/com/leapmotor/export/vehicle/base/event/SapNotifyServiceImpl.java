@@ -7,6 +7,7 @@ import com.leapmotor.paltform.ais.common.event.core.config.EventConfig;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import com.leapmotor.paltform.ais.common.event.core.support.AbstractThirdNotifyService;
 import com.leapmotor.paltform.ais.common.event.service.EventNotifyTaskService;
+import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
@@ -43,8 +44,8 @@ public class SapNotifyServiceImpl extends AbstractThirdNotifyService {
         SapEventTypeEnum eventTypeEnum = SapEventTypeEnum.matchByType(task.getType());
         AbstractEventHandler handler = handlerMap.get(eventTypeEnum);
         if (handler == null) {
-            log.error("SAP事件未找到对应的处理类:{}", eventTypeEnum);
-            return;
+            // 找不到处理类属于配置缺失(事件类型已注册但没有对应 handler Bean)，抛异常让框架走失败重试，避免静默返回被标记成成功而丢事件
+            throw new BizException("SAP事件未找到对应的处理类: " + eventTypeEnum);
         }
         handler.handle(task);
     }

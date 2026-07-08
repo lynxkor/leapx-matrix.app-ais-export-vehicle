@@ -4,6 +4,7 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
@@ -38,6 +39,16 @@ public interface ExportVehicleCbuPoDetailGateway  {
      * @return 结果
      */
     String updateExportVehicleCbuPoDetail(ExportVehicleCbuPoDetailDo purchaseOrderDetailDo);
+
+    /**
+     * 按主键更新明细单价/金额（显式 set，可写入 null 值；用于刷新价格时未匹配行留空）
+     *
+     * @param id 明细主键
+     * @param unitPrice 单价（可为 null）
+     * @param totalAmount 金额合计（可为 null）
+     * @return 受影响行数
+     */
+    int updatePriceById(String id, BigDecimal unitPrice, BigDecimal totalAmount);
 
     /**
      * 查询ExportVehicleCbuPoDetail

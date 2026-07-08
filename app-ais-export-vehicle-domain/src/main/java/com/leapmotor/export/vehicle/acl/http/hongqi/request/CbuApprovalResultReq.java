@@ -1,5 +1,7 @@
 package com.leapmotor.export.vehicle.acl.http.hongqi.request;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -13,15 +15,23 @@ import lombok.Data;
 public class CbuApprovalResultReq {
 
     /** PO单号 */
+    @JsonProperty("pono")
+    @JSONField(name = "pono")
     private String poNo;
 
     /** 计划版本号，例 20260305V1 */
+    @JsonProperty("planversion")
+    @JSONField(name = "planversion")
     private String planVersion;
 
     /** 状态：R=驳回 / A=审批通过 */
+    @JsonProperty("appstatus")
+    @JSONField(name = "appstatus")
     private String status;
 
     /** 审核时间，格式 YYYYMMDD HH:MM:SS */
+    @JsonProperty("apptime")
+    @JSONField(name = "apptime")
     private String auditTime;
 
     /** 说明（驳回原因，驳回时必填） */

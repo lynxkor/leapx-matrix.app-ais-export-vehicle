@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * CBU 审批结果推送红旗（单事件执行器）：
- * 反序列化 dataParam → 调 HongqiGateway → code!=200 抛异常触发框架重试。
+ * 反序列化 dataParam → 调 HongqiGateway → success=false 或 data.receiveflag!=Y 抛异常触发框架重试。
  */
 @AllArgsConstructor
 @Slf4j
@@ -40,7 +40,9 @@ public class CbuApprovalResultToHongqi extends AbstractEventHandler {
         CbuApprovalResultReq req = JSON.parseObject(task.getDataParam(), CbuApprovalResultReq.class);
         HongqiResult result = hongqiGateway.pushCbuApprovalResult(req);
         log.info("红旗CBU审批结果推送结果: {}", result);
-        if (result == null || result.getCode() != 200) {
+        // 成功需 success=true 且 data.receiveflag=Y（code=200 但 receiveflag=N 表示红旗业务层拒绝）
+        if (result == null || !result.isSuccess()
+                || result.getData() == null || !"Y".equals(result.getData().getReceiveFlag())) {
             throw new BizException("红旗CBU审批结果推送失败: " + JSON.toJSONString(result));
         }
     }

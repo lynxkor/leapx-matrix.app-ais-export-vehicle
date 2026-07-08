@@ -9,6 +9,8 @@ import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Set;
@@ -98,7 +100,17 @@ public class EventHandlerHelper {
         if (data != null) {
             event.setDataParam(getDataParam(data));
         }
-        eventPublisher.publish(event, true, true, true);
+        // 处于事务中时延迟到提交后再发布：executeImmediately 会在事务提交前就触发外部推送，若事务回滚会留下"外部已收到、本地未变更"的不一致
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publish(event, true, true, true);
+                }
+            });
+        } else {
+            eventPublisher.publish(event, true, true, true);
+        }
         log.info("异步发布事件成功，event:{}", event);
     }
 

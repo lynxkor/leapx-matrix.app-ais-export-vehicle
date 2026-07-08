@@ -84,6 +84,7 @@ public class ExportVehicleCbuPoCmdExe {
      * 红旗 CBU 订单采购申请 → 创建草稿 PO 订单（主表 + 明细联保存）。
      * 匹配类字段（客户/物料/单价）匹配不到则留空，留待 4.3 提交时强校验。
      */
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:createFromHongqi", value = "#req.poNo", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在创建，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public String createFromHongqi(HongqiCbuPurchaseOrderReq req) {
         // 1. PO单号唯一性（已存在则报错，重复推送同样报错）

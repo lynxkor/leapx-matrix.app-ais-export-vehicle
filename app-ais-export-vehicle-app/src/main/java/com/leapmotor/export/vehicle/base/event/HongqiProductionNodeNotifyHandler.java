@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * 红旗车辆生产信息同步事件处理器（VDO53003）：
- * 反序列化 dataParam → 调 HongqiGateway → code!=200 抛异常触发重试。
+ * 反序列化 dataParam → 调 HongqiGateway → success=false 或 data.receiveflag!=Y 抛异常触发重试（响应壳假设同 VDO53002，待 VDO53003 契约确认）。
  */
 @AllArgsConstructor
 @Slf4j
@@ -44,7 +44,8 @@ public class HongqiProductionNodeNotifyHandler extends AbstractEventHandler {
                 new TypeReference<List<HongqiProductionNodeNotifyReq>>() {});
         HongqiResult result = hongqiGateway.pushProductionNodeSync(reqList);
         log.info("红旗车辆生产信息同步结果: {}", result);
-        if (result == null || result.getCode() != 200) {
+        if (result == null || !result.isSuccess()
+                || result.getData() == null || !"Y".equals(result.getData().getReceiveFlag())) {
             throw new BizException("红旗车辆生产信息同步失败: " + JSON.toJSONString(result));
         }
     }

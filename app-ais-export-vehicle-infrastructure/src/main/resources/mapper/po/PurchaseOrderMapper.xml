@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.PurchaseOrderMapper">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportCbuVehiclePoMapper">
 
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.PurchaseOrder">
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportCbuVehiclePo">
     <id column="id" property="id" />
-    <result column="po_number" property="poNumber" />
+    <result column="po_no" property="poNo" />
     <result column="order_status" property="orderStatus" />
     <result column="sales_company" property="salesCompany" />
     <result column="customer_code" property="customerCode" />
@@ -42,7 +42,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, po_number, order_status, sales_company, customer_code, customer_name, external_customer_code, total_amount, submit_time, reject_time, reject_user, supply_demand_approve_time, supply_demand_approver, production_sales_balance_approve_time, production_sales_balance_approver, reject_reason, data_source, order_type, plan_version, audit_result_sync_time, audit_result_sync_result, customer_system_return_info, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+        id, po_no, order_status, sales_company, customer_code, customer_name, external_customer_code, total_amount, submit_time, reject_time, reject_user, supply_demand_approve_time, supply_demand_approver, production_sales_balance_approve_time, production_sales_balance_approver, reject_reason, data_source, order_type, plan_version, audit_result_sync_time, audit_result_sync_result, customer_system_return_info, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
     </sql>
 
 </mapper>

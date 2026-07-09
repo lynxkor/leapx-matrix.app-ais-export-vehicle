@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.PurchaseOrderDetailMapper">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportCbuVehiclePoDetailMapper">
 
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.PurchaseOrderDetail">
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportCbuVehiclePoDetail">
     <id column="id" property="id" />
-    <result column="po_number" property="poNumber" />
+    <result column="po_no" property="poNo" />
     <result column="po_detail_number" property="poDetailNumber" />
     <result column="order_detail_number" property="orderDetailNumber" />
     <result column="material_code" property="materialCode" />
@@ -36,7 +36,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, po_number, po_detail_number, order_detail_number, material_code, sync_material_code, material_description, sales_market, year_model, optional_package, demand_quantity, expected_offline_date, vin_year, production_remark, unit_price, total_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+        id, po_no, po_detail_number, order_detail_number, material_code, sync_material_code, material_description, sales_market, year_model, optional_package, demand_quantity, expected_offline_date, vin_year, production_remark, unit_price, total_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
     </sql>
 
 </mapper>

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.PurchaseOrderGuaranteeMapper">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportCbuVehiclePoGuaranteeMapper">
 
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.PurchaseOrderGuarantee">
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportCbuVehiclePoGuarantee">
     <id column="id" property="id" />
-    <result column="po_number" property="poNumber" />
+    <result column="po_no" property="poNo" />
     <result column="guarantee_id" property="guaranteeId" />
     <result column="guarantee_number" property="guaranteeNumber" />
     <result column="po_current_occupied_amount" property="poCurrentOccupiedAmount" />
@@ -26,7 +26,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, po_number, guarantee_id, guarantee_number, po_current_occupied_amount, po_current_receivable_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+        id, po_no, guarantee_id, guarantee_number, po_current_occupied_amount, po_current_receivable_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
     </sql>
 
 </mapper>

@@ -20,7 +20,7 @@ public class HongqiCbuPurchaseOrderReq {
     @Schema(description = "PO单号(全局唯一)")
     @NotBlank(message = "PO单号不能为空")
     @Size(max = 30, message = "PO单号长度不能超过30")
-    private String poNumber;
+    private String poNo;
 
     @Schema(description = "客户编码(HQ01红旗股份/HQ02红旗进出口),即外部客户编码")
     @NotBlank(message = "客户编码不能为空")

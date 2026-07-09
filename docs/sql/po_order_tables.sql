@@ -1,15 +1,15 @@
 -- ============================================================
 -- PO订单管理 建表脚本
--- 表：purchase_order / purchase_order_detail / purchase_order_guarantee
+-- 表：export_cbu_vehicle_po / export_cbu_vehicle_po_detail / export_cbu_vehicle_po_guarantee
 -- 来源：技术评审 00-总览 §3.1.1 / §3.2.1 / §3.3.1
 -- 主键：id VARCHAR(64)，应用层 UUID（LpBaseEntity @TableId(type=ASSIGN_UUID) 自动生成，非自增、不用手填）
 -- 基础字段：平台模板 §7.0（11 个，三表统一）
 -- ============================================================
 
 -- 1. PO订单主表
-CREATE TABLE `purchase_order` (
+CREATE TABLE `export_cbu_vehicle_po` (
     `id`                                  VARCHAR(64)      NOT NULL                         COMMENT '主键ID(UUID 或雪花ID 字符串形式)',
-    `po_number`                           VARCHAR(30)      NOT NULL                         COMMENT 'PO单号(取自红旗CBU接口),业务唯一键',
+    `po_no`                           VARCHAR(30)      NOT NULL                         COMMENT 'PO单号(取自红旗CBU接口),业务唯一键',
     `order_status`                        VARCHAR(10)      NOT NULL                         COMMENT '订单状态,枚举见评审§2.1(草稿/销售已提交/销售已驳回/供需审核通过/供需审核驳回/产销平衡通过/产销平衡驳回)',
     `sales_company`                       VARCHAR(30)      DEFAULT NULL                     COMMENT '销售公司,下拉选,提交时必填',
     `customer_code`                       VARCHAR(30)      DEFAULT NULL                     COMMENT '客户编码,按 external_customer_code 匹配客户主数据,匹配不到则空;提交时必填',
@@ -43,13 +43,13 @@ CREATE TABLE `purchase_order` (
     `owner_user_id`                       BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'          COMMENT '归属用户ID',
     `owner_org_id`                        BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'          COMMENT '归属门店ID(组织ID)',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_po_number` (`po_number`)
+    UNIQUE KEY `uk_po_no` (`po_no`)
 ) DEFAULT CHARSET=utf8mb4 COMMENT='PO订单主表';
 
 -- 2. PO订单明细表
-CREATE TABLE `purchase_order_detail` (
+CREATE TABLE `export_cbu_vehicle_po_detail` (
     `id`                    VARCHAR(64)     NOT NULL                        COMMENT '主键ID(UUID 或雪花ID 字符串形式)',
-    `po_number`             VARCHAR(30)     NOT NULL                        COMMENT 'PO单号,关联主表 purchase_order.po_number',
+    `po_no`             VARCHAR(30)     NOT NULL                        COMMENT 'PO单号,关联主表 export_cbu_vehicle_po.po_no',
     `po_detail_number`      VARCHAR(30)     NOT NULL                        COMMENT 'PO明细编号,自动生成 POD+年月日+时分+5位流水',
     `order_detail_number`   VARCHAR(30)     NOT NULL                        COMMENT '订单明细编号,取自红旗CBU接口',
     `material_code`         VARCHAR(30)     DEFAULT NULL                    COMMENT '物料编码,按 sync_material_code 匹配整编主数据;提交时必填',
@@ -77,13 +77,13 @@ CREATE TABLE `purchase_order_detail` (
     `owner_user_id`         BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'       COMMENT '归属用户ID',
     `owner_org_id`          BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'       COMMENT '归属门店ID(组织ID)',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_po_detail` (`po_number`, `po_detail_number`)
+    UNIQUE KEY `uk_po_detail` (`po_no`, `po_detail_number`)
 ) DEFAULT CHARSET=utf8mb4 COMMENT='PO订单明细表';
 
 -- 3. PO-保函关联表（一对多，一个 PO 可冻结多个保函）
-CREATE TABLE `purchase_order_guarantee` (
+CREATE TABLE `export_cbu_vehicle_po_guarantee` (
     `id`                            VARCHAR(64)   NOT NULL                 COMMENT '主键ID(UUID 或雪花ID 字符串形式)',
-    `po_number`                     VARCHAR(30)   NOT NULL                 COMMENT 'PO单号,关联主表 purchase_order.po_number',
+    `po_no`                     VARCHAR(30)   NOT NULL                 COMMENT 'PO单号,关联主表 export_cbu_vehicle_po.po_no',
     `guarantee_id`                  VARCHAR(32)   NOT NULL                 COMMENT '保函ID,关联保函表',
     `guarantee_number`              VARCHAR(30)   NOT NULL                 COMMENT '保函编号',
     `po_current_occupied_amount`    DECIMAL(20,2) NOT NULL DEFAULT '0.00'  COMMENT 'PO当前占用金额,= 该保函的冻结金额',
@@ -101,5 +101,5 @@ CREATE TABLE `purchase_order_guarantee` (
     `owner_user_id`                 BIGINT(20) UNSIGNED NOT NULL DEFAULT '0' COMMENT '归属用户ID',
     `owner_org_id`                  BIGINT(20) UNSIGNED NOT NULL DEFAULT '0' COMMENT '归属门店ID(组织ID)',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_po_guarantee` (`po_number`, `guarantee_id`)
+    UNIQUE KEY `uk_po_guarantee` (`po_no`, `guarantee_id`)
 ) DEFAULT CHARSET=utf8mb4 COMMENT='PO-保函关联表(一个PO多保函)';

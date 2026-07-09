@@ -21,7 +21,7 @@ public class ExportCbuVehiclePoSaveReq {
 
     @Schema(description = "销售公司(抬头,保存时必填)")
     @NotBlank(message = "销售公司不能为空")
-    private String salesCompany;
+    private String salesCompanyCode;
 
     @Schema(description = "明细生产备注(逐行)")
     @NotEmpty(message = "明细列表不能为空")

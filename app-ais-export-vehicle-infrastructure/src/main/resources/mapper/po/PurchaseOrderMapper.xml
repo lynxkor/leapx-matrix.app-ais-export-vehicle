@@ -8,7 +8,7 @@
     <id column="id" property="id" />
     <result column="po_no" property="poNo" />
     <result column="order_status" property="orderStatus" />
-    <result column="sales_company" property="salesCompany" />
+    <result column="sales_company_code" property="salesCompanyCode" />
     <result column="customer_code" property="customerCode" />
     <result column="customer_name" property="customerName" />
     <result column="external_customer_code" property="externalCustomerCode" />
@@ -42,7 +42,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, po_no, order_status, sales_company, customer_code, customer_name, external_customer_code, total_amount, submit_time, reject_time, reject_user, supply_demand_approve_time, supply_demand_approver, production_sales_balance_approve_time, production_sales_balance_approver, reject_reason, data_source, order_type, plan_version, audit_result_sync_time, audit_result_sync_result, customer_system_return_info, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+        id, po_no, order_status, sales_company_code, customer_code, customer_name, external_customer_code, total_amount, submit_time, reject_time, reject_user, supply_demand_approve_time, supply_demand_approver, production_sales_balance_approve_time, production_sales_balance_approver, reject_reason, data_source, order_type, plan_version, audit_result_sync_time, audit_result_sync_result, customer_system_return_info, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
     </sql>
 
 </mapper>

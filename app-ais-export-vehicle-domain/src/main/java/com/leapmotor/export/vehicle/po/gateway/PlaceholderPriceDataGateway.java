@@ -11,5 +11,5 @@ public interface PlaceholderPriceDataGateway {
      *
      * @return 单价；匹配不到返回 null
      */
-    BigDecimal getLatestApprovedPrice(String materialCode, String orderType, LocalDateTime orderCreateTime);
+    BigDecimal getLatestApprovedPrice(String materialCode, Integer orderType, LocalDateTime orderCreateTime);
 }

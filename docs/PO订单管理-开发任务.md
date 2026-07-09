@@ -105,7 +105,7 @@
 | 表 | 类名 | 说明 |
 |---|---|---|
 | `export_cbu_vehicle_po` | `ExportCbuVehiclePo` | 主表，业务唯一键 po_no |
-| `export_cbu_vehicle_po_detail` | `ExportCbuVehiclePoDetail` | 明细，(po_no, po_detail_number) 组合唯一 |
+| `export_cbu_vehicle_po_detail` | `ExportCbuVehiclePoDetail` | 明细，(po_no, po_detail_no) 组合唯一 |
 | `export_cbu_vehicle_po_guarantee` | `ExportCbuVehiclePoGuarantee` | PO-保函关联（一对多），(po_no, guarantee_id) 组合唯一 |
 
 三表均带平台基础字段 11 个（creator/creator_name/create_time/modifier/modifier_name/update_time/delete_status/status/status_desc/owner_user_id/owner_org_id），其中 id/creator/create_time/modifier/update_time/delete_status 由 `LpBaseEntity` 提供，status/status_desc/owner_user_id/owner_org_id 在业务实体显式声明。
@@ -144,7 +144,7 @@
   - domain：Do / Qo / Gateway。
   - app：Service + ServiceImpl、CmdExe（主表 insert/update + 明细/关联批量同事务）、QryExe、DTOStructMapper、Req（`ExportCbuVehiclePoAddOrUpdateReq` 嵌 `List<ExportCbuVehiclePoDetailAddOrUpdateReq>`）、Resp。
   - adapter：`ExportCbuVehiclePoController`（page/detail/addOrUpdate，标 `@ResourcePermission`）。
-- rules 要点：Entity `deleteStatus` 走 `@TableLogic`（LpBaseEntity 自带，勿重复填充基础字段）；明细 `po_detail_number` 用 `@AutoCode(prefix="POD")` 自动编号（格式不符退 `NoGenerator`）；请求 DTO 枚举字段 `@EnumValue(enumClass=ExportCbuVehiclePoStatusEnum.class, required=true)`、响应 DTO 枚举字段 `@DictEnumType(prefix="ExportCbuVehiclePoStatusEnum")`；GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_cbu_vehicle_po")`。
+- rules 要点：Entity `deleteStatus` 走 `@TableLogic`（LpBaseEntity 自带，勿重复填充基础字段）；明细 `po_detail_no` 用 `@AutoCode(prefix="POD")` 自动编号（格式不符退 `NoGenerator`）；请求 DTO 枚举字段 `@EnumValue(enumClass=ExportCbuVehiclePoStatusEnum.class, required=true)`、响应 DTO 枚举字段 `@DictEnumType(prefix="ExportCbuVehiclePoStatusEnum")`；GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_cbu_vehicle_po")`。
 - 参考：maintain `ServiceProxy` 主子表、`OwnersEquityOrder` 主子表范本。
 - 验收：主表 + 明细 + 关联表能一起增改查；分页带数据权限。
 - 依赖：T01。
@@ -180,7 +180,7 @@
 ### T05 - 4.2 订单编辑&保存
 
 - 目标：草稿态编辑销售公司 + 明细生产备注并保存。
-- 产出：`ExportCbuVehiclePoController.save` 端点；CmdExe 编辑逻辑（仅 sales_company 抬头可改、明细 production_remark 逐行改）；草稿态校验 + 乐观锁。
+- 产出：`ExportCbuVehiclePoController.save` 端点；CmdExe 编辑逻辑（仅 sales_company_code 抬头可改、明细 production_remark 逐行改）；草稿态校验 + 乐观锁。
 - 参考：评审 02 节点、maintain 编辑保存模式。
 - 验收：仅草稿可编辑；非可编辑字段防篡改（后端校验）；并发乐观锁生效。
 - 依赖：T02。

@@ -30,7 +30,7 @@ public class ExportCbuVehiclePoDetailQo extends LpBaseQo implements Serializable
     /**
      * PO明细编号,自动生成 POD+年月日+时分+5位流水
      */
-    private String poDetailNumber;
+    private String poDetailNo;
 
     /**
      * 订单明细编号,取自红旗CBU接口
@@ -60,7 +60,7 @@ public class ExportCbuVehiclePoDetailQo extends LpBaseQo implements Serializable
     /**
      * 年款,关联整编主数据
      */
-    private String yearModel;
+    private String modelYear;
 
     /**
      * 选装包,关联整编主数据

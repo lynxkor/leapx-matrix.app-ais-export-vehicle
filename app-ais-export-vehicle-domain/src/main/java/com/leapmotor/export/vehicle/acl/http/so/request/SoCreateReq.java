@@ -12,8 +12,8 @@ import java.util.List;
 public class SoCreateReq {
 
     private String poNo;                  // PO单号
-    private String orderType;             // 订单类型(CBU/SKD/CKD)
-    private String salesCompany;          // 销售公司
+    private Integer orderType;             // 订单类型(CBU/SKD/CKD)
+    private String salesCompanyCode;          // 销售公司
     private String customerCode;          // 客户编码
     private String customerName;          // 客户名称
     private String externalCustomerCode;  // 外部客户编码
@@ -22,7 +22,7 @@ public class SoCreateReq {
 
     @Data
     public static class SoDetailReq {
-        private String poDetailNumber;        // PO明细编号
+        private String poDetailNo;        // PO明细编号
         private BigDecimal demandQuantity;     // 需求数量
         private BigDecimal unitPrice;          // 车辆价格 = 明细单价
         private String vinYear;                // VIN码年份

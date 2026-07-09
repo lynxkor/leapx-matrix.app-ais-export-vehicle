@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class PlaceholderPriceDataGatewayImpl implements PlaceholderPriceDataGateway {
 
     @Override
-    public BigDecimal getLatestApprovedPrice(String materialCode, String orderType, LocalDateTime orderCreateTime) {
+    public BigDecimal getLatestApprovedPrice(String materialCode, Integer orderType, LocalDateTime orderCreateTime) {
         log.warn("【占位】价格主数据查询：materialCode={}, orderType={}, 暂返回 null", materialCode, orderType);
         return null;
     }

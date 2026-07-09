@@ -100,7 +100,7 @@ public class ExportCbuVehiclePoCmdExe {
             order.setCustomerName(customer.getCustomerName());
         }
         order.setDataSource("红旗");
-        order.setOrderType("CBU");
+        order.setOrderType(1);
         order.setPlanVersion(req.getPlanVersion());
 
         // 5. 明细组装（物料匹配 + 单价匹配 + 金额合计）
@@ -135,7 +135,7 @@ public class ExportCbuVehiclePoCmdExe {
         for (HongqiCbuOrderDetailReq d : req.getOrderDetailList()) {
             ExportCbuVehiclePoDetailDo detail = new ExportCbuVehiclePoDetailDo();
             detail.setPoNo(req.getPoNo());
-            detail.setPoDetailNumber(generatePoDetailNumber());
+            detail.setPoDetailNo(generatePoDetailNo());
             detail.setOrderDetailNumber(d.getDetailNumber());
             detail.setSyncMaterialCode(d.getMaterialCode());
             detail.setDemandQuantity(d.getDemandQuantity());
@@ -149,14 +149,14 @@ public class ExportCbuVehiclePoCmdExe {
                 detail.setMaterialCode(material.getMaterialCode());
                 detail.setMaterialDescription(material.getMaterialDescription());
                 detail.setSalesMarket(material.getSalesMarket());
-                detail.setYearModel(material.getYearModel());
+                detail.setModelYear(material.getModelYear());
                 detail.setOptionalPackage(material.getOptionalPackage());
             }
 
             // 单价匹配（物料编码 + 订单类型 + 订单创建时间 → 价格主数据，多条取审批最新）
             if (detail.getMaterialCode() != null) {
                 BigDecimal unitPrice = priceDataGateway.getLatestApprovedPrice(
-                        detail.getMaterialCode(), "CBU", orderCreateTime);
+                        detail.getMaterialCode(), 1, orderCreateTime);
                 detail.setUnitPrice(unitPrice);
                 if (unitPrice != null && d.getDemandQuantity() != null) {
                     detail.setTotalAmount(unitPrice.multiply(d.getDemandQuantity()));
@@ -183,7 +183,7 @@ public class ExportCbuVehiclePoCmdExe {
      * PO 明细编号：POD + 年月日 + 时分 + 5位流水。
      * TODO 正式用平台 @AutoCode 或 NoGenerator（防并发冲突），当前占位。
      */
-    private String generatePoDetailNumber() {
+    private String generatePoDetailNo() {
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
         String seq = String.format("%05d", new Random().nextInt(100000));
         return "POD" + ts + seq;
@@ -209,10 +209,10 @@ public class ExportCbuVehiclePoCmdExe {
             throw new BizException("仅草稿态订单可编辑");
         }
 
-        // 2. 改抬头销售公司（只 set id + salesCompany，其余字段不更新）
+        // 2. 改抬头销售公司（只 set id + salesCompanyCode，其余字段不更新）
         ExportCbuVehiclePoDo headerUpdate = new ExportCbuVehiclePoDo();
         headerUpdate.setId(req.getPoId());
-        headerUpdate.setSalesCompany(req.getSalesCompany());
+        headerUpdate.setSalesCompanyCode(req.getSalesCompanyCode());
         purchaseOrderGateway.updateExportCbuVehiclePo(headerUpdate);
 
         // 3. 明细生产备注逐行更新（按 detailId，只 set id + productionRemark）

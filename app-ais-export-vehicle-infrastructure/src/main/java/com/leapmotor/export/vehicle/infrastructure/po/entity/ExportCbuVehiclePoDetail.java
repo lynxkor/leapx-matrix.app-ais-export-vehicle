@@ -36,8 +36,8 @@ public class ExportCbuVehiclePoDetail extends LpBaseEntity implements Serializab
     /**
      * PO明细编号,自动生成 POD+年月日+时分+5位流水
      */
-    @TableField("po_detail_number")
-    private String poDetailNumber;
+    @TableField("po_detail_no")
+    private String poDetailNo;
 
     /**
      * 订单明细编号,取自红旗CBU接口
@@ -72,8 +72,8 @@ public class ExportCbuVehiclePoDetail extends LpBaseEntity implements Serializab
     /**
      * 年款,关联整编主数据
      */
-    @TableField("year_model")
-    private String yearModel;
+    @TableField("model_year")
+    private String modelYear;
 
     /**
      * 选装包,关联整编主数据

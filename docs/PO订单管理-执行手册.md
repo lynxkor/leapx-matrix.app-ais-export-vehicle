@@ -53,7 +53,7 @@
 
 ### rules 要点（写代码时遵守 backend-coding-constraints）
 - `deleteStatus` 走 `@TableLogic`（LpBaseEntity 自带）；基础字段 creator/createTime 等平台自动填充，勿手写。
-- 明细 `po_detail_number` 用 `@AutoCode(prefix="POD")`；若格式不符退 `NoGenerator`。
+- 明细 `po_detail_no` 用 `@AutoCode(prefix="POD")`；若格式不符退 `NoGenerator`。
 - 请求 DTO 枚举字段 `@EnumValue`、响应 DTO 枚举字段 `@DictEnumType`。
 - GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_cbu_vehicle_po")`。
 
@@ -103,7 +103,7 @@
 > 前置：T02。可与 T04 并行。
 
 ### 待做（agent）
-1. **[agent]** `ExportCbuVehiclePoController.save` + CmdExe：仅 `sales_company`（抬头）+ 明细 `production_remark` 可改。
+1. **[agent]** `ExportCbuVehiclePoController.save` + CmdExe：仅 `sales_company_code`（抬头）+ 明细 `production_remark` 可改。
 2. **[agent]** 草稿态校验 + 乐观锁（`@DistributeLock` 或 version 字段）。
 3. **[agent]** 单元测试：非草稿不可编辑、非可编辑字段防篡改（后端校验）、并发乐观锁。
 
@@ -245,7 +245,7 @@
 - T09 / T10 / T11：未开始
 
 ### E. 代码 TODO
-- `generatePoDetailNumber`（Random 占位）→ `@AutoCode`/`NoGenerator`（防并发冲突）
+- `generatePoDetailNo`（Random 占位）→ `@AutoCode`/`NoGenerator`（防并发冲突）
 - `freeze.customerId`（暂用 customerCode，待保函侧确认）
 - 数据来源/订单类型硬编码（"红旗"/"CBU"）→ 建 `DataSourceEnum`/`OrderTypeEnum`
 - `reject_user` 存 userId（Long→String），若要姓名改 `LoginUserUtils.getCurrentUser()`

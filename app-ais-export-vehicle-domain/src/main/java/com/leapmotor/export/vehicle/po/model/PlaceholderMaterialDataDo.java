@@ -9,6 +9,6 @@ public class PlaceholderMaterialDataDo {
     private String materialCode;
     private String materialDescription;
     private String salesMarket;
-    private String yearModel;
+    private String modelYear;
     private String optionalPackage;
 }

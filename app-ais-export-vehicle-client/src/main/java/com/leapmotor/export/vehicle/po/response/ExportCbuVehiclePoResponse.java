@@ -35,7 +35,7 @@ public class ExportCbuVehiclePoResponse extends LpBaseResponse implements Serial
     /**
      * 销售公司,下拉选,提交时必填
      */
-    private String salesCompany;
+    private String salesCompanyCode;
 
     /**
      * 客户编码,按 external_customer_code 匹配客户主数据,匹配不到则空;提交时必填
@@ -105,7 +105,7 @@ public class ExportCbuVehiclePoResponse extends LpBaseResponse implements Serial
     /**
      * 订单类型,红旗接口同步
      */
-    private String orderType;
+    private Integer orderType;
 
     /**
      * 计划版本号,取自红旗CBU接口

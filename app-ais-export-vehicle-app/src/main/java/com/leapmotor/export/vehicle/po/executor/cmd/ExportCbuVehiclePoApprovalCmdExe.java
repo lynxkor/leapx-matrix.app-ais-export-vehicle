@@ -23,6 +23,7 @@ import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
 
 import java.util.Collections;
 import java.util.Set;
+import com.leapmotor.export.vehicle.po.enums.OrderTypeEnum;
 import com.leapmotor.export.vehicle.po.enums.ExportCbuVehiclePoStatusEnum;
 import com.leapmotor.export.vehicle.po.gateway.PlaceholderCustomerDataGateway;
 import com.leapmotor.export.vehicle.po.gateway.PlaceholderMaterialDataGateway;
@@ -97,7 +98,7 @@ public class ExportCbuVehiclePoApprovalCmdExe {
         }
 
         // ===== 步骤1 检查订单数据 + 兜底匹配 =====
-        if (StringUtils.isBlank(order.getSalesCompany())) {
+        if (StringUtils.isBlank(order.getSalesCompanyCode())) {
             throw new BizException("销售公司不能为空");
         }
         PlaceholderCustomerDataDo customer = customerDataGateway.getByExternalCode(order.getExternalCustomerCode());
@@ -121,7 +122,7 @@ public class ExportCbuVehiclePoApprovalCmdExe {
                 d.setMaterialCode(m.getMaterialCode());
                 d.setMaterialDescription(m.getMaterialDescription());
                 d.setSalesMarket(m.getSalesMarket());
-                d.setYearModel(m.getYearModel());
+                d.setModelYear(m.getModelYear());
                 d.setOptionalPackage(m.getOptionalPackage());
             }
         }
@@ -153,7 +154,7 @@ public class ExportCbuVehiclePoApprovalCmdExe {
         if ("保函".equals(fundCheckType)) {
             ExportVehicleLetterGuaranteeFreezeReq freezeReq = new ExportVehicleLetterGuaranteeFreezeReq();
             freezeReq.setCustomerId(order.getCustomerCode()); // TODO customerId 用 customerCode，待保函侧确认
-            freezeReq.setOrderType(order.getOrderType());
+            freezeReq.setOrderType(OrderTypeEnum.getName(order.getOrderType()));
             freezeReq.setOrderId(order.getId());
             freezeReq.setOrderNo(order.getPoNo());
             freezeReq.setPoNo(order.getPoNo());
@@ -259,14 +260,14 @@ public class ExportCbuVehiclePoApprovalCmdExe {
         SoCreateReq req = new SoCreateReq();
         req.setPoNo(order.getPoNo());
         req.setOrderType(order.getOrderType());
-        req.setSalesCompany(order.getSalesCompany());
+        req.setSalesCompanyCode(order.getSalesCompanyCode());
         req.setCustomerCode(order.getCustomerCode());
         req.setCustomerName(order.getCustomerName());
         req.setExternalCustomerCode(order.getExternalCustomerCode());
         req.setPlanVersion(order.getPlanVersion());
         req.setDetails(details.stream().map(d -> {
             SoCreateReq.SoDetailReq sd = new SoCreateReq.SoDetailReq();
-            sd.setPoDetailNumber(d.getPoDetailNumber());
+            sd.setPoDetailNo(d.getPoDetailNo());
             sd.setDemandQuantity(d.getDemandQuantity());
             sd.setUnitPrice(d.getUnitPrice());
             sd.setVinYear(d.getVinYear());

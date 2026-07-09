@@ -7,13 +7,13 @@
     <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportCbuVehiclePoDetail">
     <id column="id" property="id" />
     <result column="po_no" property="poNo" />
-    <result column="po_detail_number" property="poDetailNumber" />
+    <result column="po_detail_no" property="poDetailNo" />
     <result column="order_detail_number" property="orderDetailNumber" />
     <result column="material_code" property="materialCode" />
     <result column="sync_material_code" property="syncMaterialCode" />
     <result column="material_description" property="materialDescription" />
     <result column="sales_market" property="salesMarket" />
-    <result column="year_model" property="yearModel" />
+    <result column="model_year" property="modelYear" />
     <result column="optional_package" property="optionalPackage" />
     <result column="demand_quantity" property="demandQuantity" />
     <result column="expected_offline_date" property="expectedOfflineDate" />
@@ -36,7 +36,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, po_no, po_detail_number, order_detail_number, material_code, sync_material_code, material_description, sales_market, year_model, optional_package, demand_quantity, expected_offline_date, vin_year, production_remark, unit_price, total_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+        id, po_no, po_detail_no, order_detail_number, material_code, sync_material_code, material_description, sales_market, model_year, optional_package, demand_quantity, expected_offline_date, vin_year, production_remark, unit_price, total_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
     </sql>
 
 </mapper>

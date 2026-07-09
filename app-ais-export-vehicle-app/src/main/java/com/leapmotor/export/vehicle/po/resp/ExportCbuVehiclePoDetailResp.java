@@ -25,7 +25,7 @@ public class ExportCbuVehiclePoDetailResp extends LpBaseModel implements Seriali
     private String poNo;
 
     @Schema(description = "PO明细编号,自动生成 POD+年月日+时分+5位流水")
-    private String poDetailNumber;
+    private String poDetailNo;
 
     @Schema(description = "订单明细编号,取自红旗CBU接口")
     private String orderDetailNumber;
@@ -43,7 +43,7 @@ public class ExportCbuVehiclePoDetailResp extends LpBaseModel implements Seriali
     private String salesMarket;
 
     @Schema(description = "年款,关联整编主数据")
-    private String yearModel;
+    private String modelYear;
 
     @Schema(description = "选装包,关联整编主数据")
     private String optionalPackage;

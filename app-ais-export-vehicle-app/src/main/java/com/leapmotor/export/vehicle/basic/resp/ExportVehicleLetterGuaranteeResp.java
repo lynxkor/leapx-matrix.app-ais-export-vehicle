@@ -4,10 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.OrderTypeEnum;
+import com.leapmotor.platform.ais.common.web.serializer.BigDecimalFormat;
 import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
@@ -46,18 +48,23 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     private String bankName;
 
     @Schema(description = "保函金额(人民币CNY)")
+    @BigDecimalFormat(pattern = "#.########")
     private BigDecimal totalAmount;
 
     @Schema(description = "换算订单额度比例 0~1,保留 6 位小数")
+    @BigDecimalFormat(pattern = "#.########")
     private BigDecimal conversionRatio;
 
     @Schema(description = "可用订单金额")
+    @BigDecimalFormat(pattern = "#.########")
     private BigDecimal availableAmount;
 
     @Schema(description = "占用订单金额")
+    @BigDecimalFormat(pattern = "#.########")
     private BigDecimal occupiedAmount;
 
     @Schema(description = "应收订单金额")
+    @BigDecimalFormat(pattern = "#.########")
     private BigDecimal receivableAmount;
 
     @Schema(description = "生效日期")
@@ -99,6 +106,7 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     private String remark;
 
     @Schema(description = "状态(1:启用,0:停用)")
+    @DictEnumType(type = StatusEnum.class)
     private Integer status;
 
     @Schema(description = "状态变更描述")

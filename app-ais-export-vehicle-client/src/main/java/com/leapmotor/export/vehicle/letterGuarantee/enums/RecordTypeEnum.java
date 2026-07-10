@@ -14,14 +14,14 @@ import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
  *   <li>50 保函失效:lg_status 20→30,无可用金额时置 0(凌晨任务 / 手动失效)</li>
  * </ul>
  *
- * <p>编码 10/20/30/40/50 与主表审核/保函状态对齐,预留扩展位。
+ * <p>编码 10/20/30/40/50 与主表审核/保函状态对齐,价格调整(§3.5)沿用 10/20(PO 提交/PO 驳回)。
  */
 public enum RecordTypeEnum implements IBaseEnum<String> {
-    FREEZE              ("10", "冻结"),
-    UNFREEZE            ("20", "解冻"),
-    TRANSFER_RECEIVABLE ("30", "转应收"),
-    RELEASE_RECEIVABLE  ("40", "释放应收"),
-    EXPIRE              ("50", "保函失效");
+    FREEZE("10", "冻结"),
+    UNFREEZE("20", "解冻"),
+    TRANSFER_RECEIVABLE("30", "转应收"),
+    RELEASE_RECEIVABLE("40", "释放应收"),
+    EXPIRE("50", "保函失效");
 
     private final String code;
     private final String message;
@@ -31,11 +31,18 @@ public enum RecordTypeEnum implements IBaseEnum<String> {
         this.message = message;
     }
 
-    @Override public String getCode()    { return code; }
-    @Override public String getMessage() { return message; }
-
     public static RecordTypeEnum of(String code) {
         for (RecordTypeEnum e : values()) if (e.code.equals(code)) return e;
         return null;
+    }
+
+    @Override
+    public String getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
     }
 }

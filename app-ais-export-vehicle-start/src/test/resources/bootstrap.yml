@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: app-ais-export-vehicle
+  cloud:
+    nacos:
+      discovery:
+        server-addr: https://leapx-nacos-test.leapmotor.com
+        namespace: 483de891-cc67-4c6b-80b6-53727bba98db
+        enabled: true
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
+        metadata:
+          management.context-path: ${management.endpoints.web.base-path:/actuator}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        username: ${spring.cloud.nacos.discovery.username}
+        password: ${spring.cloud.nacos.discovery.password}
+        namespace: ${spring.cloud.nacos.discovery.namespace}
+  config:
+    import:
+      - nacos:app-ais-redis.yaml?refreshEnabled=true&group=ais
+      - nacos:app-ais-job.yaml?refreshEnabled=true&group=ais
+      - nacos:app-ais-common.yaml?refreshEnabled=true&group=ais
+      - nacos:portal-jwt.yaml?refreshEnabled=true&group=leapx
+      - nacos:app-ais-export-vehicle.yaml?refreshEnabled=true&group=ais
+      - nacos:app-ais-export-vehicle-datasource.yaml?refreshEnabled=true&group=ais
+
+
+

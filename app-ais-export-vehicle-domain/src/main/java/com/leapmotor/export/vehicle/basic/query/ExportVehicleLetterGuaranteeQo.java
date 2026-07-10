@@ -78,9 +78,21 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
     private LocalDate effectiveDate;
 
     /**
+     * 生效日期上限(≤ 此日期);为空不过滤。
+     * <p>用途:列出可用保函时,只筛已过生效起始日的保函(生效日期 ≤ 当前日期),避免提前使用尚未生效的保函。
+     */
+    private LocalDate effectiveDateLe;
+
+    /**
      * 失效日期
      */
     private LocalDate expiryDate;
+
+    /**
+     * 失效日期下限(≥ 此日期);为空不过滤。
+     * <p>用途:PO 资金校验时,只筛失效日期 ≥ 订单创建时间 + coverDays 的保函,避免早期失效的保函被误用。
+     */
+    private LocalDate expiryDateGe;
 
     /**
      * 审核状态(字典 letter_guarantee_approval_status: 10草稿 20已提交 30审核通过 40驳回 50作废)

@@ -1,60 +1,76 @@
 package com.leapmotor.export.vehicle.basic.service.impl;
 
-import com.leapmotor.paltform.ais.common.model.response.PageResult;
-import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.export.vehicle.basic.convertor.ExportVehicleLetterGuaranteeDTOStructMapper;
 import com.leapmotor.export.vehicle.basic.executor.cmd.ExportVehicleLetterGuaranteeCmdExe;
 import com.leapmotor.export.vehicle.basic.executor.query.ExportVehicleLetterGuaranteeQryExe;
-import com.leapmotor.export.vehicle.basic.convertor.ExportVehicleLetterGuaranteeDTOStructMapper;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeParam;
-import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
-import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeAddOrUpdateReq;
-import lombok.AllArgsConstructor;
-import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
-import org.springframework.stereotype.Service;
-import java.util.List;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
+import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
+import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
+import com.leapmotor.export.vehicle.basic.req.*;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
+import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
+import com.leapmotor.paltform.ais.common.model.exception.BizException;
+import com.leapmotor.paltform.ais.common.model.response.PageResult;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 /**
  * <p>
  * 保函主表 服务实现类
  * </p>
+ * <p>
+ * 业务规则:Service 层只做编排,委托 CmdExe(写)/QryExe(读)/Gateway。
  *
  * @author wangkai2527148
  * @since 2026-07-02
  */
+@Slf4j
 @AllArgsConstructor
 @Service
 public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLetterGuaranteeService {
-
 
     private ExportVehicleLetterGuaranteeCmdExe exportVehicleLetterGuaranteeCmdExe;
     private ExportVehicleLetterGuaranteeQryExe exportVehicleLetterGuaranteeQryExe;
     private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
 
+    // ============== 基础 CRUD ==============
+
     @Override
     public ExportVehicleLetterGuaranteeResp getExportVehicleLetterGuaranteeById(String id) {
-        ExportVehicleLetterGuaranteeDo exportVehicleLetterGuaranteeDo = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(id);
-        return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainToResp(exportVehicleLetterGuaranteeDo);
+        ExportVehicleLetterGuaranteeDo d = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(id);
+        return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainToResp(d);
     }
 
     @Override
-    public List<ExportVehicleLetterGuaranteeResp> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam exportVehicleLetterGuaranteeParam) {
-    ExportVehicleLetterGuaranteeQo exportVehicleLetterGuaranteeQo = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.paramToQuery(exportVehicleLetterGuaranteeParam);
-        List<ExportVehicleLetterGuaranteeDo> exportVehicleLetterGuaranteeDoList =  exportVehicleLetterGuaranteeGateway.listExportVehicleLetterGuarantee(exportVehicleLetterGuaranteeQo);
-        return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToResps(exportVehicleLetterGuaranteeDoList);
+    public List<ExportVehicleLetterGuaranteeResp> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam param) {
+        ExportVehicleLetterGuaranteeQo qo = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.paramToQuery(param);
+        List<ExportVehicleLetterGuaranteeDo> list = exportVehicleLetterGuaranteeGateway.listExportVehicleLetterGuarantee(qo);
+        return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToResps(list);
     }
 
     @Override
-    public PageResult<ExportVehicleLetterGuaranteeResp> pageExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam exportVehicleLetterGuaranteeParam) {
-        PageResult<ExportVehicleLetterGuaranteeDo> page = exportVehicleLetterGuaranteeQryExe.pageExportVehicleLetterGuarantee(exportVehicleLetterGuaranteeParam);
+    public PageResult<ExportVehicleLetterGuaranteeResp> pageExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam param) {
+        PageResult<ExportVehicleLetterGuaranteeDo> page = exportVehicleLetterGuaranteeQryExe.pageExportVehicleLetterGuarantee(param);
         return ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToRespPage(page);
     }
 
     @Override
-    public String addOrUpdateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeAddOrUpdateReq exportVehicleLetterGuaranteeAddOrUpdateReq) {
-        ExportVehicleLetterGuaranteeDo exportVehicleLetterGuaranteeDo = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.addCmdToDomain(exportVehicleLetterGuaranteeAddOrUpdateReq);
-        return exportVehicleLetterGuaranteeCmdExe.addOrUpdateExportVehicleLetterGuarantee(exportVehicleLetterGuaranteeDo);
+    public String addOrUpdateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeAddOrUpdateReq req) {
+        ExportVehicleLetterGuaranteeDo d = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.addCmdToDomain(req);
+        return exportVehicleLetterGuaranteeCmdExe.addOrUpdateExportVehicleLetterGuarantee(d);
     }
 
     @Override
@@ -65,5 +81,218 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     @Override
     public boolean enableOrDisableExportVehicleLetterGuaranteeByIds(LpBaseParam param) {
         return exportVehicleLetterGuaranteeCmdExe.enableOrDisableExportVehicleLetterGuaranteeByIds(param);
+    }
+
+    // ============== 状态机(单条/批量统一入口) ==============
+
+    @Override
+    public ExportVehicleLetterGuaranteeBatchStateMachineResp submit(ExportVehicleLetterGuaranteeSubmitReq req) {
+        List<String> ids = resolveIds(req.getId(), req.getIds());
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.submit(id));
+    }
+
+    @Override
+    public ExportVehicleLetterGuaranteeBatchStateMachineResp approve(ExportVehicleLetterGuaranteeApproveReq req) {
+        List<String> ids = resolveIds(req.getId(), req.getIds());
+        boolean approved = Boolean.TRUE.equals(req.getApproved());
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.approve(id, approved, req.getApproveRemark()));
+    }
+
+    @Override
+    public ExportVehicleLetterGuaranteeBatchStateMachineResp cancel(ExportVehicleLetterGuaranteeCancelReq req) {
+        List<String> ids = resolveIds(req.getId(), req.getIds());
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.cancel(id, req.getRemark()));
+    }
+
+    /**
+     * 把单条 {@code id} 或批量 {@code ids} 统一收敛为 List<String>,并校验二选一约束。
+     * 空集合抛 BizException(由控制器层校验更友好,但 Service 层兜底)。
+     */
+    private List<String> resolveIds(String id, List<String> ids) {
+        boolean hasId = id != null && !id.isEmpty();
+        boolean hasIds = ids != null && !ids.isEmpty();
+        if (hasId && hasIds) {
+            throw new BizException("id 与 ids 不可同时提供");
+        }
+        if (!hasId && !hasIds) {
+            throw new BizException("id 或 ids 至少需要一个");
+        }
+        if (hasId) {
+            return List.of(id);
+        }
+        return ids;
+    }
+
+    @Override
+    public boolean expireEarly(ExportVehicleLetterGuaranteeExpireEarlyReq req) {
+        // 操作人由 Gateway 内部通过 LoginUserUtils.getCurrentUser() 获取
+        return exportVehicleLetterGuaranteeCmdExe.expireEarly(req.getId(), req.getReason());
+    }
+
+    // ============== 状态机批量编排 ==============
+
+    /**
+     * 批量状态机编排 — 遍历 ids 逐条调用 action,任一条失败不影响其他条。
+     * 每条通过 cross-bean 调用(commandExecutor 是 Spring Bean)进入各自 @Transactional,失败回滚单条。
+     */
+    private ExportVehicleLetterGuaranteeBatchStateMachineResp runBatch(
+            List<String> ids, java.util.function.Function<String, Boolean> action) {
+        ExportVehicleLetterGuaranteeBatchStateMachineResp resp = new ExportVehicleLetterGuaranteeBatchStateMachineResp();
+        List<ExportVehicleLetterGuaranteeBatchStateMachineResp.ItemResult> items = new ArrayList<>();
+        int success = 0;
+        int failure = 0;
+        if (ids == null || ids.isEmpty()) {
+            resp.setTotal(0);
+            resp.setSuccessCount(0);
+            resp.setFailureCount(0);
+            resp.setAllSuccess(true);
+            resp.setItems(items);
+            return resp;
+        }
+        for (String id : ids) {
+            ExportVehicleLetterGuaranteeBatchStateMachineResp.ItemResult item =
+                    new ExportVehicleLetterGuaranteeBatchStateMachineResp.ItemResult();
+            item.setId(id);
+            try {
+                Boolean ok = action.apply(id);
+                if (Boolean.FALSE.equals(ok)) {
+                    throw new BizException("操作返回 false");
+                }
+                ExportVehicleLetterGuaranteeDo lg = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(id);
+                item.setLgCode(lg == null ? null : lg.getLgCode());
+                item.setSuccess(true);
+                success++;
+            } catch (BizException e) {
+                log.warn("保函批量状态机单条失败: id={}, err={}", id, e.getMessage());
+                item.setSuccess(false);
+                item.setErrorCode(e.getCode());
+                item.setErrorMessage(e.getMessage());
+                failure++;
+            } catch (Exception e) {
+                log.error("保函批量状态机单条异常: id={}, err={}", id, e.getMessage(), e);
+                item.setSuccess(false);
+                item.setErrorCode(ResultEnum.BAD_REQUEST.getCode());
+                item.setErrorMessage(e.getMessage());
+                failure++;
+            }
+            items.add(item);
+        }
+        resp.setTotal(ids.size());
+        resp.setSuccessCount(success);
+        resp.setFailureCount(failure);
+        resp.setAllSuccess(failure == 0);
+        resp.setItems(items);
+        return resp;
+    }
+
+    // ============== 资金流 ==============
+
+    @Override
+    public ExportVehicleLetterGuaranteeFreezeResp freeze(ExportVehicleLetterGuaranteeFreezeReq req) {
+        return exportVehicleLetterGuaranteeCmdExe.freeze(req);
+    }
+
+    @Override
+    public List<ExportVehicleLetterGuaranteeFreezeResp> batchFreeze(List<ExportVehicleLetterGuaranteeFreezeReq> list) {
+        return exportVehicleLetterGuaranteeCmdExe.batchFreeze(list);
+    }
+
+    @Override
+    public boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req) {
+        return exportVehicleLetterGuaranteeCmdExe.unfreeze(req);
+    }
+
+    @Override
+    public List<ExportVehicleLetterGuaranteeUnfreezeResp> batchUnfreeze(List<ExportVehicleLetterGuaranteeUnfreezeReq> list) {
+        return exportVehicleLetterGuaranteeCmdExe.batchUnfreeze(list);
+    }
+
+    @Override
+    public boolean transferToReceivable(ExportVehicleLetterGuaranteeTransferReq req) {
+        return exportVehicleLetterGuaranteeCmdExe.transferToReceivable(req);
+    }
+
+    @Override
+    public boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req) {
+        return exportVehicleLetterGuaranteeCmdExe.releaseReceivable(req);
+    }
+
+    // ============== 刷新订单价格联动(§3.5) ==============
+
+    /**
+     * 调增补冻(§3.5.2):
+     * 与 {@link #freeze} 算法相同,仅入参语义差异(amountDiff 作为补冻结金额)。
+     * 在 Service 层映射为 {@link ExportVehicleLetterGuaranteeFreezeReq} 复用 freeze 流程,避免重复实现排序与拆冻。
+     */
+    @Override
+    public ExportVehicleLetterGuaranteeFreezeResp adjustFreeze(ExportVehicleLetterGuaranteeAdjustFreezeReq req) {
+        if (req.getAmountDiff() == null || req.getAmountDiff().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BizException("amountDiff 必须大于 0");
+        }
+        ExportVehicleLetterGuaranteeFreezeReq fr = new ExportVehicleLetterGuaranteeFreezeReq();
+        fr.setCustomerId(req.getCustomerId());
+        fr.setOrderType(req.getOrderType());
+        fr.setOrderId(req.getOrderId());
+        fr.setOrderNo(req.getOrderNo());
+        fr.setPoNo(req.getPoNo());
+        fr.setRequiredAmount(req.getAmountDiff());
+        fr.setOrderCreateTime(req.getOrderCreateTime());
+        fr.setRemark(req.getReason());
+        ExportVehicleLetterGuaranteeFreezeResp resp = exportVehicleLetterGuaranteeCmdExe.freeze(fr);
+        // 调增场景无 separate reason 文案,沿用 freeze 自身的 success/fail 字段
+        return resp;
+    }
+
+    /**
+     * 调减退差(§3.5.3):CmdExe.adjustUnfreeze 内部完成保函选择与单张解冻。
+     */
+    @Override
+    public ExportVehicleLetterGuaranteeAdjustUnfreezeResp adjustUnfreeze(ExportVehicleLetterGuaranteeAdjustUnfreezeReq req) {
+        return exportVehicleLetterGuaranteeCmdExe.adjustUnfreeze(req);
+    }
+
+    // ============== 查询 ==============
+
+    /**
+     * 资金校验(§8.5.1) — 校验 PO 所需金额是否可由客户可用保函覆盖。
+     * <p>coverDays 校验(失效日期 ≥ 订单创建时间 + coverDays,默认 100 天)已下沉到
+     * {@code listAvailableForCustomer} 的 SQL 层:把 {@code orderCreateTime} 透传给查询,
+     * 由 Gateway 在 Qo.expiryDateGe 上做 {@code expiry_date >= orderCreateTime + coverDays} 过滤。
+     */
+    @Override
+    public ExportVehicleLetterGuaranteeValidateResp validateForPo(ExportVehicleLetterGuaranteeFreezeReq req) {
+        ExportVehicleLetterGuaranteeValidateResp resp = new ExportVehicleLetterGuaranteeValidateResp();
+        ExportVehicleLetterGuaranteeListAvailableReq listReq = new ExportVehicleLetterGuaranteeListAvailableReq();
+        listReq.setCustomerId(req.getCustomerId());
+        listReq.setOrderType(req.getOrderType());
+        listReq.setRequiredAmount(req.getRequiredAmount());
+        listReq.setOrderCreateTime(req.getOrderCreateTime());
+        List<ExportVehicleLetterGuaranteeDo> candidates = exportVehicleLetterGuaranteeQryExe.listAvailableForCustomer(listReq);
+        resp.setCandidates(candidates);
+        resp.setRequiredAmount(req.getRequiredAmount());
+        // 1. 必须有候选保函
+        if (candidates == null || candidates.isEmpty()) {
+            resp.setPassed(false);
+            resp.setFailCode("dict.letterGuarantee.validate.fail.noAvailable");
+            resp.setFailMessage("客户无可用保函");
+            return resp;
+        }
+
+        // 2. 总可用 ≥ 申请冻结金额
+        // 列出所有满足 a~e 的保函,f 由调用方累加 SUM(availableAmount) 与 requiredAmount 比较
+        BigDecimal totalAvailable = candidates.stream()
+                .map(ExportVehicleLetterGuaranteeDo::getAvailableAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        resp.setTotalAvailable(totalAvailable);
+        if (totalAvailable.compareTo(req.getRequiredAmount()) < 0) {
+            resp.setPassed(false);
+            resp.setFailCode("dict.letterGuarantee.validate.fail.insufficient");
+            resp.setFailMessage("提交失败,资金校验未通过,请联系商务。可用保函总金额=" + totalAvailable + ", 订单总金额=" + req.getRequiredAmount());
+            return resp;
+        }
+
+        resp.setPassed(true);
+        return resp;
     }
 }

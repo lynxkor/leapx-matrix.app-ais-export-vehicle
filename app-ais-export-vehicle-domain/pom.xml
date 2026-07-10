@@ -30,6 +30,10 @@
             <groupId>com.leapmotor.platform</groupId>
             <artifactId>ais-permission</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.leapmotor.platform</groupId>
+            <artifactId>ais-event</artifactId>
+        </dependency>
         <!-- ais-common components -->
 
         <dependency>

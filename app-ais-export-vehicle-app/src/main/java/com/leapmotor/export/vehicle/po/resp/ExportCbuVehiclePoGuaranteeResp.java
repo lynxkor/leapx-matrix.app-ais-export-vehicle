@@ -3,6 +3,8 @@ package com.leapmotor.export.vehicle.po.resp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
+import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -36,6 +38,7 @@ public class ExportCbuVehiclePoGuaranteeResp extends LpBaseModel implements Seri
     private BigDecimal poCurrentReceivableAmount;
 
     @Schema(description = "状态(1:启用,0:停用),平台规范")
+    @DictEnumType(type = StatusEnum.class)
     private Integer status;
 
     @Schema(description = "状态变更描述")

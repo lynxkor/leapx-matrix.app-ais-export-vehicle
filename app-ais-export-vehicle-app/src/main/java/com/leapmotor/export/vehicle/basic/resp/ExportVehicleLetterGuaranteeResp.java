@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
@@ -105,6 +106,7 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     private String remark;
 
     @Schema(description = "状态(1:启用,0:停用)")
+    @DictEnumType(type = StatusEnum.class)
     private Integer status;
 
     @Schema(description = "状态变更描述")

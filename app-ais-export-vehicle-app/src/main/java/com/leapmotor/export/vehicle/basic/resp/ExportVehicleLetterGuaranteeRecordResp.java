@@ -3,6 +3,7 @@ package com.leapmotor.export.vehicle.basic.resp;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.RecordTypeEnum;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
 import com.leapmotor.platform.ais.common.web.serializer.BigDecimalFormat;
 import com.leapmotor.platform.ais.common.web.serializer.Desensitize;
 import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
@@ -89,6 +90,7 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     private String vin;
 
     @Schema(description = "状态(1:启用,0:停用)")
+    @DictEnumType(type = StatusEnum.class)
     private Integer status;
 
     @Schema(description = "状态变更描述")

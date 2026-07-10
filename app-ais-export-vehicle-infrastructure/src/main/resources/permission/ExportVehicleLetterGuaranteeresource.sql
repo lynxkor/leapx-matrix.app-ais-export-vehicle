@@ -29,6 +29,9 @@ VALUES
 ('保函主表启用/禁用', 'AISEP-exportVehicleLetterGuarantee-enableOrDisable', 'AISEP-exportVehicleLetterGuarantee-enableOrDisable', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:enableOrDisable'),
 ('保函主表导入', 'AISEP-exportVehicleLetterGuarantee-import', 'AISEP-exportVehicleLetterGuarantee-import', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:import'),
 ('保函主表导出', 'AISEP-exportVehicleLetterGuarantee-export', 'AISEP-exportVehicleLetterGuarantee-export', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:export'),
+('保函主表批量提交', 'AISEP-exportVehicleLetterGuarantee-batchSubmit', 'AISEP-exportVehicleLetterGuarantee-batchSubmit', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:submit'),
+('保函主表批量审核', 'AISEP-exportVehicleLetterGuarantee-batchApprove', 'AISEP-exportVehicleLetterGuarantee-batchApprove', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:approve'),
+('保函主表批量作废', 'AISEP-exportVehicleLetterGuarantee-batchCancel', 'AISEP-exportVehicleLetterGuarantee-batchCancel', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:cancel');
 ('保函主表审计日志', 'AISEP-exportVehicleLetterGuarantee-auditLog', 'AISEP-exportVehicleLetterGuarantee-auditLog', '0', '1', '2', '0', @newPath, @pid, 5, 'web:basic:exportVehicleLetterGuarantee:auditLog');
 
 

@@ -159,6 +159,16 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         if (approved) {
             lg.setApprovalStatus(ApprovalStatusEnum.APPROVED.getCode());
             lg.setLgStatus(LgStatusEnum.EFFECTIVE.getCode()); // 20 有效
+            // 审核通过:按业务方约定 availableAmount = totalAmount / conversionRatio
+            // (注:与设计文档 §1.1 的「保函金额 × 比例」语义不同,以业务方本次决定为准)
+            if (lg.getConversionRatio() == null || lg.getConversionRatio().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BizException("换算订单额度比例必须大于 0: " + lg.getConversionRatio());
+            }
+            if (lg.getTotalAmount() == null) {
+                throw new BizException("保函金额不能为空");
+            }
+            BigDecimal available = lg.getTotalAmount().divide(lg.getConversionRatio(), 4, java.math.RoundingMode.HALF_UP);
+            lg.setAvailableAmount(available);
         } else {
             lg.setApprovalStatus(ApprovalStatusEnum.REJECTED.getCode());
             // lg_status 保持 10(未生效)

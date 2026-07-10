@@ -1,17 +1,18 @@
 package com.leapmotor.export.vehicle.basic.query;
 
 import com.leapmotor.paltform.ais.common.model.base.LpBaseQo;
-import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.EqualsAndHashCode;
-import lombok.Data;
-import java.io.Serializable;
+import java.util.List;
 
 
 /**
- *
  * 保函交易明细(追加写)查询对象
+ *
  * @author wangkai2527148
  * @since 2026-07-02
  */
@@ -27,6 +28,16 @@ public class ExportVehicleLetterGuaranteeRecordQo extends LpBaseQo implements Se
     private String lgRecordCode;
 
     /**
+     * 交易明细编号-单条模糊(配合 lgRecordCode 使用;输入单个值时模糊匹配)
+     */
+    private String lgRecordCodeLike;
+
+    /**
+     * 交易明细编号-批量精确(逗号或数组传入,多条 IN 精确匹配)
+     */
+    private List<String> lgRecordCodes;
+
+    /**
      * 保函ID
      */
     private String lgId;
@@ -37,19 +48,34 @@ public class ExportVehicleLetterGuaranteeRecordQo extends LpBaseQo implements Se
     private String lgCode;
 
     /**
+     * 保函编号-单条模糊
+     */
+    private String lgCodeLike;
+
+    /**
+     * 保函编号-批量精确
+     */
+    private List<String> lgCodes;
+
+    /**
      * 保函类型(冗余,字典 letter_guarantee_lg_type)
      */
     private String lgType;
 
     /**
-     * 客户ID
+     * 客户ID(单选)
      */
     private String customerId;
 
     /**
-     * 变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)
+     * 变动类型(单值精确)
      */
     private String transactionType;
+
+    /**
+     * 变动类型-多选(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效;IN 查询)
+     */
+    private List<String> transactionTypes;
 
     /**
      * 变动金额(始终为正)
@@ -97,14 +123,54 @@ public class ExportVehicleLetterGuaranteeRecordQo extends LpBaseQo implements Se
     private String poNo;
 
     /**
+     * PO单号-单条模糊
+     */
+    private String poNoLike;
+
+    /**
+     * PO单号-批量精确
+     */
+    private List<String> poNos;
+
+    /**
      * SO 单号(不允许编辑,根据转应收/释放应收情况自动赋值,冻结/解冻 时为 NULL)
      */
     private String soNo;
 
     /**
+     * SO单号-单条模糊
+     */
+    private String soNoLike;
+
+    /**
+     * SO单号-批量精确
+     */
+    private List<String> soNos;
+
+    /**
      * VIN 车辆识别码(不允许编辑,根据转应收情况自动赋值,冻结/解冻 时为 NULL)
      */
     private String vin;
+
+    /**
+     * VIN号-单条模糊
+     */
+    private String vinLike;
+
+    /**
+     * VIN号-批量精确
+     */
+    private List<String> vins;
+
+    /**
+     * 创建时间-起始(>= 创建时间)
+     */
+    private LocalDateTime createTimeStart;
+
+    /**
+     * 创建时间-截止(<= 创建时间)
+     */
+    private LocalDateTime createTimeEnd;
 
     /**
      * 状态变更描述

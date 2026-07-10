@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportVehicleCbuPoMapper">
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPo">
+    <id column="id" property="id" />
+    <result column="po_no" property="poNo" />
+    <result column="order_status" property="orderStatus" />
+    <result column="sales_company_code" property="salesCompanyCode" />
+    <result column="customer_code" property="customerCode" />
+    <result column="customer_name" property="customerName" />
+    <result column="external_customer_code" property="externalCustomerCode" />
+    <result column="total_amount" property="totalAmount" />
+    <result column="submit_time" property="submitTime" />
+    <result column="reject_time" property="rejectTime" />
+    <result column="reject_user" property="rejectUser" />
+    <result column="supply_demand_approve_time" property="supplyDemandApproveTime" />
+    <result column="supply_demand_approver" property="supplyDemandApprover" />
+    <result column="production_sales_balance_approve_time" property="productionSalesBalanceApproveTime" />
+    <result column="production_sales_balance_approver" property="productionSalesBalanceApprover" />
+    <result column="reject_reason" property="rejectReason" />
+    <result column="data_source" property="dataSource" />
+    <result column="order_type" property="orderType" />
+    <result column="plan_version" property="planVersion" />
+    <result column="audit_result_sync_time" property="auditResultSyncTime" />
+    <result column="audit_result_sync_result" property="auditResultSyncResult" />
+    <result column="customer_system_return_info" property="customerSystemReturnInfo" />
+    <result column="creator" property="creator" />
+    <result column="creator_name" property="creatorName" />
+    <result column="create_time" property="createTime" />
+    <result column="modifier" property="modifier" />
+    <result column="modifier_name" property="modifierName" />
+    <result column="update_time" property="updateTime" />
+    <result column="delete_status" property="deleteStatus" />
+    <result column="status" property="status" />
+    <result column="status_desc" property="statusDesc" />
+    <result column="owner_user_id" property="ownerUserId" />
+    <result column="owner_org_id" property="ownerOrgId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, po_no, order_status, sales_company_code, customer_code, customer_name, external_customer_code, total_amount, submit_time, reject_time, reject_user, supply_demand_approve_time, supply_demand_approver, production_sales_balance_approve_time, production_sales_balance_approver, reject_reason, data_source, order_type, plan_version, audit_result_sync_time, audit_result_sync_result, customer_system_return_info, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+    </sql>
+
+</mapper>

@@ -18,16 +18,16 @@
 ### 已完成（agent）
 - [x] 验证：`id-type` 实体级 `ASSIGN_UUID` 覆盖全局 `auto`；事件机制在独立制品 `com.leapmotor.platform:ais-event`；`LpBaseEntity` 字段（id String/creator Long/deleteStatus Long/时间自动填充）
 - [x] 建表 SQL：`docs/sql/po_order_tables.sql`（三表完整，含基础字段 + 唯一键）
-- [x] 生成器配置：`generator.properties` → `business.name=po`、`generate.table.name=export_cbu_vehicle_po`
-- [x] 状态枚举：`client/.../po/enums/ExportCbuVehiclePoStatusEnum.java`（7 态 + 状态机注释）
+- [x] 生成器配置：`generator.properties` → `business.name=po`、`generate.table.name=export_vehicle_cbu_po`
+- [x] 状态枚举：`client/.../po/enums/ExportVehicleCbuPoStatusEnum.java`（7 态 + 状态机注释）
 
 ### 待做
 1. **[用户] 建表**：把 `docs/sql/po_order_tables.sql` 执行到 `generator.properties` 里那个库（`app_ais_datacenter` @ oceanbase 测试库）。生成器读表结构就指这个 url，建别处它读不到。
-   - 检查：`SHOW TABLES LIKE 'export_cbu_vehicle_po%';` 返回三张表；`DESC export_cbu_vehicle_po;` 字段齐全。
+   - 检查：`SHOW TABLES LIKE 'export_vehicle_cbu_po%';` 返回三张表；`DESC export_vehicle_cbu_po;` 字段齐全。
 2. **[用户] 跑生成器（主表骨架）**：IDEA 打开 `app-ais-export-vehicle-generator/.../DddCodeGenerator.java`，右键 Run `main`。
-   - 检查：`com.leapmotor.export.vehicle.po` 包下生成 `ExportCbuVehiclePo` 的各层类（Entity/Mapper/XML/Dao/Gateway/Service/Controller 等）。
-3. **[用户] 改表名再跑两次**（明细 + 关联）：`generator.properties` 的 `generate.table.name` 改成 `export_cbu_vehicle_po_detail` 跑一次，再改成 `export_cbu_vehicle_po_guarantee` 跑一次。
-   - 检查：`ExportCbuVehiclePoDetail`、`ExportCbuVehiclePoGuarantee` 各层类生成。
+   - 检查：`com.leapmotor.export.vehicle.po` 包下生成 `ExportVehicleCbuPo` 的各层类（Entity/Mapper/XML/Dao/Gateway/Service/Controller 等）。
+3. **[用户] 改表名再跑两次**（明细 + 关联）：`generator.properties` 的 `generate.table.name` 改成 `export_vehicle_cbu_po_detail` 跑一次，再改成 `export_vehicle_cbu_po_guarantee` 跑一次。
+   - 检查：`ExportVehicleCbuPoDetail`、`ExportVehicleCbuPoGuarantee` 各层类生成。
 4. **[一起] 编译验证**：`mvn clean compile -pl app-ais-export-vehicle-start -am`（用 IDEA bundled Maven + JBR，JDK17），确认生成代码能编译。
 
 ### 完成标志
@@ -40,12 +40,12 @@
 > 前置：T01 生成器已跑完，三表骨架代码就位。
 
 ### 待做（agent，在生成骨架上调整）
-1. **[agent]** 三表 Entity 字段对齐 DDL：补 `ownerUserId` / `ownerOrgId` / `status` / `statusDesc` 显式 `@TableField`；`orderStatus` 留 String（运行时与 `ExportCbuVehiclePoStatusEnum` 互转）；检查生成字段类型/注释是否齐全。
+1. **[agent]** 三表 Entity 字段对齐 DDL：补 `ownerUserId` / `ownerOrgId` / `status` / `statusDesc` 显式 `@TableField`；`orderStatus` 留 String（运行时与 `ExportVehicleCbuPoStatusEnum` 互转）；检查生成字段类型/注释是否齐全。
 2. **[agent]** Mapper XML 补齐：`BaseResultMap` + `Base_Column_List` + 批量 `batchInsert`（明细、关联表用，参考 maintain `ServiceProxyMapper.xml`）。
 3. **[agent]** DaoImpl 补 `buildQueryWrapper`（评审列表筛选条件 8 项：客户名称/PO单号/订单状态/提交日期/创建日期/产销平衡通过日期/供需审核通过日期/销售公司）。
 4. **[agent]** GatewayImpl 分页方法加 `@DataPermission`（按 `owner_org_id` 过滤）。
 5. **[agent]** CmdExe 主子表联保存：主表 insert/update + 明细批量 + 关联表批量，同一 `@Transactional(rollbackFor=Exception.class)`。
-6. **[agent]** Controller（`ExportCbuVehiclePoController`）端点加 `@ResourcePermission("web:po:purchaseOrder:page|detail|addOrUpdate")`。
+6. **[agent]** Controller（`ExportVehicleCbuPoController`）端点加 `@ResourcePermission("web:po:purchaseOrder:page|detail|addOrUpdate")`。
 7. **[agent]** 单元测试（继承 `BaseServiceTest<T>`）：主子表联存联查、分页带数据权限。
 
 ### 待做（一起）
@@ -55,7 +55,7 @@
 - `deleteStatus` 走 `@TableLogic`（LpBaseEntity 自带）；基础字段 creator/createTime 等平台自动填充，勿手写。
 - 明细 `po_detail_no` 用 `@AutoCode(prefix="POD")`；若格式不符退 `NoGenerator`。
 - 请求 DTO 枚举字段 `@EnumValue`、响应 DTO 枚举字段 `@DictEnumType`。
-- GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_cbu_vehicle_po")`。
+- GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_vehicle_cbu_po")`。
 
 ### 完成标志
 三表一起增改查、分页带数据权限、单元测试通过。→ T03/T04/T05 可并行。
@@ -90,7 +90,7 @@
 
 ### 待做（agent，契约到位后）
 1. **[agent]** 入站 Controller（红旗 → PO，接收采购订单推送）。
-2. **[agent]** `ExportCbuVehiclePoSyncCmdExe`：PO单号唯一性判断 → 草稿创建；客户编码匹配客户主数据；物料匹配整编主数据；单价按「物料编码+创建时间+订单类型」匹配价格主数据（多条取审批通过时间最新）。匹配不到留空。
+2. **[agent]** `ExportVehicleCbuPoSyncCmdExe`：PO单号唯一性判断 → 草稿创建；客户编码匹配客户主数据；物料匹配整编主数据；单价按「物料编码+创建时间+订单类型」匹配价格主数据（多条取审批通过时间最新）。匹配不到留空。
 3. **[agent]** 单元测试：匹配命中/未命中留空、重复 PO单号不重建。
 
 ### 完成标志
@@ -103,7 +103,7 @@
 > 前置：T02。可与 T04 并行。
 
 ### 待做（agent）
-1. **[agent]** `ExportCbuVehiclePoController.save` + CmdExe：仅 `sales_company_code`（抬头）+ 明细 `production_remark` 可改。
+1. **[agent]** `ExportVehicleCbuPoController.save` + CmdExe：仅 `sales_company_code`（抬头）+ 明细 `production_remark` 可改。
 2. **[agent]** 草稿态校验 + 乐观锁（`@DistributeLock` 或 version 字段）。
 3. **[agent]** 单元测试：非草稿不可编辑、非可编辑字段防篡改（后端校验）、并发乐观锁。
 
@@ -118,8 +118,8 @@
 
 ### 待做（agent）
 1. **[agent]** 提交 `submit` CmdExe，4 步编排：①数据校验（状态/销售公司/客户编码兜底匹配/明细物料兜底匹配）→ ②价格匹配（补单价+金额+总金额）→ ③资金校验+保函冻结 → ④完成（状态→销售已提交、记 `submit_time`）。
-2. **[agent]** 保函消费：调本项目保函模块内部接口 `/validate` + `/batchFreeze`（入参 po_no + 冻结金额=总金额），返回 list 写 `export_cbu_vehicle_po_guarantee`；空 list 视为冻结失败、状态不变。
-3. **[agent]** 职责链：`ExportCbuVehiclePoChainFactory` + 校验器（状态/权限）+ 处理器（保函冻结/状态推进）。
+2. **[agent]** 保函消费：调本项目保函模块内部接口 `/validate` + `/batchFreeze`（入参 po_no + 冻结金额=总金额），返回 list 写 `export_vehicle_cbu_po_guarantee`；空 list 视为冻结失败、状态不变。
+3. **[agent]** 职责链：`ExportVehicleCbuPoChainFactory` + 校验器（状态/权限）+ 处理器（保函冻结/状态推进）。
 4. **[agent]** 驳回 `reject`：状态→销售已驳回、记驳回信息；发事件推红旗（T03）。
 5. **[agent]** 单元测试：各步失败整体回滚、保函冻结成功/失败、驳回推红旗。
 
@@ -176,7 +176,7 @@
 > 前置：T02、T06/T07/T08。
 
 ### 待做（agent）
-1. **[agent]** `ExportCbuVehiclePoDetailController`：明细列表 `page` + 导出。
+1. **[agent]** `ExportVehicleCbuPoDetailController`：明细列表 `page` + 导出。
 2. **[agent]** 批量端点（批量提交/销售驳回/供需通过/驳回/产销平衡通过/驳回）：套 `runBatch`，单条独立事务 + 成功/失败汇总。
 3. **[agent]** 单元测试：单条失败不影响其他、汇总正确。
 

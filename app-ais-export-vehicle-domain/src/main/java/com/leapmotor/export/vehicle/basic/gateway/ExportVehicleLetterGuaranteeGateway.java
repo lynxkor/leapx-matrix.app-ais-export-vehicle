@@ -64,6 +64,11 @@ public interface ExportVehicleLetterGuaranteeGateway {
     boolean deleteExportVehicleLetterGuaranteeByIds(Collection<String> ids);
 
     /**
+     * 按 ID 批量查询(用于交易明细 Resp 关联主表字段)
+     */
+    List<ExportVehicleLetterGuaranteeDo> listExportVehicleLetterGuaranteeByIds(Collection<String> ids);
+
+    /**
      * 启停
      */
     boolean enableOrDisableExportVehicleLetterGuaranteeByIds(LpBaseParam param);

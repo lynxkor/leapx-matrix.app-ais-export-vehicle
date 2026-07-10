@@ -125,5 +125,32 @@ public class ExportVehicleLetterGuaranteeRecordDo extends LpBaseModel implements
      */
     private Long ownerOrgId;
 
+    // ---- 以下 5 个字段来源保函主表,由 Service 层关联查询后填充 ----
+
+    /**
+     * 保函状态(字典 letter_guarantee_lg_status)
+     */
+    private String lgStatus;
+
+    /**
+     * 审核时间
+     */
+    private LocalDateTime approveTime;
+
+    /**
+     * 保函金额
+     */
+    private BigDecimal totalAmount;
+
+    /**
+     * 换算订单额度比例
+     */
+    private BigDecimal conversionRatio;
+
+    /**
+     * 换算订单额度(可用订单金额)
+     */
+    private BigDecimal availableAmount;
+
 
 }

@@ -102,6 +102,15 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
+    public List<ExportVehicleLetterGuaranteeDo> listExportVehicleLetterGuaranteeByIds(Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ExportVehicleLetterGuarantee> entities = exportVehicleLetterGuaranteeMapper.selectBatchIds(ids);
+        return ExportVehicleLetterGuaranteeStructMapper.INSTANCE.dataObjectsToDomains(entities);
+    }
+
+    @Override
     public PageResult<ExportVehicleLetterGuaranteeDo> pageExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeQo exportVehicleLetterGuaranteeQo) {
         Page<ExportVehicleLetterGuarantee> page = exportVehicleLetterGuaranteeDao.findPage(exportVehicleLetterGuaranteeQo);
         return PageUtils.transferPage(ExportVehicleLetterGuaranteeStructMapper.INSTANCE::dataObjectsToDomains, page);

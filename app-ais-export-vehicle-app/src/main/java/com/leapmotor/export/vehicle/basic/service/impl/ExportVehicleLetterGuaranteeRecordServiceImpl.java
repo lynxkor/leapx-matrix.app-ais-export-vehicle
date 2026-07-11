@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRecordGateway;
 /**
  * <p>
- * 保函交易明细(追加写) 服务实现类
+ * 保函交易明细 服务实现类
  * </p>
  *
  * @author wangkai2527148

@@ -6,7 +6,7 @@ import com.leapmotor.platform.ais.common.mybatis.support.LpBaseMapper;
 
 /**
  * <p>
- * 保函交易明细(追加写) Mapper 接口
+ * 保函交易明细 Mapper 接口
  * </p>
  *
  * @author wangkai2527148

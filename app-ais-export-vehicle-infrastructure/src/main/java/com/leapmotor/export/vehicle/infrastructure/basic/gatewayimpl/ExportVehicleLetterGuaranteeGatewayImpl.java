@@ -8,6 +8,7 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRe
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
+import com.leapmotor.export.vehicle.constant.CacheConstant;
 import com.leapmotor.export.vehicle.constant.ExportVehicleConstant;
 import com.leapmotor.export.vehicle.infrastructure.basic.convertor.ExportVehicleLetterGuaranteeStructMapper;
 import com.leapmotor.export.vehicle.infrastructure.basic.dao.ExportVehicleLetterGuaranteeDao;
@@ -22,9 +23,11 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.user.LoginUser;
 import com.leapmotor.paltform.ais.common.util.LoginUserUtils;
 import com.leapmotor.platform.ais.common.mybatis.utils.PageUtils;
+import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -76,7 +79,9 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         return exportVehicleLetterGuaranteeDao.batchSaveSomeColumn(exportVehicleLetterGuarantees);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
+    @DistributeLock(prefix = CacheConstant.LOCK_KEY_LETTER_GUARANTEE_PREFIX, value = "#exportVehicleLetterGuaranteeDo.id")
     public String updateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeDo exportVehicleLetterGuaranteeDo) {
         ExportVehicleLetterGuarantee exportVehicleLetterGuarantee = ExportVehicleLetterGuaranteeStructMapper.INSTANCE.domainToDataObject(exportVehicleLetterGuaranteeDo);
         int result = exportVehicleLetterGuaranteeMapper.updateById(exportVehicleLetterGuarantee);

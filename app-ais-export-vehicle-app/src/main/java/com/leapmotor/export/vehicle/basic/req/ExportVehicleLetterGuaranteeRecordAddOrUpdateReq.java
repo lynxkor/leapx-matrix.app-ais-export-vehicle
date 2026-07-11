@@ -10,7 +10,7 @@ import java.io.Serializable;
 
 /**
  *
- * 保函交易明细(追加写)新增/编辑请求对象
+ * 保函交易明细新增/编辑请求对象
  * @author wangkai2527148
  * @since 2026-07-02
  */

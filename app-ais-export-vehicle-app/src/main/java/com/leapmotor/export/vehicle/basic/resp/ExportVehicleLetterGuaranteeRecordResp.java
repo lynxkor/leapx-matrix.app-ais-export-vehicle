@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 保函交易明细(追加写)值对象
+ * 保函交易明细值对象
  *
  * @author wangkai2527148
  * @since 2026-07-02

@@ -12,7 +12,7 @@ import java.io.Serializable;
 
 /**
  *
- * 保函交易明细(追加写)参数对象
+ * 保函交易明细参数对象
  * @author wangkai2527148
  * @since 2026-07-02
  */

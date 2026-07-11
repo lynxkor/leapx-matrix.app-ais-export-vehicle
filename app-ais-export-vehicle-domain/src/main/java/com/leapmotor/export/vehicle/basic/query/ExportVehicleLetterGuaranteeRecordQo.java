@@ -11,7 +11,7 @@ import java.util.List;
 
 
 /**
- * 保函交易明细(追加写)查询对象
+ * 保函交易明细查询对象
  *
  * @author wangkai2527148
  * @since 2026-07-02

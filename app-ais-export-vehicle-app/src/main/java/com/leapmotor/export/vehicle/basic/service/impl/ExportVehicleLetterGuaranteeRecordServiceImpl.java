@@ -12,6 +12,7 @@ import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeReco
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeRecordResp;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeRecordAddOrUpdateReq;
+import com.leapmotor.export.vehicle.cache.CustomerInfoCache;
 import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeRecordService;
 import org.springframework.stereotype.Service;
@@ -39,12 +40,13 @@ public class ExportVehicleLetterGuaranteeRecordServiceImpl implements ExportVehi
     private ExportVehicleLetterGuaranteeRecordQryExe exportVehicleLetterGuaranteeRecordQryExe;
     private ExportVehicleLetterGuaranteeRecordGateway exportVehicleLetterGuaranteeRecordGateway;
     private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
+    private CustomerInfoCache customerInfoCache;
 
     @Override
     public ExportVehicleLetterGuaranteeRecordResp getExportVehicleLetterGuaranteeRecordById(String id) {
         ExportVehicleLetterGuaranteeRecordDo exportVehicleLetterGuaranteeRecordDo = exportVehicleLetterGuaranteeRecordGateway.getExportVehicleLetterGuaranteeRecordById(id);
         fillMainTableFields(exportVehicleLetterGuaranteeRecordDo);
-        return ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.domainToResp(exportVehicleLetterGuaranteeRecordDo);
+        return ExportVehicleLetterGuaranteeRecordRespWithCustomer(exportVehicleLetterGuaranteeRecordDo);
     }
 
     @Override
@@ -52,14 +54,16 @@ public class ExportVehicleLetterGuaranteeRecordServiceImpl implements ExportVehi
     ExportVehicleLetterGuaranteeRecordQo exportVehicleLetterGuaranteeRecordQo = ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.paramToQuery(exportVehicleLetterGuaranteeRecordParam);
         List<ExportVehicleLetterGuaranteeRecordDo> exportVehicleLetterGuaranteeRecordDoList =  exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(exportVehicleLetterGuaranteeRecordQo);
         fillMainTableFields(exportVehicleLetterGuaranteeRecordDoList);
-        return ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.domainsToResps(exportVehicleLetterGuaranteeRecordDoList);
+        return ExportVehicleLetterGuaranteeRecordRespsWithCustomer(exportVehicleLetterGuaranteeRecordDoList);
     }
 
     @Override
     public PageResult<ExportVehicleLetterGuaranteeRecordResp> pageExportVehicleLetterGuaranteeRecord(ExportVehicleLetterGuaranteeRecordParam exportVehicleLetterGuaranteeRecordParam) {
         PageResult<ExportVehicleLetterGuaranteeRecordDo> page = exportVehicleLetterGuaranteeRecordQryExe.pageExportVehicleLetterGuaranteeRecord(exportVehicleLetterGuaranteeRecordParam);
         fillMainTableFields(page.getRecords());
-        return ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.domainsToRespPage(page);
+        PageResult<ExportVehicleLetterGuaranteeRecordResp> respPage = ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.domainsToRespPage(page);
+        fillCustomerInfo(respPage.getRecords());
+        return respPage;
     }
 
     @Override
@@ -122,5 +126,71 @@ public class ExportVehicleLetterGuaranteeRecordServiceImpl implements ExportVehi
         rec.setTotalAmount(main.getTotalAmount());
         rec.setConversionRatio(main.getConversionRatio());
         rec.setAvailableAmount(main.getAvailableAmount());
+    }
+
+    // ============== 冗余字段填充(客户名称) ==============
+
+    /**
+     * 单条 Do → Resp,并按 customerId 查本地缓存填 customerCode/customerName。
+     */
+    private ExportVehicleLetterGuaranteeRecordResp ExportVehicleLetterGuaranteeRecordRespWithCustomer(ExportVehicleLetterGuaranteeRecordDo rec) {
+        ExportVehicleLetterGuaranteeRecordResp resp = ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.domainToResp(rec);
+        fillCustomerInfo(resp);
+        return resp;
+    }
+
+    /**
+     * 批量 Do → Resp,同样填充客户冗余字段。
+     */
+    private List<ExportVehicleLetterGuaranteeRecordResp> ExportVehicleLetterGuaranteeRecordRespsWithCustomer(List<ExportVehicleLetterGuaranteeRecordDo> recs) {
+        List<ExportVehicleLetterGuaranteeRecordResp> resps = ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.domainsToResps(recs);
+        fillCustomerInfo(resps);
+        return resps;
+    }
+
+    /**
+     * 单条 Resp 填充 customerCode/customerName(查本地缓存,未命中跳过)。
+     */
+    private void fillCustomerInfo(ExportVehicleLetterGuaranteeRecordResp resp) {
+        if (resp == null || resp.getCustomerId() == null) {
+            return;
+        }
+        CustomerInfoCache.Item item = customerInfoCache.getById(resp.getCustomerId());
+        if (item != null) {
+            resp.setCustomerCode(item.getCustomerCode());
+            resp.setCustomerName(item.getCustomerName());
+        }
+    }
+
+    /**
+     * 批量 Resp 填充:收集 customerId → 一次 multiGet → 写回。
+     */
+    private void fillCustomerInfo(List<ExportVehicleLetterGuaranteeRecordResp> resps) {
+        if (resps == null || resps.isEmpty()) {
+            return;
+        }
+        Set<String> ids = new HashSet<>();
+        for (ExportVehicleLetterGuaranteeRecordResp r : resps) {
+            if (r != null && r.getCustomerId() != null) {
+                ids.add(r.getCustomerId());
+            }
+        }
+        if (ids.isEmpty()) {
+            return;
+        }
+        Map<String, CustomerInfoCache.Item> map = customerInfoCache.getByIds(ids);
+        if (map.isEmpty()) {
+            return;
+        }
+        for (ExportVehicleLetterGuaranteeRecordResp r : resps) {
+            if (r == null || r.getCustomerId() == null) {
+                continue;
+            }
+            CustomerInfoCache.Item item = map.get(r.getCustomerId());
+            if (item != null) {
+                r.setCustomerCode(item.getCustomerCode());
+                r.setCustomerName(item.getCustomerName());
+            }
+        }
     }
 }

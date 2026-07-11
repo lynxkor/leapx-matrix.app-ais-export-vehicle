@@ -43,7 +43,11 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
 
     @Schema(description = "客户ID")
     private String customerId;
+
+    @Schema(description = "客户编码(冗余展示,本地缓存填充)")
     private String customerCode;
+
+    @Schema(description = "客户名称(冗余展示,本地缓存填充)")
     private String customerName;
 
     @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)")

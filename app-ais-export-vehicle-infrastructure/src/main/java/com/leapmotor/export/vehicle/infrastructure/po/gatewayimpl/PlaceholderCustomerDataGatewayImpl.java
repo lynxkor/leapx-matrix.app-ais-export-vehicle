@@ -9,6 +9,8 @@ import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 客户主数据查询：Feign 调 app-ais-export-nexus CustomerApi（已对接）。
  * 用 getByExternalCode 精确单查（nexus 侧 Gateway getCustomerByExternalCode，非 list 模糊）。
@@ -32,15 +34,15 @@ public class PlaceholderCustomerDataGatewayImpl implements PlaceholderCustomerDa
         try {
             CustomerRequest req = new CustomerRequest();
             req.setExternalCode(externalCustomerCode);
-            AjaxResult<CustomerResponse> ret = customerApi.getByExternalCode(req);
-            CustomerResponse c = (ret != null) ? ret.getData() : null;
-            if (c == null) {
+            AjaxResult<List<CustomerResponse>> ret = customerApi.list(req);
+            List<CustomerResponse> list = (ret != null) ? ret.getData() : null;
+            if (list == null || list.isEmpty()) {
                 return null;
             }
             PlaceholderCustomerDataDo o = new PlaceholderCustomerDataDo();
-            o.setCustomerCode(c.getCustomerCode());
-            o.setCustomerName(c.getCustomerName());
-            o.setFundCheckType(convertFundVerifyType(c.getFundVerifyType()));
+            o.setCustomerCode(list.get(0).getCustomerCode());
+            o.setCustomerName(list.get(0).getCustomerName());
+            o.setFundCheckType(convertFundVerifyType(list.get(0).getFundVerifyType()));
             return o;
         } catch (Exception e) {
             log.error("客户主数据查询失败 externalCustomerCode={}", externalCustomerCode, e);
@@ -48,7 +50,9 @@ public class PlaceholderCustomerDataGatewayImpl implements PlaceholderCustomerDa
         }
     }
 
-    /** nexus FundVerifyTypeEnum：1010=无 / 1020=保函 → PO 内部"无"/"保函" */
+    /**
+     * nexus FundVerifyTypeEnum：1010=无 / 1020=保函 → PO 内部"无"/"保函"
+     */
     private String convertFundVerifyType(Integer fundVerifyType) {
         if (fundVerifyType == null) {
             return null;

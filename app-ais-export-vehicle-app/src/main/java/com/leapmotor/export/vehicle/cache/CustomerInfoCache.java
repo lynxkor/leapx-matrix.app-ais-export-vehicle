@@ -113,6 +113,35 @@ public class CustomerInfoCache {
     }
 
     /**
+     * 单查:按 customerCode 取缓存,未命中返回 null。
+     * <p>Redis Hash 仅以 customerId 为 field,无 customerCode 索引,
+     * 内部遍历全部 value,O(N);命中第一条即返回。
+     */
+    public Item getByCustomerCode(String customerCode) {
+        if (customerCode == null || customerCode.isEmpty()) {
+            return null;
+        }
+        List<Object> values = stringRedisTemplate.opsForHash().values(CacheConstant.CUSTOMER_INFO_REDIS_KEY);
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        for (Object v : values) {
+            if (v == null) {
+                continue;
+            }
+            try {
+                Item item = JSON.parseObject(v.toString(), Item.class);
+                if (item != null && Objects.equals(item.getCustomerCode(), customerCode)) {
+                    return item;
+                }
+            } catch (Exception e) {
+                log.error("客户信息缓存反序列化失败, customerCode={}, raw={}", customerCode, v, e);
+            }
+        }
+        return null;
+    }
+
+    /**
      * 缓存项(value 序列化为 JSON 后存入 Redis Hash)
      */
     @Data

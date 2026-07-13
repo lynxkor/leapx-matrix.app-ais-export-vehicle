@@ -23,9 +23,14 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
     private static final long serialVersionUID = 1L;
 
     /**
-     * 保函编号
+     * 保函编号(精确查询)
      */
     private String lgCode;
+
+    /**
+     * 保函编号(模糊查询)
+     */
+    private String lgCodeLike;
 
     /**
      * 客户ID
@@ -78,6 +83,16 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
     private LocalDate effectiveDate;
 
     /**
+     * 生效日期-起始(>= 生效日期)
+     */
+    private LocalDate effectiveDateStart;
+
+    /**
+     * 生效日期-截止(<= 生效日期)
+     */
+    private LocalDate effectiveDateEnd;
+
+    /**
      * 生效日期上限(≤ 此日期);为空不过滤。
      * <p>用途:列出可用保函时,只筛已过生效起始日的保函(生效日期 ≤ 当前日期),避免提前使用尚未生效的保函。
      */
@@ -87,6 +102,16 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
      * 失效日期
      */
     private LocalDate expiryDate;
+
+    /**
+     * 失效日期-起始(>= 失效日期)
+     */
+    private LocalDate expiryDateStart;
+
+    /**
+     * 失效日期-截止(<= 失效日期)
+     */
+    private LocalDate expiryDateEnd;
 
     /**
      * 失效日期下限(≥ 此日期);为空不过滤。
@@ -120,6 +145,16 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
     private LocalDateTime submitTime;
 
     /**
+     * 提交时间-起始(>= 提交时间)
+     */
+    private LocalDateTime submitTimeStart;
+
+    /**
+     * 提交时间-截止(<= 提交时间)
+     */
+    private LocalDateTime submitTimeEnd;
+
+    /**
      * 审核人ID
      */
     private Long approverId;
@@ -135,6 +170,16 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
     private LocalDateTime approveTime;
 
     /**
+     * 审核时间-起始(>= 审核时间)
+     */
+    private LocalDateTime approveTimeStart;
+
+    /**
+     * 审核时间-截止(<= 审核时间)
+     */
+    private LocalDateTime approveTimeEnd;
+
+    /**
      * 审核意见
      */
     private String approveRemark;
@@ -143,6 +188,16 @@ public class ExportVehicleLetterGuaranteeQo extends LpBaseQo implements Serializ
      * 业务备注
      */
     private String remark;
+
+    /**
+     * 创建时间-起始(>= 创建时间)
+     */
+    private LocalDateTime createTimeStart;
+
+    /**
+     * 创建时间-截止(<= 创建时间)
+     */
+    private LocalDateTime createTimeEnd;
 
     /**
      * 状态变更描述

@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.basic.resp;
 
+import com.leapmotor.export.vehicle.letterGuarantee.enums.LgStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.RecordTypeEnum;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
@@ -13,9 +14,10 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
- * 保函交易明细(追加写)值对象
+ * 保函交易明细值对象
  *
  * @author wangkai2527148
  * @since 2026-07-02
@@ -41,7 +43,11 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
 
     @Schema(description = "客户ID")
     private String customerId;
+
+    @Schema(description = "客户编码(冗余展示,本地缓存填充)")
     private String customerCode;
+
+    @Schema(description = "客户名称(冗余展示,本地缓存填充)")
     private String customerName;
 
     @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)")
@@ -101,6 +107,27 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
 
     @Schema(description = "归属门店ID(沿用主保函的归属)")
     private Long ownerOrgId;
+
+    // ---- 以下 5 个字段来源保函主表,由 Service 层关联查询后填充 ----
+
+    @Schema(description = "保函状态(字典 letter_guarantee_lg_status)")
+    @DictEnumType(type = LgStatusEnum.class)
+    private String lgStatus;
+
+    @Schema(description = "审核时间")
+    private LocalDateTime approveTime;
+
+    @Schema(description = "保函金额(人民币CNY)")
+    @BigDecimalFormat(pattern = "#.########")
+    private BigDecimal totalAmount;
+
+    @Schema(description = "换算订单额度比例 0~1,保留 6 位小数")
+    @BigDecimalFormat(pattern = "#.########")
+    private BigDecimal conversionRatio;
+
+    @Schema(description = "换算订单额度(可用订单金额)")
+    @BigDecimalFormat(pattern = "#.########")
+    private BigDecimal availableAmount;
 
 
 }

@@ -2,7 +2,7 @@ package com.leapmotor.export.vehicle.controller.open.hongqi;
 
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
-import com.leapmotor.export.vehicle.po.service.ExportCbuVehiclePoService;
+import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/openApi")
 public class HongqiOpenController {
 
-    private ExportCbuVehiclePoService purchaseOrderService;
+    private ExportVehicleCbuPoService purchaseOrderService;
 
     /** 4.1 红旗CBU订单采购申请 → 创建草稿PO订单（主表+明细联保存） */
     @Operation(summary = "红旗CBU订单采购申请-创建草稿订单")

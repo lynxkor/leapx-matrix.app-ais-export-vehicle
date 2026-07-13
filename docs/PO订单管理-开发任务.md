@@ -104,9 +104,9 @@
 
 | 表 | 类名 | 说明 |
 |---|---|---|
-| `export_cbu_vehicle_po` | `ExportCbuVehiclePo` | 主表，业务唯一键 po_no |
-| `export_cbu_vehicle_po_detail` | `ExportCbuVehiclePoDetail` | 明细，(po_no, po_detail_no) 组合唯一 |
-| `export_cbu_vehicle_po_guarantee` | `ExportCbuVehiclePoGuarantee` | PO-保函关联（一对多），(po_no, guarantee_id) 组合唯一 |
+| `export_vehicle_cbu_po` | `ExportVehicleCbuPo` | 主表，业务唯一键 po_no |
+| `export_vehicle_cbu_po_detail` | `ExportVehicleCbuPoDetail` | 明细，(po_no, po_detail_no) 组合唯一 |
+| `export_vehicle_cbu_po_guarantee` | `ExportVehicleCbuPoGuarantee` | PO-保函关联（一对多），(po_no, guarantee_id) 组合唯一 |
 
 三表均带平台基础字段 11 个（creator/creator_name/create_time/modifier/modifier_name/update_time/delete_status/status/status_desc/owner_user_id/owner_org_id），其中 id/creator/create_time/modifier/update_time/delete_status 由 `LpBaseEntity` 提供，status/status_desc/owner_user_id/owner_org_id 在业务实体显式声明。
 
@@ -114,7 +114,7 @@
 
 已确认：`LpBaseEntity` 源码为 `@TableId(value = "id", type = IdType.ASSIGN_UUID) private String id`——实体级 ASSIGN_UUID 覆盖全局 `id-type: auto`，id 由 MyBatis-Plus 自动生成 UUID 字符串，无需手填、非数据库自增。评审 `VARCHAR(64)` 正确（UUID 36 位）。另：`creator`、`deleteStatus` 为 `Long`（建表 BIGINT）；`create_time`/`update_time` 由 `application.yml` auto-field 自动填充（dateTime）。
 
-### 3.3 订单状态枚举（新建 `ExportCbuVehiclePoStatusEnum`，client 层）
+### 3.3 订单状态枚举（新建 `ExportVehicleCbuPoStatusEnum`，client 层）
 
 草稿 / 销售已提交 / 销售已驳回 / 供需审核通过 / 供需审核驳回 / 产销平衡通过 / 产销平衡驳回（共 7 态，详见评审 §2.1）。实现 `IBaseEnum`，Integer code + 中文 message。
 
@@ -122,15 +122,15 @@
 
 > 依赖链：T01 → T02 →（T03、T04、T05 并行）→ T06 → T07 → T08；T09、T10 可与审批链并行；T11 收尾。
 >
-> 每个任务的"产出类"按 DDD 分层列出，命名前缀 `ExportCbuVehiclePo`（主表）/ `ExportCbuVehiclePoDetail`（明细）/ `ExportCbuVehiclePoGuarantee`（关联）。
+> 每个任务的"产出类"按 DDD 分层列出，命名前缀 `ExportVehicleCbuPo`（主表）/ `ExportVehicleCbuPoDetail`（明细）/ `ExportVehicleCbuPoGuarantee`（关联）。
 
 ### T01 - 前置准备（建表 / 骨架生成 / 状态枚举 / leapx 验证）
 
 - 目标：把数据库表、代码骨架、枚举、事件机制依赖一次性备齐。
 - 产出：
-  - 数据库：按评审 DDL 建三张表（export_cbu_vehicle_po / export_cbu_vehicle_po_detail / export_cbu_vehicle_po_guarantee）。
+  - 数据库：按评审 DDL 建三张表（export_vehicle_cbu_po / export_vehicle_cbu_po_detail / export_vehicle_cbu_po_guarantee）。
   - 骨架：用 `app-ais-export-vehicle-generator` 的 `DddCodeGenerator`，设 `business.name=po`、`generate.table.name` 依次为三张表，生成全分层 CRUD 骨架；调整包名到 `po`、字段对齐评审 DDL。
-  - 枚举（client）：`ExportCbuVehiclePoStatusEnum`。
+  - 枚举（client）：`ExportVehicleCbuPoStatusEnum`。
   - 验证：确认 `id-type` 策略；确认 leapx 库是否含 `EventPublisher` / `EventNotifyTask`（`com.leapmotor.paltform.ais.common.event.core.*`），决定 T03 搬运范围。
 - 参考：本项目保函模块生成结构、maintain `OrderStatusEnum`。
 - 验收：三表建好；生成代码能编译；状态枚举可用。
@@ -140,11 +140,11 @@
 
 - 目标：在生成的骨架上补齐主子表联保存、联查询、分页、详情。
 - 产出（按层，三表各一套）：
-  - infrastructure：`ExportCbuVehiclePo`(Detail/Guarantee) Entity 对齐 DDL 字段（含 ownerOrgId）、Mapper + XML（BaseResultMap / Base_Column_List / batchInsert）、Dao + DaoImpl（buildQueryWrapper）、GatewayImpl（分页方法标 `@DataPermission`）、StructMapper。
+  - infrastructure：`ExportVehicleCbuPo`(Detail/Guarantee) Entity 对齐 DDL 字段（含 ownerOrgId）、Mapper + XML（BaseResultMap / Base_Column_List / batchInsert）、Dao + DaoImpl（buildQueryWrapper）、GatewayImpl（分页方法标 `@DataPermission`）、StructMapper。
   - domain：Do / Qo / Gateway。
-  - app：Service + ServiceImpl、CmdExe（主表 insert/update + 明细/关联批量同事务）、QryExe、DTOStructMapper、Req（`ExportCbuVehiclePoAddOrUpdateReq` 嵌 `List<ExportCbuVehiclePoDetailAddOrUpdateReq>`）、Resp。
-  - adapter：`ExportCbuVehiclePoController`（page/detail/addOrUpdate，标 `@ResourcePermission`）。
-- rules 要点：Entity `deleteStatus` 走 `@TableLogic`（LpBaseEntity 自带，勿重复填充基础字段）；明细 `po_detail_no` 用 `@AutoCode(prefix="POD")` 自动编号（格式不符退 `NoGenerator`）；请求 DTO 枚举字段 `@EnumValue(enumClass=ExportCbuVehiclePoStatusEnum.class, required=true)`、响应 DTO 枚举字段 `@DictEnumType(prefix="ExportCbuVehiclePoStatusEnum")`；GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_cbu_vehicle_po")`。
+  - app：Service + ServiceImpl、CmdExe（主表 insert/update + 明细/关联批量同事务）、QryExe、DTOStructMapper、Req（`ExportVehicleCbuPoAddOrUpdateReq` 嵌 `List<ExportVehicleCbuPoDetailAddOrUpdateReq>`）、Resp。
+  - adapter：`ExportVehicleCbuPoController`（page/detail/addOrUpdate，标 `@ResourcePermission`）。
+- rules 要点：Entity `deleteStatus` 走 `@TableLogic`（LpBaseEntity 自带，勿重复填充基础字段）；明细 `po_detail_no` 用 `@AutoCode(prefix="POD")` 自动编号（格式不符退 `NoGenerator`）；请求 DTO 枚举字段 `@EnumValue(enumClass=ExportVehicleCbuPoStatusEnum.class, required=true)`、响应 DTO 枚举字段 `@DictEnumType(prefix="ExportVehicleCbuPoStatusEnum")`；GatewayImpl 分页 `@DataPermission(ownerOrgIdField="owner_org_id", tables="export_vehicle_cbu_po")`。
 - 参考：maintain `ServiceProxy` 主子表、`OwnersEquityOrder` 主子表范本。
 - 验收：主表 + 明细 + 关联表能一起增改查；分页带数据权限。
 - 依赖：T01。
@@ -171,7 +171,7 @@
 - 目标：接收红旗 CBU 推送的采购订单，唯一性判断后创建草稿；客户/物料/单价匹配不到则留空（提交时强校验）。
 - 产出：
   - adapter：入站 Controller（红旗 → PO，`/app/...` 或对接红旗回调路径）。
-  - app：`ExportCbuVehiclePoSyncCmdExe`（或并入主 CmdExe）：PO单号唯一性判断、草稿创建、客户编码匹配客户主数据、物料匹配整编主数据、单价按「物料编码+创建时间+订单类型」匹配价格主数据（多条取审批通过时间最新）。
+  - app：`ExportVehicleCbuPoSyncCmdExe`（或并入主 CmdExe）：PO单号唯一性判断、草稿创建、客户编码匹配客户主数据、物料匹配整编主数据、单价按「物料编码+创建时间+订单类型」匹配价格主数据（多条取审批通过时间最新）。
   - 依赖调用：客户主数据（app-account-api）、整编主数据、价格主数据查询接口（归属待确认，见评审 08 节点）。
 - 参考：评审 01 节点、maintain 入站接口模式。
 - 验收：红旗推送 → 草稿订单落库；重复 PO单号不重复创建；匹配类字段留空不报错。
@@ -180,7 +180,7 @@
 ### T05 - 4.2 订单编辑&保存
 
 - 目标：草稿态编辑销售公司 + 明细生产备注并保存。
-- 产出：`ExportCbuVehiclePoController.save` 端点；CmdExe 编辑逻辑（仅 sales_company_code 抬头可改、明细 production_remark 逐行改）；草稿态校验 + 乐观锁。
+- 产出：`ExportVehicleCbuPoController.save` 端点；CmdExe 编辑逻辑（仅 sales_company_code 抬头可改、明细 production_remark 逐行改）；草稿态校验 + 乐观锁。
 - 参考：评审 02 节点、maintain 编辑保存模式。
 - 验收：仅草稿可编辑；非可编辑字段防篡改（后端校验）；并发乐观锁生效。
 - 依赖：T02。
@@ -190,9 +190,9 @@
 - 目标：提交走 4 步编排；驳回走终态 + 推红旗。
 - 产出：
   - 提交 `submit`：步骤1 数据校验（状态/销售公司/客户编码兜底匹配/明细物料兜底匹配）→ 步骤2 价格匹配（补单价+金额+总金额）→ 步骤3 资金校验+保函冻结 → 完成（状态→销售已提交、记 submit_time）。
-  - 保函消费：调本项目保函模块内部接口 `/validate` + `/batchFreeze`（入参 po_no + 冻结金额=总金额），返回 list 写入 export_cbu_vehicle_po_guarantee；空 list 视为冻结失败、状态不变。
+  - 保函消费：调本项目保函模块内部接口 `/validate` + `/batchFreeze`（入参 po_no + 冻结金额=总金额），返回 list 写入 export_vehicle_cbu_po_guarantee；空 list 视为冻结失败、状态不变。
   - 驳回 `reject`：状态→销售已驳回、记 reject_time/reject_user/reject_reason；发事件推红旗（T03）。
-  - 职责链：`ExportCbuVehiclePoChainFactory` + 校验器（状态/权限）+ 处理器（保函冻结/状态推进）。
+  - 职责链：`ExportVehicleCbuPoChainFactory` + 校验器（状态/权限）+ 处理器（保函冻结/状态推进）。
 - 参考：评审 03 节点、保函模块 `ExportVehicleLetterGuaranteeAppController`、maintain `ServiceProxyChainFactory`。
 - 验收：提交成功则保函冻结 + 关联表写入 + 状态流转；任一步失败整体回滚、状态不变；驳回推红旗走本地消息表。
 - 依赖：T02、T03。
@@ -230,7 +230,7 @@
 ### T10 - 3.8 订单明细列表 + 批量操作
 
 - 目标：明细列表查询/导出；列表页批量提交/驳回/审核（整体事务）。
-- 产出：`ExportCbuVehiclePoDetailController`（明细列表 page + 导出）；批量端点（批量提交/销售驳回/供需通过/驳回/产销平衡通过/驳回），套 `runBatch` 单条独立事务 + 汇总结果。
+- 产出：`ExportVehicleCbuPoDetailController`（明细列表 page + 导出）；批量端点（批量提交/销售驳回/供需通过/驳回/产销平衡通过/驳回），套 `runBatch` 单条独立事务 + 汇总结果。
 - 参考：评审 07 节点 + 总览 §4.3 批量操作、保函 `runBatch`。
 - 验收：明细列表筛选/导出；批量操作每条独立事务、失败不影响其他条、返回成功/失败汇总。
 - 依赖：T02、T06/T07/T08（复用各节点逻辑）。

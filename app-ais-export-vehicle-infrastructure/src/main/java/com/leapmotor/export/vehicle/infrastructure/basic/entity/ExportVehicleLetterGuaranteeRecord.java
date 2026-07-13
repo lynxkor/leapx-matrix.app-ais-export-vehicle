@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 
 /**
  * <p>
- * 保函交易明细(追加写)领域对象
+ * 保函交易明细领域对象
  * </p>
  *
  * @author wangkai2527148

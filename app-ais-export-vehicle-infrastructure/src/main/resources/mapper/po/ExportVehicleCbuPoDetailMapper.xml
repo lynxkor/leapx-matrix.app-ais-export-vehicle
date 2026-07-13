@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportVehicleCbuPoDetailMapper">
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPoDetail">
+    <id column="id" property="id" />
+    <result column="po_no" property="poNo" />
+    <result column="po_detail_no" property="poDetailNo" />
+    <result column="order_detail_number" property="orderDetailNumber" />
+    <result column="material_code" property="materialCode" />
+    <result column="sync_material_code" property="syncMaterialCode" />
+    <result column="material_description" property="materialDescription" />
+    <result column="sales_market" property="salesMarket" />
+    <result column="model_year" property="modelYear" />
+    <result column="optional_package" property="optionalPackage" />
+    <result column="demand_quantity" property="demandQuantity" />
+    <result column="expected_offline_date" property="expectedOfflineDate" />
+    <result column="vin_year" property="vinYear" />
+    <result column="production_remark" property="productionRemark" />
+    <result column="unit_price" property="unitPrice" />
+    <result column="total_amount" property="totalAmount" />
+    <result column="creator" property="creator" />
+    <result column="creator_name" property="creatorName" />
+    <result column="create_time" property="createTime" />
+    <result column="modifier" property="modifier" />
+    <result column="modifier_name" property="modifierName" />
+    <result column="update_time" property="updateTime" />
+    <result column="delete_status" property="deleteStatus" />
+    <result column="status" property="status" />
+    <result column="status_desc" property="statusDesc" />
+    <result column="owner_user_id" property="ownerUserId" />
+    <result column="owner_org_id" property="ownerOrgId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, po_no, po_detail_no, order_detail_number, material_code, sync_material_code, material_description, sales_market, model_year, optional_package, demand_quantity, expected_offline_date, vin_year, production_remark, unit_price, total_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+    </sql>
+
+</mapper>

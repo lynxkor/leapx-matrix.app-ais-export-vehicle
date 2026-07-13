@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 /**
  * 客户主数据查询：Feign 调 app-ais-export-nexus CustomerApi（已对接）。
  * 用 getByExternalCode 精确单查（nexus 侧 Gateway getCustomerByExternalCode，非 list 模糊）。
- * nexus fundVerifyType 1010=无/1020=保函 → PO 内部"无"/"保函"（与 submitExportCbuVehiclePo 判断一致）。
+ * nexus fundVerifyType 1010=无/1020=保函 → PO 内部"无"/"保函"（与 submitExportVehicleCbuPo 判断一致）。
  */
 @Slf4j
 @Service

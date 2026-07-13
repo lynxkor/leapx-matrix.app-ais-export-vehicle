@@ -2,17 +2,18 @@ package com.leapmotor.export.vehicle.basic.req;
 
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import lombok.EqualsAndHashCode;
-import lombok.Data;
-import java.io.Serializable;
 
 
 /**
- *
  * 保函主表参数对象
+ *
  * @author wangkai2527148
  * @since 2026-07-02
  */
@@ -22,8 +23,11 @@ public class ExportVehicleLetterGuaranteeParam extends LpBaseParam implements Se
 
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "保函编号")
+    @Schema(description = "保函编号(精确查询)")
     private String lgCode;
+
+    @Schema(description = "保函编号(模糊查询)")
+    private String lgCodeLike;
 
     @Schema(description = "客户ID")
     private String customerId;
@@ -55,8 +59,20 @@ public class ExportVehicleLetterGuaranteeParam extends LpBaseParam implements Se
     @Schema(description = "生效日期")
     private LocalDate effectiveDate;
 
+    @Schema(description = "生效日期-起始(>=生效日期,日期选择器,例如 2026-04-11)")
+    private LocalDate effectiveDateStart;
+
+    @Schema(description = "生效日期-截止(<=生效日期,日期选择器,例如 2026-07-10)")
+    private LocalDate effectiveDateEnd;
+
     @Schema(description = "失效日期")
     private LocalDate expiryDate;
+
+    @Schema(description = "失效日期-起始(>=失效日期,日期选择器,例如 2026-04-11)")
+    private LocalDate expiryDateStart;
+
+    @Schema(description = "失效日期-截止(<=失效日期,日期选择器,例如 2026-07-10)")
+    private LocalDate expiryDateEnd;
 
     @Schema(description = "审核状态(字典 letter_guarantee_approval_status: 10草稿 20已提交 30审核通过 40驳回 50作废)")
     private String approvalStatus;
@@ -73,6 +89,12 @@ public class ExportVehicleLetterGuaranteeParam extends LpBaseParam implements Se
     @Schema(description = "提交时间")
     private LocalDateTime submitTime;
 
+    @Schema(description = "提交日期-起始(>=提交时间,例如 2026-04-11 00:00:00)")
+    private LocalDateTime submitTimeStart;
+
+    @Schema(description = "提交日期-截止(<=提交时间,例如 2026-07-10 23:59:59)")
+    private LocalDateTime submitTimeEnd;
+
     @Schema(description = "审核人ID")
     private Long approverId;
 
@@ -82,11 +104,23 @@ public class ExportVehicleLetterGuaranteeParam extends LpBaseParam implements Se
     @Schema(description = "审核时间")
     private LocalDateTime approveTime;
 
+    @Schema(description = "审核日期-起始(>=审核时间,例如 2026-04-11 00:00:00)")
+    private LocalDateTime approveTimeStart;
+
+    @Schema(description = "审核日期-截止(<=审核时间,例如 2026-07-10 23:59:59)")
+    private LocalDateTime approveTimeEnd;
+
     @Schema(description = "审核意见")
     private String approveRemark;
 
     @Schema(description = "业务备注")
     private String remark;
+
+    @Schema(description = "创建时间-起始(>=创建时间,例如 2026-04-11 00:00:00)")
+    private LocalDateTime createTimeStart;
+
+    @Schema(description = "创建时间-截止(<=创建时间,例如 2026-07-10 23:59:59)")
+    private LocalDateTime createTimeEnd;
 
     @Schema(description = "状态变更描述")
     private String statusDesc;

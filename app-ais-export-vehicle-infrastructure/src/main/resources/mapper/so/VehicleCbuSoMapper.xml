@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSo">
+        <id column="id" property="id"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modifier_name" property="modifierName"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_status" property="deleteStatus"/>
+        <result column="status" property="status"/>
+        <result column="status_desc" property="statusDesc"/>
+        <result column="so_no" property="soNo"/>
+        <result column="po_id" property="poId"/>
+        <result column="po_no" property="poNo"/>
+        <result column="po_detail_id" property="poDetailId"/>
+        <result column="po_detail_no" property="poDetailNo"/>
+        <result column="line_no" property="lineNo"/>
+        <result column="sales_company_code" property="salesCompanyCode"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="external_customer_code" property="externalCustomerCode"/>
+        <result column="order_type" property="orderType"/>
+        <result column="plan_version" property="planVersion"/>
+        <result column="expected_offline_date" property="expectedOfflineDate"/>
+        <result column="vin_year" property="vinYear"/>
+        <result column="production_remark" property="productionRemark"/>
+        <result column="vehicle_price" property="vehiclePrice"/>
+        <result column="frozen_amount" property="frozenAmount"/>
+        <result column="receivable_amount" property="receivableAmount"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="issue_time" property="issueTime"/>
+        <result column="cancel_time" property="cancelTime"/>
+        <result column="qc_result" property="qcResult"/>
+        <result column="qc_result_time" property="qcResultTime"/>
+        <result column="qc_remark" property="qcRemark"/>
+        <result column="last_qc_result" property="lastQcResult"/>
+        <result column="last_qc_result_time" property="lastQcResultTime"/>
+        <result column="last_qc_remark" property="lastQcRemark"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, so_no, po_id, po_no, po_detail_id, po_detail_no, line_no, sales_company_code, customer_code, customer_name, external_customer_code, order_type, plan_version, expected_offline_date, vin_year, production_remark, vehicle_price, frozen_amount, receivable_amount, order_status, issue_time, cancel_time, qc_result, qc_result_time, qc_remark, last_qc_result, last_qc_result_time, last_qc_remark, receive_time, remark
+    </sql>
+
+</mapper>

@@ -1,6 +1,10 @@
 package com.leapmotor.export.vehicle.po.executor.cmd;
 
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeAdjustFreezeReq;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeAdjustUnfreezeReq;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeFreezeReq;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfreezeReq;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
 import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
@@ -9,8 +13,8 @@ import com.leapmotor.export.vehicle.base.event.enums.HongqiThirdTargetPlatformEn
 import com.leapmotor.export.vehicle.acl.http.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.acl.http.so.SoClient;
 import com.leapmotor.export.vehicle.acl.http.so.request.SoCreateReq;
+import com.leapmotor.export.vehicle.acl.http.so.request.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfreezeReq;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoGuaranteeQo;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
@@ -39,6 +43,7 @@ import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSubmitReq;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -445,6 +450,156 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
                 order.getId(),
                 pushReq);
+    }
+
+    // ==================== 4.6 刷新订单价格（联动保函 / SO） ====================
+
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:refreshPrice", value = "#req.poId",
+            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在刷新价格，请稍后重试")
+    @Transactional(rollbackFor = Exception.class)
+    public void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
+        ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
+        if (order == null) {
+            throw new BizException("PO订单不存在");
+        }
+
+        String status = order.getOrderStatus();
+        boolean isBranchB = ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED.getCode().equals(status)
+                || ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED.getCode().equals(status)
+                || ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(status);
+
+        // 查明细
+        ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
+        detailQo.setPoNo(order.getPoNo());
+        List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
+
+        // ===== 分支B: SO 状态校验（4.6 步骤1） =====
+        if (isBranchB) {
+            SoResult soResult = soClient.queryStatus(order.getPoNo());
+            List<SoResult.SoItem> soItems = (soResult != null && soResult.getData() != null)
+                    ? soResult.getData() : Collections.emptyList();
+            for (SoResult.SoItem so : soItems) {
+                if ("质检通过".equals(so.getOrderStatus()) || "已收款".equals(so.getOrderStatus())) {
+                    throw new BizException("存在质检通过的车辆，不允许刷新价格");
+                }
+            }
+        }
+
+        // ===== 重算价格（4.6 步骤2，同 4.3 提交的匹配规则） =====
+        BigDecimal oldTotal = order.getTotalAmount();
+        for (ExportVehicleCbuPoDetailDo d : details) {
+            if (StringUtils.isBlank(d.getMaterialCode())) {
+                continue;
+            }
+            BigDecimal newPrice = queryLatestApprovedPrice(d.getMaterialCode(), order.getOrderType(), order.getCreateTime());
+            if (newPrice != null) {
+                d.setUnitPrice(newPrice);
+                d.setTotalAmount(newPrice.multiply(d.getDemandQuantity()));
+            } else {
+                // 匹配不到留空（产品文档：未匹配行价格留空）
+                d.setUnitPrice(null);
+                d.setTotalAmount(null);
+            }
+        }
+        BigDecimal newTotal = details.stream()
+                .map(d -> d.getTotalAmount() != null ? d.getTotalAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // ===== 更新明细 + 主表总金额 =====
+        order.setTotalAmount(newTotal);
+        purchaseOrderGateway.updateExportVehicleCbuPo(order);
+        for (ExportVehicleCbuPoDetailDo d : details) {
+            purchaseOrderDetailGateway.updateExportVehicleCbuPoDetail(d);
+        }
+
+        // ===== 分支B: 联动保函 + SO =====
+        if (isBranchB) {
+            BigDecimal diff = newTotal.subtract(oldTotal);
+            int cmp = diff.compareTo(BigDecimal.ZERO);
+
+            if (cmp < 0) {
+                // (2) 新总金额 < 原：调减保函
+                BigDecimal amountDiff = oldTotal.subtract(newTotal);
+                ExportVehicleLetterGuaranteeAdjustUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeAdjustUnfreezeReq();
+                unfreezeReq.setPoNo(order.getPoNo());
+                unfreezeReq.setOrderId(order.getId());
+                unfreezeReq.setAmountDiff(amountDiff);
+                unfreezeReq.setReason("刷新价格调减");
+                ExportVehicleLetterGuaranteeAdjustUnfreezeResp unfreezeResp = letterGuaranteeService.adjustUnfreeze(unfreezeReq);
+                if (unfreezeResp == null || !Boolean.TRUE.equals(unfreezeResp.getSuccess())) {
+                    throw new BizException("保函调减失败: " + (unfreezeResp != null ? unfreezeResp.getFailMessage() : "unknown"));
+                }
+                // 按 unfreezeItems 逐条调减 PO-保函关联表占用金额
+                if (unfreezeResp.getUnfreezeItems() != null) {
+                    for (ExportVehicleLetterGuaranteeAdjustUnfreezeResp.UnfreezeItem item : unfreezeResp.getUnfreezeItems()) {
+                        reduceGuaranteeOccupied(order.getPoNo(), item.getLgId(), item.getUnfrozenAmount());
+                    }
+                }
+            } else if (cmp > 0) {
+                // (3) 新总金额 > 原：补冻保函（保函侧自动判断可用金额是否充足）
+                ExportVehicleLetterGuaranteeAdjustFreezeReq freezeReq = new ExportVehicleLetterGuaranteeAdjustFreezeReq();
+                freezeReq.setCustomerId(order.getCustomerCode());
+                freezeReq.setOrderType(OrderTypeEnum.getName(order.getOrderType()));
+                freezeReq.setOrderId(order.getId());
+                freezeReq.setOrderNo(order.getPoNo());
+                freezeReq.setPoNo(order.getPoNo());
+                freezeReq.setAmountDiff(diff);
+                freezeReq.setReason("刷新价格调增");
+                ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.adjustFreeze(freezeReq);
+                if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess())
+                        || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
+                    String failMsg = (freezeResp != null && freezeResp.getFailMessage() != null)
+                            ? freezeResp.getFailMessage() : "剩余可用金额不足";
+                    throw new BizException(failMsg);
+                }
+                // 写/更新 PO-保函关联表
+                List<ExportVehicleCbuPoGuaranteeDo> guarantees = freezeResp.getFrozenItems().stream().map(item -> {
+                    ExportVehicleCbuPoGuaranteeDo g = new ExportVehicleCbuPoGuaranteeDo();
+                    g.setPoNo(order.getPoNo());
+                    g.setGuaranteeId(item.getLgId());
+                    g.setGuaranteeNumber(item.getLgCode());
+                    g.setPoCurrentOccupiedAmount(item.getFrozenAmount());
+                    g.setPoCurrentReceivableAmount(BigDecimal.ZERO);
+                    return g;
+                }).toList();
+                purchaseOrderGuaranteeGateway.addBatchExportVehicleCbuPoGuarantee(guarantees);
+            }
+            // 新=原：不调保函，直接更新 SO
+
+            // 更新 SO 车辆价格/冻结金额
+            SoUpdatePriceReq soUpdateReq = new SoUpdatePriceReq();
+            soUpdateReq.setPoNo(order.getPoNo());
+            soUpdateReq.setDetails(details.stream().map(d -> {
+                SoUpdatePriceReq.DetailPrice dp = new SoUpdatePriceReq.DetailPrice();
+                dp.setPoDetailNo(d.getPoDetailNo());
+                dp.setUnitPrice(d.getUnitPrice());
+                dp.setTotalAmount(d.getTotalAmount());
+                return dp;
+            }).toList());
+            SoResult soUpdateResult = soClient.updatePrice(soUpdateReq);
+            if (soUpdateResult == null || soUpdateResult.getCode() != 200) {
+                throw new BizException("SO 价格更新失败: " + (soUpdateResult != null ? soUpdateResult.getMessage() : "null"));
+            }
+        }
+    }
+
+    // ==================== 保函关联表辅助方法 ====================
+
+    /** 按 lgId 调减 PO-保函关联表的占用金额 */
+    private void reduceGuaranteeOccupied(String poNo, String lgId, BigDecimal amount) {
+        ExportVehicleCbuPoGuaranteeQo qo = new ExportVehicleCbuPoGuaranteeQo();
+        qo.setPoNo(poNo);
+        List<ExportVehicleCbuPoGuaranteeDo> list = purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(qo);
+        for (ExportVehicleCbuPoGuaranteeDo g : list) {
+            if (lgId.equals(g.getGuaranteeId())) {
+                BigDecimal current = g.getPoCurrentOccupiedAmount() != null ? g.getPoCurrentOccupiedAmount() : BigDecimal.ZERO;
+                ExportVehicleCbuPoGuaranteeDo update = new ExportVehicleCbuPoGuaranteeDo();
+                update.setId(g.getId());
+                update.setPoCurrentOccupiedAmount(current.subtract(amount));
+                purchaseOrderGuaranteeGateway.updateExportVehicleCbuPoGuarantee(update);
+                break;
+            }
+        }
     }
 
     // ==================== 主数据查询辅助方法（直调 nexus Feign API） ====================

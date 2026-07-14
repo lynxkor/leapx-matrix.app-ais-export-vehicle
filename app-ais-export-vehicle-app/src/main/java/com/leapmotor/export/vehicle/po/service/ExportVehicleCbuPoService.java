@@ -15,6 +15,7 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
 
 import java.util.List;
 
@@ -66,5 +67,8 @@ public interface ExportVehicleCbuPoService {
 
     /** 4.5 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） */
     void balanceReject(ExportVehicleCbuPoBalanceRejectReq req);
+
+    /** 4.6 刷新订单价格（联动保函 / SO） */
+    void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req);
 
 }

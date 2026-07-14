@@ -21,6 +21,7 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
 import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.web.bind.annotation.*;
@@ -161,6 +162,14 @@ public class ExportVehicleCbuPoController {
     @PostMapping("/balanceReject")
     public AjaxResult<Void> balanceReject(@RequestBody @Validated ExportVehicleCbuPoBalanceRejectReq req) {
         purchaseOrderService.balanceReject(req);
+        return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单刷新价格(联动保函/SO)")
+    @ResourcePermission(value="web:po:purchaseOrder:refreshPrice",desc="PO订单刷新价格")
+    @PostMapping("/refreshPrice")
+    public AjaxResult<Void> refreshPrice(@RequestBody @Validated ExportVehicleCbuPoRefreshPriceReq req) {
+        purchaseOrderService.refreshPrice(req);
         return AjaxResult.success();
     }
 }

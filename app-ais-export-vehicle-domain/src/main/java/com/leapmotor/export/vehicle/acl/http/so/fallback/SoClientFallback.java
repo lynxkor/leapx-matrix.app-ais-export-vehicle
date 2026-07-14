@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.acl.http.so.fallback;
 
 import com.leapmotor.export.vehicle.acl.http.so.SoClient;
 import com.leapmotor.export.vehicle.acl.http.so.request.SoCreateReq;
+import com.leapmotor.export.vehicle.acl.http.so.request.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -38,6 +39,15 @@ public class SoClientFallback implements SoClient {
     @Override
     public SoResult cancel(String poNo) {
         log.warn("SO服务不可用(占位降级) cancel poNo={}", poNo);
+        SoResult r = new SoResult();
+        r.setCode(200);
+        r.setMessage("mock success - SO placeholder");
+        return r;
+    }
+
+    @Override
+    public SoResult updatePrice(SoUpdatePriceReq req) {
+        log.warn("SO服务不可用(占位降级) updatePrice poNo={}", req != null ? req.getPoNo() : null);
         SoResult r = new SoResult();
         r.setCode(200);
         r.setMessage("mock success - SO placeholder");

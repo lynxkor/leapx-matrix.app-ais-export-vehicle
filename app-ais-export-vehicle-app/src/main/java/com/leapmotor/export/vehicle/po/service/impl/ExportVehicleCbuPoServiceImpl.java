@@ -26,6 +26,7 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoDetailGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGuaranteeGateway;
@@ -148,5 +149,10 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     @Override
     public void balanceReject(ExportVehicleCbuPoBalanceRejectReq req) {
         purchaseOrderApprovalCmdExe.balanceReject(req);
+    }
+
+    @Override
+    public void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
+        purchaseOrderApprovalCmdExe.refreshPrice(req);
     }
 }

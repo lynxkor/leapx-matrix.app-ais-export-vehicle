@@ -26,7 +26,9 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBatchReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoDetailGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGuaranteeGateway;
@@ -154,5 +156,35 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     @Override
     public void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
         purchaseOrderApprovalCmdExe.refreshPrice(req);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchSubmit(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchSubmit(req);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchReject(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchReject(req);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchSupplyApprove(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchSupplyApprove(req);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchSupplyReject(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchSupplyReject(req);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchBalanceApprove(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchBalanceApprove(req);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchBalanceReject(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchBalanceReject(req);
     }
 }

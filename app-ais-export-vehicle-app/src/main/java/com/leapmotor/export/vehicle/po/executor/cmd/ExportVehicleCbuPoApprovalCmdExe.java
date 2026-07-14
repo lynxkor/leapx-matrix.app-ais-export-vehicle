@@ -21,7 +21,8 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
-import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBatchReq;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
 
 import java.util.Collections;
 import java.util.Set;
@@ -54,6 +55,8 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,6 +93,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     private EventHandlerHelper eventHandlerHelper;
     /** SO 订单服务（4.4 供需审核通过生成 SO，契约待 SO 侧） */
     private SoClient soClient;
+    /** 用于批量操作中 self 代理调用（保证 @DistributeLock / @Transactional 生效） */
+    @Autowired
+    private ApplicationContext applicationContext;
 
     // ==================== 4.3 销售提交（4 步编排，任一步失败整体回滚） ====================
 
@@ -581,6 +587,94 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 throw new BizException("SO 价格更新失败: " + (soUpdateResult != null ? soUpdateResult.getMessage() : "null"));
             }
         }
+    }
+
+    // ==================== 批量操作（每条独立事务，部分成功部分失败，汇总返回） ====================
+
+    /** 提取错误摘要：BizException 取 message，其他异常取类名 */
+    private String errorSummary(Exception e) {
+        if (e instanceof BizException) {
+            return e.getMessage();
+        }
+        return e.getClass().getSimpleName() + (e.getMessage() != null ? ": " + e.getMessage() : "");
+    }
+
+    private ExportVehicleCbuPoBatchResp runBatch(List<String> poIds, java.util.function.Consumer<String> op) {
+        ExportVehicleCbuPoBatchResp resp = new ExportVehicleCbuPoBatchResp();
+        resp.setTotal(poIds.size());
+        int success = 0, fail = 0;
+        for (String poId : poIds) {
+            try {
+                op.accept(poId);
+                success++;
+            } catch (Exception e) {
+                fail++;
+                ExportVehicleCbuPoBatchResp.FailItem item = new ExportVehicleCbuPoBatchResp.FailItem();
+                item.setPoId(poId);
+                item.setReason(errorSummary(e));
+                resp.getFailItems().add(item);
+            }
+        }
+        resp.setSuccessCount(success);
+        resp.setFailCount(fail);
+        return resp;
+    }
+
+    public ExportVehicleCbuPoBatchResp batchSubmit(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> {
+            ExportVehicleCbuPoSubmitReq single = new ExportVehicleCbuPoSubmitReq();
+            single.setPoId(poId);
+            self.submitExportVehicleCbuPo(single);
+        });
+    }
+
+    public ExportVehicleCbuPoBatchResp batchReject(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> {
+            ExportVehicleCbuPoRejectReq single = new ExportVehicleCbuPoRejectReq();
+            single.setPoId(poId);
+            single.setRejectReason(req.getRejectReason());
+            self.rejectExportVehicleCbuPo(single);
+        });
+    }
+
+    public ExportVehicleCbuPoBatchResp batchSupplyApprove(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> {
+            ExportVehicleCbuPoSupplyApproveReq single = new ExportVehicleCbuPoSupplyApproveReq();
+            single.setPoId(poId);
+            self.supplyApprove(single);
+        });
+    }
+
+    public ExportVehicleCbuPoBatchResp batchSupplyReject(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> {
+            ExportVehicleCbuPoSupplyRejectReq single = new ExportVehicleCbuPoSupplyRejectReq();
+            single.setPoId(poId);
+            single.setRejectReason(req.getRejectReason());
+            self.supplyReject(single);
+        });
+    }
+
+    public ExportVehicleCbuPoBatchResp batchBalanceApprove(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> {
+            ExportVehicleCbuPoBalanceApproveReq single = new ExportVehicleCbuPoBalanceApproveReq();
+            single.setPoId(poId);
+            self.balanceApprove(single);
+        });
+    }
+
+    public ExportVehicleCbuPoBatchResp batchBalanceReject(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> {
+            ExportVehicleCbuPoBalanceRejectReq single = new ExportVehicleCbuPoBalanceRejectReq();
+            single.setPoId(poId);
+            single.setRejectReason(req.getRejectReason());
+            self.balanceReject(single);
+        });
     }
 
     // ==================== 保函关联表辅助方法 ====================

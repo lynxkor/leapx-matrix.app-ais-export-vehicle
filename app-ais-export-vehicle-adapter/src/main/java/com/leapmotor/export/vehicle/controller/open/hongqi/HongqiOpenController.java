@@ -14,9 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 红旗系统开放接口（红旗 → PO，入站）。
- * 路径前缀 /openApi（外部系统对接，参照 maintain controller/open/{系统}），不走 @ResourcePermission（系统间调用）。
- * 鉴权/签名由上层网关统一处理，本接口不配签名拦截器。
- * TODO 红旗契约到后：Request/返回格式按真契约微调。
+ * 路径前缀 /openApi（外部系统对接），不走 @ResourcePermission（系统间调用）。
+ * 鉴权/签名由上层网关统一处理。
  *
  * @author leapmotor
  * @since 2026-07-08

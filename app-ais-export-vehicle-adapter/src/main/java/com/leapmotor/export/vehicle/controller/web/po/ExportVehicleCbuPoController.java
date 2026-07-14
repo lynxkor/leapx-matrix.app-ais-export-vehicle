@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
@@ -63,6 +64,13 @@ public class ExportVehicleCbuPoController {
     @PostMapping(value = "/get")
     public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(id));
+    }
+
+    @Operation(summary = "PO订单主子表联查详情（主表 + 明细 + 保函关联）")
+    @ResourcePermission(value="web:po:purchaseOrder:detail",desc="PO订单主子表联查详情")
+    @PostMapping(value = "/detail")
+    public AjaxResult<ExportVehicleCbuPoDetailFullResp> detail(@RequestBody String id) {
+        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoDetailById(id));
     }
 
     @Operation(summary = "PO订单主表新增/编辑")

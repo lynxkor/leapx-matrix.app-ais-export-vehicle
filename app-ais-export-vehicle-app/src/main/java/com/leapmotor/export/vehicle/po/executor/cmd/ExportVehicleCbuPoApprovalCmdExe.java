@@ -17,22 +17,24 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
-import com.leapmotor.export.vehicle.acl.http.aps.ApsClient;
-import com.leapmotor.export.vehicle.acl.http.aps.response.ApsResult;
 import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
 
 import java.util.Collections;
 import java.util.Set;
 import com.leapmotor.export.vehicle.po.enums.OrderTypeEnum;
 import com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum;
-import com.leapmotor.export.vehicle.po.gateway.PlaceholderCustomerDataGateway;
-import com.leapmotor.export.vehicle.po.gateway.PlaceholderMaterialDataGateway;
-import com.leapmotor.export.vehicle.po.gateway.PlaceholderPriceDataGateway;
+import com.leapmotor.export.nexus.customer.api.CustomerApi;
+import com.leapmotor.export.nexus.customer.request.CustomerRequest;
+import com.leapmotor.export.nexus.customer.response.CustomerResponse;
+import com.leapmotor.export.nexus.vehicle.api.VehicleMaterialApi;
+import com.leapmotor.export.nexus.vehicle.api.VehiclePriceHqApi;
+import com.leapmotor.export.nexus.vehicle.dto.VehicleMaterialDto;
+import com.leapmotor.export.nexus.vehicle.dto.VehiclePriceHqDto;
+import com.leapmotor.export.nexus.vehicle.request.VehicleMaterialBatchMatchReq;
+import com.leapmotor.export.nexus.vehicle.request.VehiclePriceHqMatchReq;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoDetailGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGuaranteeGateway;
-import com.leapmotor.export.vehicle.po.model.PlaceholderCustomerDataDo;
-import com.leapmotor.export.vehicle.po.model.PlaceholderMaterialDataDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
@@ -40,9 +42,11 @@ import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSubmitReq;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
+import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.util.LoginUserUtils;
 import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -50,6 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,6 +65,7 @@ import java.util.List;
  * @author leapmotor
  * @since 2026-07-08
  */
+@Slf4j
 @AllArgsConstructor
 @Component
 public class ExportVehicleCbuPoApprovalCmdExe {
@@ -67,20 +73,18 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     private ExportVehicleCbuPoGateway purchaseOrderGateway;
     private ExportVehicleCbuPoDetailGateway purchaseOrderDetailGateway;
     private ExportVehicleCbuPoGuaranteeGateway purchaseOrderGuaranteeGateway;
-    /** 【占位】客户主数据 */
-    private PlaceholderCustomerDataGateway customerDataGateway;
-    /** 【占位】整编主数据 */
-    private PlaceholderMaterialDataGateway materialDataGateway;
-    /** 【占位】价格主数据 */
-    private PlaceholderPriceDataGateway priceDataGateway;
+    /** 客户主数据，对接 app-ais-export-nexus 客户服务 */
+    private CustomerApi customerApi;
+    /** 整编物料主数据，对接 app-ais-export-nexus 整编物料服务 */
+    private VehicleMaterialApi vehicleMaterialApi;
+    /** 价格主数据，对接 app-ais-export-nexus 价格服务 */
+    private VehiclePriceHqApi vehiclePriceHqApi;
     /** 保函服务（同项目同微服务，本地事务强一致） */
     private ExportVehicleLetterGuaranteeService letterGuaranteeService;
     /** 事件发布（推红旗，T03 事件机制） */
     private EventHandlerHelper eventHandlerHelper;
     /** SO 订单服务（4.4 供需审核通过生成 SO，契约待 SO 侧） */
     private SoClient soClient;
-    /** APS 系统（4.5 产销平衡驳回同步 SO 作废，契约待 APS 侧） */
-    private ApsClient apsClient;
 
     // ==================== 4.3 销售提交（4 步编排，任一步失败整体回滚） ====================
 
@@ -101,7 +105,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         if (StringUtils.isBlank(order.getSalesCompanyCode())) {
             throw new BizException("销售公司不能为空");
         }
-        PlaceholderCustomerDataDo customer = customerDataGateway.getByExternalCode(order.getExternalCustomerCode());
+        CustomerResponse customer = queryCustomerByExternalCode(order.getExternalCustomerCode());
         if (StringUtils.isBlank(order.getCustomerCode())) {
             if (customer == null) {
                 throw new BizException("客户编码无法匹配，不允许提交");
@@ -115,15 +119,15 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
         for (ExportVehicleCbuPoDetailDo d : details) {
             if (StringUtils.isBlank(d.getMaterialCode())) {
-                PlaceholderMaterialDataDo m = materialDataGateway.getBySyncMaterialCode(d.getSyncMaterialCode());
+                VehicleMaterialDto m = queryMaterialByCode(d.getSyncMaterialCode());
                 if (m == null) {
                     throw new BizException("明细" + d.getOrderDetailNumber() + "物料编码无法匹配，不允许提交");
                 }
-                d.setMaterialCode(m.getMaterialCode());
-                d.setMaterialDescription(m.getMaterialDescription());
+                d.setMaterialCode(m.getCode());
+                d.setMaterialDescription(m.getMaterialDesc());
                 d.setSalesMarket(m.getSalesMarket());
-                d.setModelYear(m.getModelYear());
-                d.setOptionalPackage(m.getOptionalPackage());
+                d.setModelYear(m.getYearType());
+                d.setOptionalPackage(m.getOptionPackage());
             }
         }
 
@@ -132,7 +136,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         List<String> noPriceMaterials = new ArrayList<>();
         for (ExportVehicleCbuPoDetailDo d : details) {
             if (d.getUnitPrice() == null) {
-                BigDecimal price = priceDataGateway.getLatestApprovedPrice(d.getMaterialCode(), order.getOrderType(), orderCreateTime);
+                BigDecimal price = queryLatestApprovedPrice(d.getMaterialCode(), order.getOrderType(), orderCreateTime);
                 if (price == null) {
                     noPriceMaterials.add(d.getMaterialCode());
                     continue;
@@ -150,10 +154,12 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         // ===== 步骤3 资金校验与保函冻结 =====
-        String fundCheckType = customer != null ? customer.getFundCheckType() : null;
-        if ("保函".equals(fundCheckType)) {
+        // nexus 资金校验类型：1010=无 / 1020=保函
+        boolean isGuarantee = customer != null && customer.getFundVerifyType() != null
+                && customer.getFundVerifyType() == 1020;
+        if (isGuarantee) {
             ExportVehicleLetterGuaranteeFreezeReq freezeReq = new ExportVehicleLetterGuaranteeFreezeReq();
-            freezeReq.setCustomerId(order.getCustomerCode()); // TODO customerId 用 customerCode，待保函侧确认
+            freezeReq.setCustomerId(customer.getId());
             freezeReq.setOrderType(OrderTypeEnum.getName(order.getOrderType()));
             freezeReq.setOrderId(order.getId());
             freezeReq.setOrderNo(order.getPoNo());
@@ -207,15 +213,17 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         update.setId(req.getPoId());
         update.setOrderStatus(ExportVehicleCbuPoStatusEnum.SALES_REJECTED.getCode());
         update.setRejectTime(LocalDateTime.now());
-        update.setRejectUser(String.valueOf(LoginUserUtils.getUserId()));
+        update.setRejectUser(LoginUserUtils.getCurrentUserOrSysDefault().getUserName());
         update.setRejectReason(req.getRejectReason());
         purchaseOrderGateway.updateExportVehicleCbuPo(update);
 
         // 推红旗审批结果（事件机制：落 event_notify_task，XXL-Job 异步重试，订单状态不因推送回滚）
         CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
         pushReq.setPoNo(order.getPoNo());
-        pushReq.setResult("REJECTED");
-        pushReq.setOpinion(req.getRejectReason());
+        pushReq.setPlanVersion(order.getPlanVersion());
+        pushReq.setStatus("R");
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setRemark(req.getRejectReason());
         eventHandlerHelper.publishAsync(
                 HongqiThirdTargetPlatformEnum.HONGQI,
                 HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
@@ -241,7 +249,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         update.setId(req.getPoId());
         update.setOrderStatus(ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED.getCode());
         update.setSupplyDemandApproveTime(LocalDateTime.now());
-        update.setSupplyDemandApprover(String.valueOf(LoginUserUtils.getUserId()));
+        update.setSupplyDemandApprover(LoginUserUtils.getCurrentUserOrSysDefault().getUserName());
         purchaseOrderGateway.updateExportVehicleCbuPo(update);
 
         // 调 SO 创建（一车一单，PO 传参；SO 侧拆行号/生成单号）
@@ -253,7 +261,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         if (soResult == null || soResult.getCode() != 200) {
             throw new BizException("SO 单创建失败: " + (soResult == null ? "null" : soResult.getMessage()));
         }
-        // TODO SO 单号是否回写 PO（评审未提，PO 不存 SO 单号）；SO 契约到后确认
+        // PO 不存 SO 单号（评审确认：SO 单号由 SO 侧管理，PO 仅调 SO 创建/作废/查询状态）
     }
 
     private SoCreateReq buildSoCreateReq(ExportVehicleCbuPoDo order, List<ExportVehicleCbuPoDetailDo> details) {
@@ -297,7 +305,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         update.setId(req.getPoId());
         update.setOrderStatus(ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_REJECTED.getCode());
         update.setRejectTime(LocalDateTime.now());
-        update.setRejectUser(String.valueOf(LoginUserUtils.getUserId()));
+        update.setRejectUser(LoginUserUtils.getCurrentUserOrSysDefault().getUserName());
         update.setRejectReason(req.getRejectReason());
         purchaseOrderGateway.updateExportVehicleCbuPo(update);
 
@@ -322,8 +330,10 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         // 推红旗审批结果（事件机制）
         CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
         pushReq.setPoNo(order.getPoNo());
-        pushReq.setResult("REJECTED");
-        pushReq.setOpinion(req.getRejectReason());
+        pushReq.setPlanVersion(order.getPlanVersion());
+        pushReq.setStatus("R");
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setRemark(req.getRejectReason());
         eventHandlerHelper.publishAsync(
                 HongqiThirdTargetPlatformEnum.HONGQI,
                 HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
@@ -349,13 +359,15 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         update.setId(req.getPoId());
         update.setOrderStatus(ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode());
         update.setProductionSalesBalanceApproveTime(LocalDateTime.now());
-        update.setProductionSalesBalanceApprover(String.valueOf(LoginUserUtils.getUserId()));
+        update.setProductionSalesBalanceApprover(LoginUserUtils.getCurrentUserOrSysDefault().getUserName());
         purchaseOrderGateway.updateExportVehicleCbuPo(update);
 
         // 推红旗审批结果（通过）
         CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
         pushReq.setPoNo(order.getPoNo());
-        pushReq.setResult("APPROVED");
+        pushReq.setPlanVersion(order.getPlanVersion());
+        pushReq.setStatus("A");
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
         eventHandlerHelper.publishAsync(
                 HongqiThirdTargetPlatformEnum.HONGQI,
                 HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
@@ -363,7 +375,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 pushReq);
     }
 
-    // ==================== 4.5 产销平衡审核驳回（SO 作废 + APS + 保函解冻 + 推红旗） ====================
+    // ==================== 4.5 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） ====================
 
     @DistributeLock(nameSpace = "export-vehicle", prefix = "po:balanceReject", value = "#req.poId",
             tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
@@ -390,16 +402,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             }
         }
 
-        // 分支：存在排产中 SO → 调 APS 作废同步（全未下发生产则跳过 APS）
-        boolean hasProducing = soItems.stream().anyMatch(so -> "排产中".equals(so.getOrderStatus()));
-        if (hasProducing) {
-            ApsResult apsResult = apsClient.soCancelSync(order.getPoNo());
-            if (apsResult == null || apsResult.getCode() != 200) {
-                throw new BizException("APS同步失败: " + (apsResult == null ? "null" : apsResult.getMessage()));
-            }
-        }
-
-        // SO 全作废（SO 侧处理，已是已作废的不重复）
+        // SO 全作废（SO 侧内部处理 APS 同步，已是已作废的不重复）
         SoResult cancelResult = soClient.cancel(order.getPoNo());
         if (cancelResult == null || cancelResult.getCode() != 200) {
             throw new BizException("SO作废失败: " + (cancelResult == null ? "null" : cancelResult.getMessage()));
@@ -410,7 +413,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         update.setId(req.getPoId());
         update.setOrderStatus(ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_REJECTED.getCode());
         update.setRejectTime(LocalDateTime.now());
-        update.setRejectUser(String.valueOf(LoginUserUtils.getUserId()));
+        update.setRejectUser(LoginUserUtils.getCurrentUserOrSysDefault().getUserName());
         update.setRejectReason(req.getRejectReason());
         purchaseOrderGateway.updateExportVehicleCbuPo(update);
 
@@ -433,12 +436,66 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         // 推红旗审批结果（驳回）
         CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
         pushReq.setPoNo(order.getPoNo());
-        pushReq.setResult("REJECTED");
-        pushReq.setOpinion(req.getRejectReason());
+        pushReq.setPlanVersion(order.getPlanVersion());
+        pushReq.setStatus("R");
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setRemark(req.getRejectReason());
         eventHandlerHelper.publishAsync(
                 HongqiThirdTargetPlatformEnum.HONGQI,
                 HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
                 order.getId(),
                 pushReq);
+    }
+
+    // ==================== 主数据查询辅助方法（直调 nexus Feign API） ====================
+
+    private CustomerResponse queryCustomerByExternalCode(String externalCode) {
+        if (externalCode == null || externalCode.isEmpty()) {
+            return null;
+        }
+        try {
+            CustomerRequest req = new CustomerRequest();
+            req.setExternalCode(externalCode);
+            AjaxResult<List<CustomerResponse>> ret = customerApi.list(req);
+            List<CustomerResponse> list = (ret != null) ? ret.getData() : null;
+            return (list != null && !list.isEmpty()) ? list.get(0) : null;
+        } catch (Exception e) {
+            log.error("客户主数据查询失败 externalCode={}", externalCode, e);
+            return null;
+        }
+    }
+
+    private VehicleMaterialDto queryMaterialByCode(String materialCode) {
+        if (materialCode == null || materialCode.isEmpty()) {
+            return null;
+        }
+        try {
+            VehicleMaterialBatchMatchReq req = new VehicleMaterialBatchMatchReq();
+            req.setMaterialCodes(Collections.singletonList(materialCode));
+            AjaxResult<List<VehicleMaterialDto>> ret = vehicleMaterialApi.batchMatch(req);
+            List<VehicleMaterialDto> list = (ret != null) ? ret.getData() : null;
+            return (list != null && !list.isEmpty()) ? list.get(0) : null;
+        } catch (Exception e) {
+            log.error("整编主数据查询失败 materialCode={}", materialCode, e);
+            return null;
+        }
+    }
+
+    private BigDecimal queryLatestApprovedPrice(String materialCode, Integer orderType, LocalDateTime orderCreateTime) {
+        if (materialCode == null || materialCode.isEmpty()) {
+            return null;
+        }
+        try {
+            VehiclePriceHqMatchReq req = new VehiclePriceHqMatchReq();
+            req.setMaterialCode(materialCode);
+            req.setOrderType(orderType != null ? String.valueOf(orderType) : null);
+            req.setOrderCreateTime(orderCreateTime);
+            AjaxResult<VehiclePriceHqDto> ret = vehiclePriceHqApi.match(req);
+            VehiclePriceHqDto dto = (ret != null) ? ret.getData() : null;
+            return dto != null ? dto.getPrice() : null;
+        } catch (Exception e) {
+            log.error("价格主数据查询失败 materialCode={}, orderType={}", materialCode, orderType, e);
+            return null;
+        }
     }
 }

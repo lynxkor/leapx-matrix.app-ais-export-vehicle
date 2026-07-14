@@ -4,6 +4,7 @@ package com.leapmotor.export.vehicle.po.service;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
@@ -28,6 +29,9 @@ import java.util.List;
 public interface ExportVehicleCbuPoService {
 
     ExportVehicleCbuPoResp getExportVehicleCbuPoById(String id);
+
+    /** 主子表联查：PO + 明细列表 + 保函关联列表 */
+    ExportVehicleCbuPoDetailFullResp getExportVehicleCbuPoDetailById(String id);
 
     List<ExportVehicleCbuPoResp> listExportVehicleCbuPo(ExportVehicleCbuPoParam purchaseOrderParam);
 
@@ -60,7 +64,7 @@ public interface ExportVehicleCbuPoService {
     /** 4.5 产销平衡审核通过（终态 + 推红旗） */
     void balanceApprove(ExportVehicleCbuPoBalanceApproveReq req);
 
-    /** 4.5 产销平衡审核驳回（SO 作废 + APS + 保函解冻 + 推红旗） */
+    /** 4.5 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） */
     void balanceReject(ExportVehicleCbuPoBalanceRejectReq req);
 
 }

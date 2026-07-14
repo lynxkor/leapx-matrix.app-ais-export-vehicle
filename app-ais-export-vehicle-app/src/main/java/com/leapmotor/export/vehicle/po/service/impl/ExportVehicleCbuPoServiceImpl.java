@@ -6,9 +6,16 @@ import com.leapmotor.export.vehicle.po.executor.cmd.ExportVehicleCbuPoApprovalCm
 import com.leapmotor.export.vehicle.po.executor.cmd.ExportVehicleCbuPoCmdExe;
 import com.leapmotor.export.vehicle.po.executor.query.ExportVehicleCbuPoQryExe;
 import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoDTOStructMapper;
+import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoDetailDTOStructMapper;
+import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoGuaranteeDTOStructMapper;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoQo;
+import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
+import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoGuaranteeQo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
+import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
+import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
@@ -20,6 +27,8 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
+import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoDetailGateway;
+import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGuaranteeGateway;
 import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.stereotype.Service;
@@ -42,11 +51,34 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     private ExportVehicleCbuPoApprovalCmdExe purchaseOrderApprovalCmdExe;
     private ExportVehicleCbuPoQryExe purchaseOrderQryExe;
     private ExportVehicleCbuPoGateway purchaseOrderGateway;
+    private ExportVehicleCbuPoDetailGateway purchaseOrderDetailGateway;
+    private ExportVehicleCbuPoGuaranteeGateway purchaseOrderGuaranteeGateway;
 
     @Override
     public ExportVehicleCbuPoResp getExportVehicleCbuPoById(String id) {
         ExportVehicleCbuPoDo purchaseOrderDo = purchaseOrderGateway.getExportVehicleCbuPoById(id);
         return ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(purchaseOrderDo);
+    }
+
+    @Override
+    public ExportVehicleCbuPoDetailFullResp getExportVehicleCbuPoDetailById(String id) {
+        ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(id);
+        if (order == null) {
+            return null;
+        }
+        ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
+        detailQo.setPoNo(order.getPoNo());
+        List<ExportVehicleCbuPoDetailDo> detailDos = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
+
+        ExportVehicleCbuPoGuaranteeQo guaranteeQo = new ExportVehicleCbuPoGuaranteeQo();
+        guaranteeQo.setPoNo(order.getPoNo());
+        List<ExportVehicleCbuPoGuaranteeDo> guaranteeDos = purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(guaranteeQo);
+
+        ExportVehicleCbuPoDetailFullResp resp = new ExportVehicleCbuPoDetailFullResp();
+        resp.setOrder(ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(order));
+        resp.setDetails(ExportVehicleCbuPoDetailDTOStructMapper.INSTANCE.domainsToResps(detailDos));
+        resp.setGuarantees(ExportVehicleCbuPoGuaranteeDTOStructMapper.INSTANCE.domainsToResps(guaranteeDos));
+        return resp;
     }
 
     @Override

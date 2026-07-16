@@ -101,6 +101,20 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
+    public long countByLgCode(String lgCode, String excludeId) {
+        if (!StringUtils.hasText(lgCode)) {
+            return 0L;
+        }
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ExportVehicleLetterGuarantee> qw =
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        qw.eq("lg_code", lgCode);
+        if (StringUtils.hasText(excludeId)) {
+            qw.ne("id", excludeId);
+        }
+        return exportVehicleLetterGuaranteeMapper.selectCount(qw);
+    }
+
+    @Override
     public List<ExportVehicleLetterGuaranteeDo> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeQo exportVehicleLetterGuaranteeQo) {
         List<ExportVehicleLetterGuarantee> exportVehicleLetterGuarantees = exportVehicleLetterGuaranteeDao.queryList(exportVehicleLetterGuaranteeQo);
         return ExportVehicleLetterGuaranteeStructMapper.INSTANCE.dataObjectsToDomains(exportVehicleLetterGuarantees);

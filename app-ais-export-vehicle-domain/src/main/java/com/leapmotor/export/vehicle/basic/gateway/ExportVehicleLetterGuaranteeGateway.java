@@ -44,6 +44,15 @@ public interface ExportVehicleLetterGuaranteeGateway {
     ExportVehicleLetterGuaranteeDo getOneExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeQo exportVehicleLetterGuaranteeQo);
 
     /**
+     * 按保函编号查重(用于新增/编辑唯一性校验;编辑时排除自身 id)
+     *
+     * @param lgCode        保函编号
+     * @param excludeId     排除的保函 id(新增传 null,编辑传当前 id)
+     * @return 已存在数量(0=未占用,>=1=已存在)
+     */
+    long countByLgCode(String lgCode, String excludeId);
+
+    /**
      * 列表
      */
     List<ExportVehicleLetterGuaranteeDo> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeQo exportVehicleLetterGuaranteeQo);

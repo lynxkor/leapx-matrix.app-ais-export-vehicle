@@ -63,6 +63,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
 
     @Override
     public List<ExportVehicleLetterGuaranteeResp> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam param) {
+        validateDateRange(param);
         ExportVehicleLetterGuaranteeQo qo = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.paramToQuery(param);
         List<ExportVehicleLetterGuaranteeDo> list = exportVehicleLetterGuaranteeGateway.listExportVehicleLetterGuarantee(qo);
         List<ExportVehicleLetterGuaranteeResp> resps = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToResps(list);
@@ -72,16 +73,115 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
 
     @Override
     public PageResult<ExportVehicleLetterGuaranteeResp> pageExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam param) {
+        validateDateRange(param);
         PageResult<ExportVehicleLetterGuaranteeDo> page = exportVehicleLetterGuaranteeQryExe.pageExportVehicleLetterGuarantee(param);
         PageResult<ExportVehicleLetterGuaranteeResp> respPage = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.domainsToRespPage(page);
         fillCustomerInfo(respPage.getRecords());
         return respPage;
     }
 
+    /**
+     * 校验查询入参中各起止日期区间:起始晚于截止即抛 BizException(允许起始=截止,表示同一时点/当天)。
+     */
+    private void validateDateRange(ExportVehicleLetterGuaranteeParam param) {
+        if (param == null) {
+            return;
+        }
+        checkRange(param.getEffectiveDateStart(), param.getEffectiveDateEnd(), "生效日期");
+        checkRange(param.getExpiryDateStart(), param.getExpiryDateEnd(), "失效日期");
+        checkRange(param.getSubmitTimeStart(), param.getSubmitTimeEnd(), "提交时间");
+        checkRange(param.getApproveTimeStart(), param.getApproveTimeEnd(), "审核时间");
+        checkRange(param.getCreateTimeStart(), param.getCreateTimeEnd(), "创建时间");
+    }
+
+    private <T extends Comparable<T>> void checkRange(T start, T end, String label) {
+        if (start != null && end != null && start.compareTo(end) > 0) {
+            throw new BizException(label + "的开始时间不能晚于结束时间");
+        }
+    }
+
     @Override
     public String addOrUpdateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeAddOrUpdateReq req) {
+        validateAddOrUpdate(req);
         ExportVehicleLetterGuaranteeDo d = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.addCmdToDomain(req);
+        // 保函编号唯一性(编辑时排除自身)
+        long dupCount = exportVehicleLetterGuaranteeGateway.countByLgCode(d.getLgCode(), d.getId());
+        if (dupCount > 0) {
+            throw new BizException("保函编号已存在: " + d.getLgCode());
+        }
         return exportVehicleLetterGuaranteeCmdExe.addOrUpdateExportVehicleLetterGuarantee(d);
+    }
+
+    /**
+     * 新增/编辑 入参校验:
+     * <ul>
+     *   <li>必填:保函编号/客户ID/保函类型/订单类型/开户银行/生效日期/失效日期</li>
+     *   <li>保函金额:大于 0,最多 2 位小数,≤ 1,000,000,000(10 亿)</li>
+     *   <li>换算订单额度比例:大于 0,≤ 1,最多 2 位小数</li>
+     *   <li>日期关系:生效日期 &lt; 失效日期,失效日期 &gt; 当天</li>
+     * </ul>
+     */
+    private void validateAddOrUpdate(ExportVehicleLetterGuaranteeAddOrUpdateReq req) {
+        if (req == null) {
+            throw new BizException("请求参数不能为空");
+        }
+        // 必填校验
+        requireNotBlank(req.getLgCode(), "保函编号");
+        requireNotBlank(req.getCustomerId(), "客户ID");
+        requireNotBlank(req.getLgType(), "保函类型");
+        requireNotBlank(req.getOrderType(), "订单类型");
+        requireNotBlank(req.getBankName(), "开户银行");
+        if (req.getEffectiveDate() == null) {
+            throw new BizException("生效日期不能为空");
+        }
+        if (req.getExpiryDate() == null) {
+            throw new BizException("失效日期不能为空");
+        }
+
+        // 保函金额:> 0,≤ 10 亿,最多 2 位小数
+        if (req.getTotalAmount() == null) {
+            throw new BizException("保函金额不能为空");
+        }
+        if (req.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BizException("保函金额必须大于 0");
+        }
+        if (req.getTotalAmount().scale() > 2) {
+            throw new BizException("保函金额最多保留 2 位小数");
+        }
+        if (req.getTotalAmount().compareTo(MAX_TOTAL_AMOUNT) > 0) {
+            throw new BizException("保函金额最大值不能超过 10 亿");
+        }
+
+        // 换算订单额度比例:> 0,≤ 1,最多 2 位小数
+        if (req.getConversionRatio() == null) {
+            throw new BizException("换算订单额度比例不能为空");
+        }
+        if (req.getConversionRatio().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BizException("换算订单额度比例必须大于 0");
+        }
+        if (req.getConversionRatio().scale() > 2) {
+            throw new BizException("换算订单额度比例最多保留 2 位小数");
+        }
+        if (req.getConversionRatio().compareTo(BigDecimal.ONE) > 0) {
+            throw new BizException("换算订单额度比例不能大于 1");
+        }
+
+        // 日期关系:生效日期 < 失效日期,失效日期 > 当天
+        if (!req.getEffectiveDate().isBefore(req.getExpiryDate())) {
+            throw new BizException("生效日期必须小于失效日期");
+        }
+        if (!req.getExpiryDate().isAfter(java.time.LocalDate.now())) {
+            throw new BizException("失效日期必须大于当天");
+        }
+    }
+
+    /** 保函金额上限 10 亿 */
+    private static final BigDecimal MAX_TOTAL_AMOUNT = new BigDecimal("1000000000");
+
+    private static void requireNotBlank(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new BizException(fieldName + "不能为空");
+        }
     }
 
     @Override

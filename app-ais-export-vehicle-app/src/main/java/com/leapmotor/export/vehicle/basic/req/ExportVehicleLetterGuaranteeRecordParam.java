@@ -2,17 +2,18 @@ package com.leapmotor.export.vehicle.basic.req;
 
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.EqualsAndHashCode;
-import lombok.Data;
-import java.io.Serializable;
 
 
 /**
- *
  * 保函交易明细参数对象
+ *
  * @author wangkai2527148
  * @since 2026-07-02
  */

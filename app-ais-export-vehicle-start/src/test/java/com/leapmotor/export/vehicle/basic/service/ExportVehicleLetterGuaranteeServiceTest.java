@@ -387,7 +387,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
                 new BigDecimal("100.00"));
         ExportVehicleLetterGuaranteeExpireEarlyReq req = new ExportVehicleLetterGuaranteeExpireEarlyReq();
         req.setId(newId);
-        req.setReason("银行撤销");
+        req.setRemark("银行撤销");
         boolean ok = service.expireEarly(req);
         printJson(ok);
         assertTrue(ok);
@@ -404,7 +404,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
     public void testExpireEarly_rejectsAlreadyInvalid() {
         ExportVehicleLetterGuaranteeExpireEarlyReq req = new ExportVehicleLetterGuaranteeExpireEarlyReq();
         req.setId(lgInvalidId);
-        req.setReason("重复失效");
+        req.setRemark("重复失效");
         assertThrows(BizException.class, () -> service.expireEarly(req));
     }
 
@@ -415,7 +415,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
         String newId = createDraftLg("LG_EXP_D_" + UUID.randomUUID().toString().substring(0, 8), "CUST_G117");
         ExportVehicleLetterGuaranteeExpireEarlyReq req = new ExportVehicleLetterGuaranteeExpireEarlyReq();
         req.setId(newId);
-        req.setReason("尝试失效");
+        req.setRemark("尝试失效");
         assertThrows(BizException.class, () -> service.expireEarly(req));
     }
 
@@ -425,7 +425,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
     public void testExpireEarly_rejectsCancelled() {
         ExportVehicleLetterGuaranteeExpireEarlyReq req = new ExportVehicleLetterGuaranteeExpireEarlyReq();
         req.setId(lgCancelledId);
-        req.setReason("尝试失效");
+        req.setRemark("尝试失效");
         assertThrows(BizException.class, () -> service.expireEarly(req));
     }
 

@@ -16,5 +16,5 @@ public class ExportVehicleLetterGuaranteeExpireEarlyReq implements Serializable 
     private String id;
 
     @Schema(description = "失效原因")
-    private String reason;
+    private String remark;
 }

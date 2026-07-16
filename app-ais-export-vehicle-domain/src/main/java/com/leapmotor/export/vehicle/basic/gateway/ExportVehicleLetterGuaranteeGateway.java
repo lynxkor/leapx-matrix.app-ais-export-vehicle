@@ -89,8 +89,11 @@ public interface ExportVehicleLetterGuaranteeGateway {
      * 仅 approval_status=10(草稿)或 40(驳回)可提交;lg_status 保持 10
      * <p>驳回后再提交时:submitterId/Name/submitTime 更新为最新提交人,历史驳回记录由 approverId/Name/approveTime/approveRemark 保留作为审计
      * <p>操作人(提交人 ID/名称)由本方法内部通过 {@code LoginUserUtils.getCurrentUserOrSysDefault()} 获取
+     *
+     * @param id     保函 ID
+     * @param remark 提交原因(可空;非空时写入主表 remark 字段,与 cancel 对齐)
      */
-    boolean submit(String id);
+    boolean submit(String id, String remark);
 
     /**
      * 审核(已提交 20 → 审核通过 30 / 驳回 40)

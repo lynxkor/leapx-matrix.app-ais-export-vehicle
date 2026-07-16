@@ -15,6 +15,7 @@ import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
 import com.leapmotor.export.vehicle.cache.CustomerInfoCache;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -104,6 +105,18 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     public String addOrUpdateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeAddOrUpdateReq req) {
         validateAddOrUpdate(req);
         ExportVehicleLetterGuaranteeDo d = ExportVehicleLetterGuaranteeDTOStructMapper.INSTANCE.addCmdToDomain(req);
+        // 编辑场景(id 非空):状态机校验 — 仅草稿(10)/驳回(40)可编辑,避免并发场景下 B 窗口用陈旧表单覆盖 A 已审核通过的数据
+        if (d.getId() != null) {
+            ExportVehicleLetterGuaranteeDo cur = exportVehicleLetterGuaranteeGateway.getExportVehicleLetterGuaranteeById(d.getId());
+            if (cur == null) {
+                throw new BizException("保函不存在: id=" + d.getId());
+            }
+            String curApproval = cur.getApprovalStatus();
+            if (!ApprovalStatusEnum.DRAFT.getCode().equals(curApproval)
+                    && !ApprovalStatusEnum.REJECTED.getCode().equals(curApproval)) {
+                throw new BizException("保函当前审批状态(" + curApproval + ")不可编辑,仅草稿(10)/驳回(40)可编辑,请刷新页面");
+            }
+        }
         // 保函编号唯一性(编辑时排除自身)
         long dupCount = exportVehicleLetterGuaranteeGateway.countByLgCode(d.getLgCode(), d.getId());
         if (dupCount > 0) {
@@ -199,7 +212,8 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     @Override
     public ExportVehicleLetterGuaranteeBatchStateMachineResp submit(ExportVehicleLetterGuaranteeSubmitReq req) {
         List<String> ids = resolveIds(req.getId(), req.getIds());
-        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.submit(id));
+        String remark = req.getRemark();
+        return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.submit(id, remark));
     }
 
     @Override
@@ -237,7 +251,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     @Override
     public boolean expireEarly(ExportVehicleLetterGuaranteeExpireEarlyReq req) {
         // 操作人由 Gateway 内部通过 LoginUserUtils.getCurrentUser() 获取
-        return exportVehicleLetterGuaranteeCmdExe.expireEarly(req.getId(), req.getReason());
+        return exportVehicleLetterGuaranteeCmdExe.expireEarly(req.getId(), req.getRemark());
     }
 
     // ============== 状态机批量编排 ==============

@@ -159,7 +159,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
-    public boolean submit(String id) {
+    public boolean submit(String id, String remark) {
         ExportVehicleLetterGuaranteeDo lg = mustGet(id);
         String cur = lg.getApprovalStatus();
         boolean isDraft = ApprovalStatusEnum.DRAFT.getCode().equals(cur);
@@ -172,6 +172,10 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         lg.setSubmitterId(user.getUserId());
         lg.setSubmitterName(user.getUserName());
         lg.setSubmitTime(LocalDateTime.now());
+        // 提交原因非空时落主表 remark(与 cancel 对齐;为空则不覆盖,保留驳回时的旧 remark)
+        if (remark != null && !remark.isEmpty()) {
+            lg.setRemark(remark);
+        }
         // lg_status 保持 10(未生效)
         return updateExportVehicleLetterGuarantee(lg) != null;
     }

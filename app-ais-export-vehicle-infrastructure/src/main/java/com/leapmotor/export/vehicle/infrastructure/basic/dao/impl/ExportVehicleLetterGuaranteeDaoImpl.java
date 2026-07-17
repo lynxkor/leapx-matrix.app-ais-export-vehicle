@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.infrastructure.basic.dao.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
@@ -45,6 +46,7 @@ public class ExportVehicleLetterGuaranteeDaoImpl extends ServiceImpl<ExportVehic
             .le(Objects.nonNull(query.getExpiryDateEnd()),ExportVehicleLetterGuarantee::getExpiryDate,query.getExpiryDateEnd())
             .ge(Objects.nonNull(query.getExpiryDateGe()),ExportVehicleLetterGuarantee::getExpiryDate,query.getExpiryDateGe())
             .eq(StringUtils.isNotBlank(query.getApprovalStatus()),ExportVehicleLetterGuarantee::getApprovalStatus,query.getApprovalStatus())
+            .in(CollectionUtils.isNotEmpty(query.getApprovalStatusList()),ExportVehicleLetterGuarantee::getApprovalStatus,query.getApprovalStatusList())
             .eq(StringUtils.isNotBlank(query.getLgStatus()),ExportVehicleLetterGuarantee::getLgStatus,query.getLgStatus())
             .eq(Objects.nonNull(query.getSubmitterId()),ExportVehicleLetterGuarantee::getSubmitterId,query.getSubmitterId())
             .eq(StringUtils.isNotBlank(query.getSubmitterName()),ExportVehicleLetterGuarantee::getSubmitterName,query.getSubmitterName())

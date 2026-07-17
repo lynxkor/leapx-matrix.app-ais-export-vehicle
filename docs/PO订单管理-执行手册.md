@@ -70,14 +70,16 @@
 1. **[agent]** 加依赖：`com.leapmotor.platform:ais-event`（版本由 ais-parent 管理）。
 2. **[agent]** 本地消息表：建 `event_notify_task`（ais-event 自带实体，DDL 从 ais-event 制品/maintain 找）。
 3. **[agent]** 事件类型：`HongqiEventTypeEnum implements BizEventType`（审批结果反馈等，type/desc）。
-4. **[agent]** 目标平台：本项目 `ThirdTargetPlatformEnum implements ThirdTargetPlatform`（含 HONGQI，code/desc）。
-5. **[agent]** 注册事件↔平台：`BizOptionalDefinitionImpl implements BizOptionalDefinition`，`findEventTypeList()` 绑定事件↔HONGQI。
-6. **[agent]** 通知服务：`HongqiNotifyServiceImpl extends AbstractThirdNotifyService`，`support()`+`doInvoke()`（调 HongqiClient）。
-7. **[agent]** 外部客户端：`domain/acl/http/hongqi/HongqiClient`（@FeignClient）+ request/response。
-8. **[agent]** 配置：Nacos event 配置（参考 maintain `app-ais-maintain-event.yaml`）+ 注册 `NotifyEventJob` 到 XXL-Job。
+4. **[agent]** 目标平台：本项目 `ThirdTargetPlatformEnum implements ThirdTargetPlatform`（含 HONGQI，platform/desc）。
+5. **[agent]** 事件/平台下拉定义：`BizOptionalDefinitionImpl implements BizOptionalDefinition`，`findEventTypeList()`/`findThirdTargetPlatformList()` 供前端下拉（事件↔平台绑定在下行通知服务构造器）。
+6. **[agent]** 通知服务（平台路由）：`HongqiNotifyServiceImpl extends AbstractThirdNotifyService`，`platform()=HONGQI` + 构造器 `super(List.of(HongqiEventTypeEnum.values()),...)` 绑定事件↔平台，`doExecuteNotify(task)` 按 type 分发给 `AbstractEventHandler`。
+7. **[agent]** 单事件处理器：`CbuApprovalResultToHongqi extends AbstractEventHandler`，`getSupportEvent()`+`getSupportPlatform()`+`handle(task)`（调 HongqiGateway，抛异常触发重试）。
+8. **[agent]** 外部客户端：domain/acl/http/hongqi：`HongqiGateway`（网关接口）+ request/response；infrastructure/acl/http/hongqi：`HongqiClientApi`（@FeignClient name=app-ais-xuanniao, path=/external/hongqi）+ `HongqiGatewayImpl`。
+9. **[agent]** 发布：业务侧调 `EventHandlerHelper.publishAsync(platform, eventType, bizNo, data)`（内部 `EventPublisher.publish(NotifyEventSourceAdapter{...}, true,true,true)` 落表）。
+10. **[agent]** 配置：Nacos event 配置（参考 maintain `app-ais-maintain-event.yaml`）+ 注册 `NotifyEventJob` 到 XXL-Job。
 
 ### 待做（一起）
-9. **[一起]** 发测试事件 → 验证 `event_notify_task` 落记录、`HongqiNotifyServiceImpl.doInvoke` 调通 `HongqiClient`（红旗可先 mock）、失败 XXL-Job 重试。
+11. **[一起]** 发测试事件 → 验证 `event_notify_task` 落记录、`NotifyEventJob` 轮询 → `HongqiNotifyServiceImpl.doExecuteNotify` → `CbuApprovalResultToHongqi.handle` 调通 `HongqiGateway`（红旗可先 mock）、失败 XXL-Job 重试。
 
 ### 完成标志
 事件可发布、`event_notify_task` 落库、消费端调通、XXL-Job 重试生效。→ 解锁 T06、T09。
@@ -148,7 +150,7 @@
 > 前置：T07。依赖：SO 作废、APS 同步接口契约。
 
 ### 待做（agent）
-1. **[agent]** `ApsClient`（`domain/acl/http/aps`）。
+1. **[agent]** `ApsGateway`（domain/acl/http/aps/gateway）+ infrastructure `ApsClientApi`（@FeignClient name=app-ais-xuanniao, path=/external/aps）+ `ApsGatewayImpl`。
 2. **[agent]** 通过 `balanceApprove`：状态→产销平衡通过（终态）+ 推红旗。
 3. **[agent]** 驳回 `balanceReject`：SO 状态校验（焊装上线及之后不可驳回）→ SO 全作废 → 按需调 APS「SO订单作废同步」→ 保函解冻 → 状态→产销平衡驳回（终态）→ 推红旗。
 4. **[agent]** 单元测试：SO 状态分支、外部调用编排、事务边界（SO/保函强一致、APS/红旗最终一致）。
@@ -225,19 +227,19 @@
 ### A. 占位待团队真代码
 - 主数据查询 `PlaceholderCustomer/Material/PriceDataGateway`（返回 null）→ **改 Feign 调 app-ais-export-nexus**（客户/整编/价格查询，nexus 是另一个微服务；Feign 契约探子调研中）
 - SO 接口 `SoClient`（createSo/queryStatus/cancel）→ SO 微服务契约
-- APS 接口 `ApsClient.soCancelSync` → APS 契约 + 改事件机制（评审要求最终一致，当前同步占位）
+- APS 接口 `ApsClientApi.soCancelSync`（app 调 `ApsGateway.cancelSync`）→ APS 契约 + 改事件机制（评审要求最终一致，当前同步占位）
 
 ### B. 外部契约待定（推动外部团队）
 - 红旗 CBU 入站（T04 Request 字段/路径）
-- 红旗 CBU 出站 审批结果反馈（T03 `CbuApprovalResultReq` + `HongqiClient` URL/服务名）
+- 红旗 CBU 出站 审批结果反馈（T03 `CbuApprovalResultReq` + `HongqiClientApi`：app-ais-xuanniao /external/hongqi 契约）
 - SO 接口（创建/作废/查询/价格更新）
 - APS 接口
 - 客户/整编/价格主数据 **Feign 调 app-ais-export-nexus**（非同库表；nexus Feign API 契约探子调研中）
 
 ### C. T03 事件机制待收尾
 - XXL-Job `notifyEventJob` 任务配置（推红旗轮询消费，T06 推红旗前配）
-- T03 链路实测（reject → `event_notify_task` 落表 → 消费 → HongqiClient，红旗先 mock）
-- `HongqiClient` 红旗反馈契约
+- T03 链路实测（reject → `event_notify_task` 落表 → `NotifyEventJob` 轮询 → `HongqiNotifyServiceImpl.doExecuteNotify` → `CbuApprovalResultToHongqi.handle` → HongqiGateway，红旗先 mock）
+- `HongqiClientApi` 红旗反馈契约（app-ais-xuanniao /external/hongqi）
 
 ### D. 各任务未完项
 - T02：筛选条件对齐评审 8 项（前端联调时）、`@DataPermission`（推 T11）、主子表联查（详情）、单测

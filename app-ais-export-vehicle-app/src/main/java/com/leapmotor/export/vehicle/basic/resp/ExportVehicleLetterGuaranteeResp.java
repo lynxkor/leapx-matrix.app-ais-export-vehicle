@@ -33,7 +33,11 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
 
     @Schema(description = "客户ID")
     private String customerId;
+
+    @Schema(description = "客户编码(冗余展示,本地缓存填充)")
     private String customerCode;
+
+    @Schema(description = "客户名称(冗余展示,本地缓存填充)")
     private String customerName;
 
     @Schema(description = "保函类型(字典 letter_guarantee_lg_type: PREPAYMENT 预付款保函;G117 红旗项目目前仅启用预付款;新增时必填,无默认值)")

@@ -8,7 +8,7 @@ import com.leapmotor.paltform.ais.common.model.base.LpBaseResponse;
 
 /**
  *
- * 保函交易明细(追加写)响应对象
+ * 保函交易明细响应对象
  * @author wangkai2527148
  * @since 2026-07-02
  */

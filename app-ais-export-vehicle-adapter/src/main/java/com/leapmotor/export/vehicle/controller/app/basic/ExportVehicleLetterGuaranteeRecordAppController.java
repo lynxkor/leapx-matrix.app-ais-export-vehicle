@@ -13,12 +13,12 @@
 //import lombok.AllArgsConstructor;
 //
 ///**
-// * 保函交易明细(追加写) 移动端接口控制器
+// * 保函交易明细 移动端接口控制器
 // *
 // * @author wangkai2527148
 // * @since 2026-07-02
 // */
-//@Tag(name = "移动端 保函交易明细(追加写)管理" , description = "保函交易明细(追加写)的API接口文档")
+//@Tag(name = "移动端 保函交易明细管理" , description = "保函交易明细的API接口文档")
 //@RestController
 //@AllArgsConstructor
 //@RequestMapping("/app/basic/exportVehicleLetterGuaranteeRecord")
@@ -26,14 +26,14 @@
 //
 //    private ExportVehicleLetterGuaranteeRecordService exportVehicleLetterGuaranteeRecordService;
 //
-//    @Operation(summary = "保函交易明细(追加写)分页查询")
+//    @Operation(summary = "保函交易明细分页查询")
 //    @ResourcePermission("app:basic:exportVehicleLetterGuaranteeRecord:page")
 //    @PostMapping("/page")
 //    public AjaxResult<PageResult<ExportVehicleLetterGuaranteeRecordResp>> page(@RequestBody ExportVehicleLetterGuaranteeRecordParam exportVehicleLetterGuaranteeRecordParam) {
 //        return AjaxResult.success(exportVehicleLetterGuaranteeRecordService.pageExportVehicleLetterGuaranteeRecord(exportVehicleLetterGuaranteeRecordParam));
 //    }
 //
-//    @Operation(summary = "保函交易明细(追加写)详情信息")
+//    @Operation(summary = "保函交易明细详情信息")
 //    @ResourcePermission("app:basic:exportVehicleLetterGuaranteeRecord:get")
 //    @PostMapping(value = "/get")
 //    public AjaxResult<ExportVehicleLetterGuaranteeRecordResp> getExportVehicleLetterGuaranteeRecordById(@RequestBody String id) {

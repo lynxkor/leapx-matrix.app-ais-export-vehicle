@@ -16,11 +16,11 @@
 //import lombok.AllArgsConstructor;
 //
 ///**
-// * 保函交易明细(追加写) Feign Api 实现类
+// * 保函交易明细 Feign Api 实现类
 // * @author wangkai2527148
 // * @since 2026-07-02
 // */
-//@Tag(name = "FeignAPI 保函交易明细(追加写)实现类", description = "保函交易明细(追加写)的API接口文档")
+//@Tag(name = "FeignAPI 保函交易明细实现类", description = "保函交易明细的API接口文档")
 //@RestController
 //@AllArgsConstructor
 //@RequestMapping("/api/basic/exportVehicleLetterGuaranteeRecord")

@@ -9,12 +9,13 @@ import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreez
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
 import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
-import com.leapmotor.export.vehicle.base.event.enums.HongqiThirdTargetPlatformEnum;
+import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.acl.http.hongqi.request.CbuApprovalResultReq;
-import com.leapmotor.export.vehicle.acl.http.so.SoClient;
-import com.leapmotor.export.vehicle.acl.http.so.request.SoCreateReq;
-import com.leapmotor.export.vehicle.acl.http.so.request.SoUpdatePriceReq;
-import com.leapmotor.export.vehicle.acl.http.so.response.SoResult;
+import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
+import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
+import com.leapmotor.export.vehicle.so.req.SoCreateReq;
+import com.leapmotor.export.vehicle.so.resp.SoResult;
+import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoGuaranteeQo;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
@@ -23,9 +24,9 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBatchReq;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
+import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoOperateResult;
 
-import java.util.Collections;
-import java.util.Set;
 import com.leapmotor.export.vehicle.po.enums.OrderTypeEnum;
 import com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum;
 import com.leapmotor.export.nexus.customer.api.CustomerApi;
@@ -42,7 +43,6 @@ import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGuaranteeGateway;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
-import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRejectReq;
@@ -64,7 +64,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * PO 订单审批流转执行器（4.3 提交/驳回、4.4 供需审核、4.5 产销平衡审核）。
@@ -81,26 +83,39 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     private ExportVehicleCbuPoGateway purchaseOrderGateway;
     private ExportVehicleCbuPoDetailGateway purchaseOrderDetailGateway;
     private ExportVehicleCbuPoGuaranteeGateway purchaseOrderGuaranteeGateway;
-    /** 客户主数据，对接 app-ais-export-nexus 客户服务 */
+    /**
+     * 客户主数据，对接 app-ais-export-nexus 客户服务
+     */
     private CustomerApi customerApi;
-    /** 整编物料主数据，对接 app-ais-export-nexus 整编物料服务 */
+    /**
+     * 整编物料主数据，对接 app-ais-export-nexus 整编物料服务
+     */
     private VehicleMaterialApi vehicleMaterialApi;
-    /** 价格主数据，对接 app-ais-export-nexus 价格服务 */
+    /**
+     * 价格主数据，对接 app-ais-export-nexus 价格服务
+     */
     private VehiclePriceHqApi vehiclePriceHqApi;
-    /** 保函服务（同项目同微服务，本地事务强一致） */
+    /**
+     * 保函服务（同项目同微服务，本地事务强一致）
+     */
     private ExportVehicleLetterGuaranteeService letterGuaranteeService;
-    /** 事件发布（推红旗，T03 事件机制） */
+    /**
+     * 事件发布（推红旗，T03 事件机制）
+     */
     private EventHandlerHelper eventHandlerHelper;
-    /** SO 订单服务（4.4 供需审核通过生成 SO，契约待 SO 侧） */
-    private SoClient soClient;
-    /** 用于批量操作中 self 代理调用（保证 @DistributeLock / @Transactional 生效） */
+    /**
+     * 用于批量操作中 self 代理调用（保证 @DistributeLock / @Transactional 生效）
+     */
     @Autowired
     private ApplicationContext applicationContext;
+    /**
+     * SO 订单服务（4.4 供需审核通过生成 SO / 4.5 产销平衡驳回作废 SO，同服务内直接调用）
+     */
+    private VehicleCbuSoService vehicleCbuSoService;
 
     // ==================== 4.3 销售提交（4 步编排，任一步失败整体回滚） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:submit", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在提交，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:submit", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在提交，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void submitExportVehicleCbuPo(ExportVehicleCbuPoSubmitReq req) {
         // 查订单 + 草稿态校验
@@ -160,14 +175,11 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             throw new BizException("提交失败，物料编码" + String.join("、", noPriceMaterials) + "无法匹配到有效价格");
         }
         // 重算总金额
-        order.setTotalAmount(details.stream()
-                .map(ExportVehicleCbuPoDetailDo::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        order.setTotalAmount(details.stream().map(ExportVehicleCbuPoDetailDo::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
 
         // ===== 步骤3 资金校验与保函冻结 =====
         // nexus 资金校验类型：1010=无 / 1020=保函
-        boolean isGuarantee = customer != null && customer.getFundVerifyType() != null
-                && customer.getFundVerifyType() == 1020;
+        boolean isGuarantee = customer != null && customer.getFundVerifyType() != null && customer.getFundVerifyType() == 1020;
         if (isGuarantee) {
             ExportVehicleLetterGuaranteeFreezeReq freezeReq = new ExportVehicleLetterGuaranteeFreezeReq();
             freezeReq.setCustomerId(customer.getId());
@@ -177,8 +189,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             freezeReq.setPoNo(order.getPoNo());
             freezeReq.setRequiredAmount(order.getTotalAmount());
             ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.freeze(freezeReq);
-            if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess())
-                    || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
+            if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess()) || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
                 throw new BizException("提交失败，资金校验未通过，请联系商务");
             }
             // 写 PO-保函关联表（一个 PO 多保函）
@@ -206,8 +217,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
 
     // ==================== 4.3 销售驳回（终态 + 推红旗） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:reject", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:reject", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void rejectExportVehicleCbuPo(ExportVehicleCbuPoRejectReq req) {
         // 查订单 + 草稿态校验
@@ -235,17 +245,12 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setStatus("R");
         pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(
-                HongqiThirdTargetPlatformEnum.HONGQI,
-                HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
-                order.getId(),
-                pushReq);
+        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
     }
 
     // ==================== 4.4 供需审核通过（生成 SO 单） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:supplyApprove", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:supplyApprove", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void supplyApprove(ExportVehicleCbuPoSupplyApproveReq req) {
         ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
@@ -268,11 +273,11 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
         SoCreateReq soReq = buildSoCreateReq(order, details);
-        SoResult soResult = soClient.createSo(soReq);
-        if (soResult == null || soResult.getCode() != 200) {
-            throw new BizException("SO 单创建失败: " + (soResult == null ? "null" : soResult.getMessage()));
+        List<SoResult.SoItem> soItems = vehicleCbuSoService.createSo(soReq);
+        if (CollectionUtils.isEmpty(soItems)) {
+            throw new BizException("SO 单创建失败：未生成任何 SO");
         }
-        // PO 不存 SO 单号（评审确认：SO 单号由 SO 侧管理，PO 仅调 SO 创建/作废/查询状态）
+        // TODO SO 单号是否回写 PO（评审未提，PO 不存 SO 单号）；SO 契约到后确认
     }
 
     private SoCreateReq buildSoCreateReq(ExportVehicleCbuPoDo order, List<ExportVehicleCbuPoDetailDo> details) {
@@ -284,14 +289,18 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         req.setCustomerName(order.getCustomerName());
         req.setExternalCustomerCode(order.getExternalCustomerCode());
         req.setPlanVersion(order.getPlanVersion());
+        req.setReceiveOrderTime(order.getCreateTime());
         req.setDetails(details.stream().map(d -> {
             SoCreateReq.SoDetailReq sd = new SoCreateReq.SoDetailReq();
+            sd.setPoDetailId(d.getId());
             sd.setPoDetailNo(d.getPoDetailNo());
             sd.setDemandQuantity(d.getDemandQuantity());
             sd.setUnitPrice(d.getUnitPrice());
             sd.setVinYear(d.getVinYear());
-            sd.setExpectedOfflineDate(d.getExpectedOfflineDate() == null ? null : d.getExpectedOfflineDate().toString());
+            sd.setExpectedOfflineDate(d.getExpectedOfflineDate());
             sd.setProductionRemark(d.getProductionRemark());
+            sd.setMaterialCode(d.getMaterialCode());
+            sd.setMaterialDescription(d.getMaterialDescription());
             return sd;
         }).toList());
         return req;
@@ -299,8 +308,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
 
     // ==================== 4.4 供需审核驳回（解冻保函 + 推红旗） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:supplyReject", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:supplyReject", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void supplyReject(ExportVehicleCbuPoSupplyRejectReq req) {
         ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
@@ -345,17 +353,12 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setStatus("R");
         pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(
-                HongqiThirdTargetPlatformEnum.HONGQI,
-                HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
-                order.getId(),
-                pushReq);
+        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
     }
 
     // ==================== 4.5 产销平衡审核通过（终态 + 推红旗） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:balanceApprove", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:balanceApprove", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void balanceApprove(ExportVehicleCbuPoBalanceApproveReq req) {
         ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
@@ -379,17 +382,12 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("A");
         pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
-        eventHandlerHelper.publishAsync(
-                HongqiThirdTargetPlatformEnum.HONGQI,
-                HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
-                order.getId(),
-                pushReq);
+        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
     }
 
     // ==================== 4.5 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:balanceReject", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:balanceReject", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在处理，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void balanceReject(ExportVehicleCbuPoBalanceRejectReq req) {
         ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
@@ -400,23 +398,29 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             throw new BizException("仅供需审核通过态可产销平衡驳回");
         }
 
-        // 查 PO 下所有 SO 状态
-        SoResult soResult = soClient.queryStatus(order.getPoNo());
-        List<SoResult.SoItem> soItems = (soResult != null && soResult.getData() != null)
-                ? soResult.getData() : Collections.emptyList();
+        // 查 PO 下所有 SO 状态（同服务内直接查询，不再走 Feign）
+        List<VehicleCbuSoDo> soItems = vehicleCbuSoService.listVehicleCbuSoByPoNo(order.getPoNo());
 
         // 校验 c：SO 状态只能是 作废/未下发生产/排产中（焊装上线及之后不可驳回）
-        Set<String> allowedStatus = Set.of("已作废", "未下发生产", "排产中");
-        for (SoResult.SoItem so : soItems) {
-            if (!allowedStatus.contains(so.getOrderStatus())) {
-                throw new BizException("存在" + so.getOrderStatus() + "状态的SO，焊装上线及之后不允许驳回");
+        for (VehicleCbuSoDo so : soItems) {
+            Integer status = so.getOrderStatus();
+            if (status == null) {
+                continue;
             }
+            if (VehicleCbuSoStatusEnum.CANCELLED.getCode().equals(status) || VehicleCbuSoStatusEnum.NOT_ISSUED.getCode().equals(status) || VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(status)) {
+                continue;
+            }
+            throw new BizException("存在不可作废状态的SO，焊装上线及之后不允许驳回");
         }
 
-        // SO 全作废（SO 侧内部处理 APS 同步，已是已作废的不重复）
-        SoResult cancelResult = soClient.cancel(order.getPoNo());
-        if (cancelResult == null || cancelResult.getCode() != 200) {
-            throw new BizException("SO作废失败: " + (cancelResult == null ? "null" : cancelResult.getMessage()));
+        // SO 全作废（SO 侧 cancel 内部逐条调 APS 作废同步 + 写接口同步记录，已作废的幂等跳过）
+        VehicleCbuSoCancelReq cancelReq = new VehicleCbuSoCancelReq();
+        cancelReq.setPoNo(order.getPoNo());
+        cancelReq.setReason("产销平衡驳回作废：" + req.getRejectReason());
+        VehicleCbuSoOperateResult cancelResult = vehicleCbuSoService.cancel(cancelReq);
+        if (CollectionUtils.isNotEmpty(cancelResult.getFailItems())) {
+            String failDetail = cancelResult.getFailItems().stream().map(i -> i.getSoNo() + ":" + i.getReason()).collect(Collectors.joining(";"));
+            throw new BizException("PO作废失败，部分SO作废异常：" + failDetail);
         }
 
         // 状态→产销平衡驳回（终态）+ 驳回信息
@@ -451,17 +455,12 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setStatus("R");
         pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(
-                HongqiThirdTargetPlatformEnum.HONGQI,
-                HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT,
-                order.getId(),
-                pushReq);
+        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
     }
 
     // ==================== 4.6 刷新订单价格（联动保函 / SO） ====================
 
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:refreshPrice", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在刷新价格，请稍后重试")
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:refreshPrice", value = "#req.poId", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在刷新价格，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
         ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
@@ -470,17 +469,15 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         }
 
         String status = order.getOrderStatus();
-        boolean isBranchB = ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED.getCode().equals(status)
-                || ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED.getCode().equals(status)
-                || ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(status);
+        boolean isBranchB = ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED.getCode().equals(status) || ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED.getCode().equals(status) || ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(status);
 
         // 查明细
         ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
 
-        // ===== 分支B: SO 状态校验（4.6 步骤1） =====
-        if (isBranchB) {
+        // TODO ===== 分支B: SO 状态校验（4.6 步骤1） =====
+        /*if (isBranchB) {
             SoResult soResult = soClient.queryStatus(order.getPoNo());
             List<SoResult.SoItem> soItems = (soResult != null && soResult.getData() != null)
                     ? soResult.getData() : Collections.emptyList();
@@ -489,7 +486,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                     throw new BizException("存在质检通过的车辆，不允许刷新价格");
                 }
             }
-        }
+        }*/
 
         // ===== 重算价格（4.6 步骤2，同 4.3 提交的匹配规则） =====
         BigDecimal oldTotal = order.getTotalAmount();
@@ -507,9 +504,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 d.setTotalAmount(null);
             }
         }
-        BigDecimal newTotal = details.stream()
-                .map(d -> d.getTotalAmount() != null ? d.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal newTotal = details.stream().map(d -> d.getTotalAmount() != null ? d.getTotalAmount() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // ===== 更新明细 + 主表总金额 =====
         order.setTotalAmount(newTotal);
@@ -552,10 +547,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 freezeReq.setAmountDiff(diff);
                 freezeReq.setReason("刷新价格调增");
                 ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.adjustFreeze(freezeReq);
-                if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess())
-                        || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
-                    String failMsg = (freezeResp != null && freezeResp.getFailMessage() != null)
-                            ? freezeResp.getFailMessage() : "剩余可用金额不足";
+                if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess()) || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
+                    String failMsg = (freezeResp != null && freezeResp.getFailMessage() != null) ? freezeResp.getFailMessage() : "剩余可用金额不足";
                     throw new BizException(failMsg);
                 }
                 // 写/更新 PO-保函关联表
@@ -572,8 +565,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             }
             // 新=原：不调保函，直接更新 SO
 
-            // 更新 SO 车辆价格/冻结金额
-            SoUpdatePriceReq soUpdateReq = new SoUpdatePriceReq();
+            // TODO 更新 SO 车辆价格/冻结金额
+            /*SoUpdatePriceReq soUpdateReq = new SoUpdatePriceReq();
             soUpdateReq.setPoNo(order.getPoNo());
             soUpdateReq.setDetails(details.stream().map(d -> {
                 SoUpdatePriceReq.DetailPrice dp = new SoUpdatePriceReq.DetailPrice();
@@ -585,13 +578,15 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             SoResult soUpdateResult = soClient.updatePrice(soUpdateReq);
             if (soUpdateResult == null || soUpdateResult.getCode() != 200) {
                 throw new BizException("SO 价格更新失败: " + (soUpdateResult != null ? soUpdateResult.getMessage() : "null"));
-            }
+            }*/
         }
     }
 
     // ==================== 批量操作（每条独立事务，部分成功部分失败，汇总返回） ====================
 
-    /** 提取错误摘要：BizException 取 message，其他异常取类名 */
+    /**
+     * 提取错误摘要：BizException 取 message，其他异常取类名
+     */
     private String errorSummary(Exception e) {
         if (e instanceof BizException) {
             return e.getMessage();
@@ -679,7 +674,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
 
     // ==================== 保函关联表辅助方法 ====================
 
-    /** 按 lgId 调减 PO-保函关联表的占用金额 */
+    /**
+     * 按 lgId 调减 PO-保函关联表的占用金额
+     */
     private void reduceGuaranteeOccupied(String poNo, String lgId, BigDecimal amount) {
         ExportVehicleCbuPoGuaranteeQo qo = new ExportVehicleCbuPoGuaranteeQo();
         qo.setPoNo(poNo);

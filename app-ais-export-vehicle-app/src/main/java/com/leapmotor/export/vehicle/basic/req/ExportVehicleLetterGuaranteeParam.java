@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 /**
@@ -76,6 +77,9 @@ public class ExportVehicleLetterGuaranteeParam extends LpBaseParam implements Se
 
     @Schema(description = "审核状态(字典 letter_guarantee_approval_status: 10草稿 20已提交 30审核通过 40驳回 50作废)")
     private String approvalStatus;
+
+    @Schema(description = "审核状态-多值查询(字典 letter_guarantee_approval_status);非空时按 IN 过滤,如 [\"10\",\"30\"],与单值 approvalStatus 可同时生效")
+    private List<String> approvalStatusList;
 
     @Schema(description = "保函状态(字典 letter_guarantee_lg_status):10=未生效(草稿/提交/驳回/作废,默认值),20=有效(审核通过时置),30=失效(到期/手动失效时置)")
     private String lgStatus;

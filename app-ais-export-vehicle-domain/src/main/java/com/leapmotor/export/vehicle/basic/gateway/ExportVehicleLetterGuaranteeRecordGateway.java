@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * 保函交易明细(追加写)领域网关
+ * 保函交易明细领域网关
  *
  * @author wangkai2527148
  * @since 2026-07-02

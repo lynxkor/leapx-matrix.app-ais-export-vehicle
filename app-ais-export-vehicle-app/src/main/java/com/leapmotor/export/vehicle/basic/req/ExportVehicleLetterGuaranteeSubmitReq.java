@@ -30,4 +30,7 @@ public class ExportVehicleLetterGuaranteeSubmitReq implements Serializable {
 
     @Schema(description = "保函ID列表(批量场景),与 id 互斥")
     private List<String> ids;
+
+    @Schema(description = "提交原因(适用于全部 ids,与 cancel/expireEarly 保持一致)")
+    private String remark;
 }

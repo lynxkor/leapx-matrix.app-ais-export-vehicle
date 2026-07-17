@@ -107,4 +107,4 @@ CREATE TABLE `export_vehicle_letter_guarantee_record` (
     KEY        `idx_type_time`   (`transaction_type`, `create_time`),
     KEY        `idx_customer`    (`customer_id`),
     KEY        `idx_vin`         (`vin`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='保函交易明细(追加写)';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='保函交易明细';

@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSo">
+        <id column="id" property="id"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modifier_name" property="modifierName"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_status" property="deleteStatus"/>
+        <result column="status" property="status"/>
+        <result column="status_desc" property="statusDesc"/>
+        <result column="so_no" property="soNo"/>
+        <result column="po_id" property="poId"/>
+        <result column="po_no" property="poNo"/>
+        <result column="po_detail_id" property="poDetailId"/>
+        <result column="po_detail_no" property="poDetailNo"/>
+        <result column="line_no" property="lineNo"/>
+        <result column="sales_company_code" property="salesCompanyCode"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="external_customer_code" property="externalCustomerCode"/>
+        <result column="order_type" property="orderType"/>
+        <result column="plan_version" property="planVersion"/>
+        <result column="expected_offline_date" property="expectedOfflineDate"/>
+        <result column="vin_year" property="vinYear"/>
+        <result column="production_remark" property="productionRemark"/>
+        <result column="vehicle_price" property="vehiclePrice"/>
+        <result column="frozen_amount" property="frozenAmount"/>
+        <result column="receivable_amount" property="receivableAmount"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="issue_time" property="issueTime"/>
+        <result column="cancel_time" property="cancelTime"/>
+        <result column="qc_result" property="qcResult"/>
+        <result column="qc_result_time" property="qcResultTime"/>
+        <result column="qc_remark" property="qcRemark"/>
+        <result column="last_qc_result" property="lastQcResult"/>
+        <result column="last_qc_result_time" property="lastQcResultTime"/>
+        <result column="last_qc_remark" property="lastQcRemark"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, so_no, po_id, po_no, po_detail_id, po_detail_no, line_no, sales_company_code, customer_code, customer_name, external_customer_code, order_type, plan_version, expected_offline_date, vin_year, production_remark, vehicle_price, frozen_amount, receivable_amount, order_status, issue_time, cancel_time, qc_result, qc_result_time, qc_remark, last_qc_result, last_qc_result_time, last_qc_remark, receive_time, remark
+    </sql>
+
+    <!-- SO 主表 LEFT JOIN 车辆明细表结果映射 -->
+    <resultMap id="SoDetailResultMap" type="com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo">
+        <id column="id" property="id"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modifier_name" property="modifierName"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+        <result column="status_desc" property="statusDesc"/>
+        <result column="so_no" property="soNo"/>
+        <result column="po_id" property="poId"/>
+        <result column="po_no" property="poNo"/>
+        <result column="po_detail_id" property="poDetailId"/>
+        <result column="po_detail_no" property="poDetailNo"/>
+        <result column="line_no" property="lineNo"/>
+        <result column="sales_company_code" property="salesCompanyCode"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="external_customer_code" property="externalCustomerCode"/>
+        <result column="order_type" property="orderType"/>
+        <result column="plan_version" property="planVersion"/>
+        <result column="expected_offline_date" property="expectedOfflineDate"/>
+        <result column="vin_year" property="vinYear"/>
+        <result column="production_remark" property="productionRemark"/>
+        <result column="vehicle_price" property="vehiclePrice"/>
+        <result column="frozen_amount" property="frozenAmount"/>
+        <result column="receivable_amount" property="receivableAmount"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="issue_time" property="issueTime"/>
+        <result column="cancel_time" property="cancelTime"/>
+        <result column="qc_result" property="qcResult"/>
+        <result column="qc_result_time" property="qcResultTime"/>
+        <result column="qc_remark" property="qcRemark"/>
+        <result column="last_qc_result" property="lastQcResult"/>
+        <result column="last_qc_result_time" property="lastQcResultTime"/>
+        <result column="last_qc_remark" property="lastQcRemark"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="remark" property="remark"/>
+        <result column="internal_vehicle_no" property="internalVehicleNo"/>
+        <result column="production_identify_code" property="productionIdentifyCode"/>
+        <result column="vin" property="vin"/>
+        <result column="material_code" property="materialCode"/>
+        <result column="material_description" property="materialDescription"/>
+        <result column="sales_market" property="salesMarket"/>
+        <result column="model_year" property="modelYear"/>
+        <result column="optional_package" property="optionalPackage"/>
+        <result column="schedule_time" property="scheduleTime"/>
+        <result column="barcode_print_time" property="barcodePrintTime"/>
+        <result column="body_in_time" property="bodyInTime"/>
+        <result column="paint_in_time" property="paintInTime"/>
+        <result column="assembly_in_time" property="assemblyInTime"/>
+        <result column="assembly_out_time" property="assemblyOutTime"/>
+        <result column="sync_aps_result" property="syncApsResult"/>
+        <result column="sync_aps_time" property="syncApsTime"/>
+        <result column="sync_aps_response_info" property="syncApsResponseInfo"/>
+        <result column="sync_sap_result" property="syncSapResult"/>
+        <result column="sync_sap_time" property="syncSapTime"/>
+        <result column="sync_sap_response_info" property="syncSapResponseInfo"/>
+        <result column="sync_customer_result" property="syncCustomerResult"/>
+        <result column="sync_customer_time" property="syncCustomerTime"/>
+        <result column="sync_customer_response_info" property="syncCustomerResponseInfo"/>
+    </resultMap>
+
+    <!-- SO 主表 LEFT JOIN 车辆明细表查询列 -->
+    <sql id="SoDetail_Column_List">
+        m.id, m.creator, m.creator_name, m.create_time, m.modifier, m.modifier_name, m.update_time, m.delete_status, m.status, m.status_desc,
+        m.so_no, m.po_id, m.po_no, m.po_detail_id, m.po_detail_no, m.line_no, m.sales_company_code, m.customer_code, m.customer_name,
+        m.external_customer_code, m.order_type, m.plan_version, m.expected_offline_date, m.vin_year, m.production_remark,
+        m.vehicle_price, m.frozen_amount, m.receivable_amount, m.order_status, m.issue_time, m.cancel_time, m.qc_result, m.qc_result_time,
+        m.qc_remark, m.last_qc_result, m.last_qc_result_time, m.last_qc_remark, m.receive_time, m.remark,
+        d.internal_vehicle_no, d.production_identify_code, d.vin, d.material_code, d.material_description, d.sales_market, d.model_year,
+        d.optional_package, d.schedule_time, d.barcode_print_time, d.body_in_time, d.paint_in_time, d.assembly_in_time, d.assembly_out_time,
+        d.sync_aps_result, d.sync_aps_time, d.sync_aps_response_info, d.sync_sap_result, d.sync_sap_time, d.sync_sap_response_info,
+        d.sync_customer_result, d.sync_customer_time, d.sync_customer_response_info
+    </sql>
+
+    <!-- 列表/分页查询动态条件 -->
+    <sql id="SoDetail_Where_Clause">
+        <where>
+            m.delete_status = 0
+            <if test="qo.soNoLike != null and qo.soNoLike != ''">
+                AND m.so_no LIKE CONCAT('%', #{qo.soNoLike}, '%')
+            </if>
+            <if test="qo.poNoLike != null and qo.poNoLike != ''">
+                AND m.po_no LIKE CONCAT('%', #{qo.poNoLike}, '%')
+            </if>
+            <if test="qo.customerNameLike != null and qo.customerNameLike != ''">
+                AND m.customer_name LIKE CONCAT('%', #{qo.customerNameLike}, '%')
+            </if>
+            <if test="qo.salesCompanyCode != null and qo.salesCompanyCode != ''">
+                AND m.sales_company_code = #{qo.salesCompanyCode}
+            </if>
+            <if test="qo.orderStatus != null">
+                AND m.order_status = #{qo.orderStatus}
+            </if>
+            <if test="qo.orderStatuses != null and qo.orderStatuses.size() > 0">
+                AND m.order_status IN
+                <foreach collection="qo.orderStatuses" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.soNos != null and qo.soNos.size() > 0">
+                AND m.so_no IN
+                <foreach collection="qo.soNos" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.poNos != null and qo.poNos.size() > 0">
+                AND m.po_no IN
+                <foreach collection="qo.poNos" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.vinLike != null and qo.vinLike != ''">
+                AND d.vin LIKE CONCAT('%', #{qo.vinLike}, '%')
+            </if>
+            <if test="qo.productionIdentifyCodeLike != null and qo.productionIdentifyCodeLike != ''">
+                AND d.production_identify_code LIKE CONCAT('%', #{qo.productionIdentifyCodeLike}, '%')
+            </if>
+            <if test="qo.internalVehicleNoLike != null and qo.internalVehicleNoLike != ''">
+                AND d.internal_vehicle_no LIKE CONCAT('%', #{qo.internalVehicleNoLike}, '%')
+            </if>
+            <if test="qo.vins != null and qo.vins.size() > 0">
+                AND d.vin IN
+                <foreach collection="qo.vins" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.productionIdentifyCodes != null and qo.productionIdentifyCodes.size() > 0">
+                AND d.production_identify_code IN
+                <foreach collection="qo.productionIdentifyCodes" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.internalVehicleNos != null and qo.internalVehicleNos.size() > 0">
+                AND d.internal_vehicle_no IN
+                <foreach collection="qo.internalVehicleNos" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.materialCodeLike != null and qo.materialCodeLike != ''">
+                AND d.material_code LIKE CONCAT('%', #{qo.materialCodeLike}, '%')
+            </if>
+            <if test="qo.materialCodes != null and qo.materialCodes.size() > 0">
+                AND d.material_code IN
+                <foreach collection="qo.materialCodes" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.materialDescriptionLike != null and qo.materialDescriptionLike != ''">
+                AND d.material_description LIKE CONCAT('%', #{qo.materialDescriptionLike}, '%')
+            </if>
+            <if test="qo.materialDescriptions != null and qo.materialDescriptions.size() > 0">
+                AND d.material_description IN
+                <foreach collection="qo.materialDescriptions" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.syncApsResult != null">
+                AND d.sync_aps_result = #{qo.syncApsResult}
+            </if>
+            <if test="qo.syncSapResult != null">
+                AND d.sync_sap_result = #{qo.syncSapResult}
+            </if>
+            <if test="qo.createTimeStart != null">
+                AND m.create_time &gt;= #{qo.createTimeStart}
+            </if>
+            <if test="qo.createTimeEnd != null">
+                AND m.create_time &lt;= #{qo.createTimeEnd}
+            </if>
+            <if test="qo.issueTimeStart != null">
+                AND m.issue_time &gt;= #{qo.issueTimeStart}
+            </if>
+            <if test="qo.issueTimeEnd != null">
+                AND m.issue_time &lt;= #{qo.issueTimeEnd}
+            </if>
+            <if test="qo.qcResultTimeStart != null">
+                AND m.qc_result_time &gt;= #{qo.qcResultTimeStart}
+            </if>
+            <if test="qo.qcResultTimeEnd != null">
+                AND m.qc_result_time &lt;= #{qo.qcResultTimeEnd}
+            </if>
+        </where>
+    </sql>
+
+    <select id="pageSoList" resultMap="SoDetailResultMap">
+        SELECT
+        <include refid="SoDetail_Column_List"/>
+        FROM export_vehicle_cbu_so m
+        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.so_id AND d.delete_status = 0
+        <include refid="SoDetail_Where_Clause"/>
+        ORDER BY m.create_time DESC
+    </select>
+
+    <select id="listSoList" resultMap="SoDetailResultMap">
+        SELECT
+        <include refid="SoDetail_Column_List"/>
+        FROM export_vehicle_cbu_so m
+        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.so_id AND d.delete_status = 0
+        <include refid="SoDetail_Where_Clause"/>
+        ORDER BY m.create_time DESC
+    </select>
+
+    <select id="getSoDetailById" resultMap="SoDetailResultMap">
+        SELECT
+        <include refid="SoDetail_Column_List"/>
+        FROM export_vehicle_cbu_so m
+        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.so_id AND d.delete_status = 0
+        WHERE m.id = #{id} AND m.delete_status = 0
+    </select>
+
+</mapper>

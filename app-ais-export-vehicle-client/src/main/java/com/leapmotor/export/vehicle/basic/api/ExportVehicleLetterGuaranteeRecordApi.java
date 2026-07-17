@@ -11,7 +11,7 @@ import com.leapmotor.export.vehicle.basic.api.fallback.ExportVehicleLetterGuaran
 import java.util.List;
 
 /**
- * 保函交易明细(追加写) Feign客户端
+ * 保函交易明细 Feign客户端
  * @author wangkai2527148
  * @since 2026-07-02
  */
@@ -19,7 +19,7 @@ import java.util.List;
 public interface ExportVehicleLetterGuaranteeRecordApi {
 
     /**
-     * 保函交易明细(追加写)列表查询
+     * 保函交易明细列表查询
      *
      * @param exportVehicleLetterGuaranteeRecordRequest 查询条件
      * @return 查询结果
@@ -28,7 +28,7 @@ public interface ExportVehicleLetterGuaranteeRecordApi {
     AjaxResult<List<ExportVehicleLetterGuaranteeRecordResponse>> list(@RequestBody ExportVehicleLetterGuaranteeRecordRequest exportVehicleLetterGuaranteeRecordRequest);
 
     /**
-     * 保函交易明细(追加写)分页查询
+     * 保函交易明细分页查询
      *
      * @param exportVehicleLetterGuaranteeRecordRequest 查询条件
      * @return 分页结果
@@ -37,7 +37,7 @@ public interface ExportVehicleLetterGuaranteeRecordApi {
     AjaxResult<PageResult<ExportVehicleLetterGuaranteeRecordResponse>> page(@RequestBody ExportVehicleLetterGuaranteeRecordRequest exportVehicleLetterGuaranteeRecordRequest);
 
     /**
-     * 保函交易明细(追加写)详情信息
+     * 保函交易明细详情信息
      *
      * @param id 主键ID
      * @return 详情信息
@@ -46,7 +46,7 @@ public interface ExportVehicleLetterGuaranteeRecordApi {
     AjaxResult<ExportVehicleLetterGuaranteeRecordResponse> getExportVehicleLetterGuaranteeRecordById(@RequestBody String id);
 
     /**
-     * 保函交易明细(追加写)新增/编辑
+     * 保函交易明细新增/编辑
      *
      * @param exportVehicleLetterGuaranteeRecordRequest 新增/编辑请求参数
      * @return 操作结果

@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 保函交易明细(追加写) Feign客户端降级工厂
+ * 保函交易明细 Feign客户端降级工厂
  *
  * @author wangkai2527148
  * @since 2026-07-02
@@ -30,13 +30,13 @@ public class ExportVehicleLetterGuaranteeRecordApiFallbackFactory implements Fal
 
             @Override
             public AjaxResult<List<ExportVehicleLetterGuaranteeRecordResponse>> list(ExportVehicleLetterGuaranteeRecordRequest exportVehicleLetterGuaranteeRecordRequest) {
-                log.error("保函交易明细(追加写)列表查询服务降级，参数：{}，异常：{}", exportVehicleLetterGuaranteeRecordRequest, cause.getMessage(), cause);
+                log.error("保函交易明细列表查询服务降级，参数：{}，异常：{}", exportVehicleLetterGuaranteeRecordRequest, cause.getMessage(), cause);
                 return AjaxResult.fail("exportVehicleLetterGuaranteeRecord-service服务异常：" + cause.getMessage(), new ArrayList<>());
             }
 
             @Override
             public AjaxResult<PageResult<ExportVehicleLetterGuaranteeRecordResponse>> page(ExportVehicleLetterGuaranteeRecordRequest exportVehicleLetterGuaranteeRecordRequest) {
-                log.error("保函交易明细(追加写)分页查询服务降级，参数：{}，异常：{}", exportVehicleLetterGuaranteeRecordRequest, cause.getMessage(), cause);
+                log.error("保函交易明细分页查询服务降级，参数：{}，异常：{}", exportVehicleLetterGuaranteeRecordRequest, cause.getMessage(), cause);
                 PageResult<ExportVehicleLetterGuaranteeRecordResponse> pageResult = new PageResult<>();
                 pageResult.setCode(500);
                 pageResult.setMsg("exportVehicleLetterGuaranteeRecord-service服务异常：" + cause.getMessage());
@@ -49,13 +49,13 @@ public class ExportVehicleLetterGuaranteeRecordApiFallbackFactory implements Fal
 
             @Override
             public AjaxResult<ExportVehicleLetterGuaranteeRecordResponse> getExportVehicleLetterGuaranteeRecordById(String id) {
-                log.error("保函交易明细(追加写)详情查询服务降级，ID：{}，异常：{}", id, cause.getMessage(), cause);
+                log.error("保函交易明细详情查询服务降级，ID：{}，异常：{}", id, cause.getMessage(), cause);
                 return AjaxResult.fail("exportVehicleLetterGuaranteeRecord-service服务异常：" + cause.getMessage());
             }
 
             @Override
             public AjaxResult<String> addOrUpdate(ExportVehicleLetterGuaranteeRecordRequest exportVehicleLetterGuaranteeRecordRequest) {
-                log.error("保函交易明细(追加写)新增/编辑服务降级，参数：{}，异常：{}", exportVehicleLetterGuaranteeRecordRequest, cause.getMessage(), cause);
+                log.error("保函交易明细新增/编辑服务降级，参数：{}，异常：{}", exportVehicleLetterGuaranteeRecordRequest, cause.getMessage(), cause);
                 return AjaxResult.fail("exportVehicleLetterGuaranteeRecord-service服务异常：" + cause.getMessage());
             }
         };

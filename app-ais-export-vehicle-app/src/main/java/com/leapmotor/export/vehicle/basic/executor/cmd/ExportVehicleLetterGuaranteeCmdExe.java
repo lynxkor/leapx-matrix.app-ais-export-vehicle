@@ -62,9 +62,9 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     // ============== 状态机 ==============
 
     @Transactional(rollbackFor = Exception.class)
-    public boolean submit(String id) {
-        log.info("保函提交: id={}", id);
-        return exportVehicleLetterGuaranteeGateway.submit(id);
+    public boolean submit(String id, String remark) {
+        log.info("保函提交: id={}, remark={}", id, remark);
+        return exportVehicleLetterGuaranteeGateway.submit(id, remark);
     }
 
     @Transactional(rollbackFor = Exception.class)

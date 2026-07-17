@@ -8,6 +8,7 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRe
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
+import com.leapmotor.export.vehicle.constant.CacheConstant;
 import com.leapmotor.export.vehicle.constant.ExportVehicleConstant;
 import com.leapmotor.export.vehicle.infrastructure.basic.convertor.ExportVehicleLetterGuaranteeStructMapper;
 import com.leapmotor.export.vehicle.infrastructure.basic.dao.ExportVehicleLetterGuaranteeDao;
@@ -22,9 +23,11 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.user.LoginUser;
 import com.leapmotor.paltform.ais.common.util.LoginUserUtils;
 import com.leapmotor.platform.ais.common.mybatis.utils.PageUtils;
+import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -76,7 +79,9 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         return exportVehicleLetterGuaranteeDao.batchSaveSomeColumn(exportVehicleLetterGuarantees);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
+    @DistributeLock(prefix = CacheConstant.LOCK_KEY_LETTER_GUARANTEE_PREFIX, value = "#exportVehicleLetterGuaranteeDo.id")
     public String updateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeDo exportVehicleLetterGuaranteeDo) {
         ExportVehicleLetterGuarantee exportVehicleLetterGuarantee = ExportVehicleLetterGuaranteeStructMapper.INSTANCE.domainToDataObject(exportVehicleLetterGuaranteeDo);
         int result = exportVehicleLetterGuaranteeMapper.updateById(exportVehicleLetterGuarantee);
@@ -96,9 +101,32 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
+    public long countByLgCode(String lgCode, String excludeId) {
+        if (!StringUtils.hasText(lgCode)) {
+            return 0L;
+        }
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ExportVehicleLetterGuarantee> qw =
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        qw.eq("lg_code", lgCode);
+        if (StringUtils.hasText(excludeId)) {
+            qw.ne("id", excludeId);
+        }
+        return exportVehicleLetterGuaranteeMapper.selectCount(qw);
+    }
+
+    @Override
     public List<ExportVehicleLetterGuaranteeDo> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeQo exportVehicleLetterGuaranteeQo) {
         List<ExportVehicleLetterGuarantee> exportVehicleLetterGuarantees = exportVehicleLetterGuaranteeDao.queryList(exportVehicleLetterGuaranteeQo);
         return ExportVehicleLetterGuaranteeStructMapper.INSTANCE.dataObjectsToDomains(exportVehicleLetterGuarantees);
+    }
+
+    @Override
+    public List<ExportVehicleLetterGuaranteeDo> listExportVehicleLetterGuaranteeByIds(Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ExportVehicleLetterGuarantee> entities = exportVehicleLetterGuaranteeMapper.selectBatchIds(ids);
+        return ExportVehicleLetterGuaranteeStructMapper.INSTANCE.dataObjectsToDomains(entities);
     }
 
     @Override
@@ -131,7 +159,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
-    public boolean submit(String id) {
+    public boolean submit(String id, String remark) {
         ExportVehicleLetterGuaranteeDo lg = mustGet(id);
         String cur = lg.getApprovalStatus();
         boolean isDraft = ApprovalStatusEnum.DRAFT.getCode().equals(cur);
@@ -144,6 +172,10 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         lg.setSubmitterId(user.getUserId());
         lg.setSubmitterName(user.getUserName());
         lg.setSubmitTime(LocalDateTime.now());
+        // 提交原因非空时落主表 remark(与 cancel 对齐;为空则不覆盖,保留驳回时的旧 remark)
+        if (remark != null && !remark.isEmpty()) {
+            lg.setRemark(remark);
+        }
         // lg_status 保持 10(未生效)
         return updateExportVehicleLetterGuarantee(lg) != null;
     }
@@ -159,6 +191,16 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         if (approved) {
             lg.setApprovalStatus(ApprovalStatusEnum.APPROVED.getCode());
             lg.setLgStatus(LgStatusEnum.EFFECTIVE.getCode()); // 20 有效
+            // 审核通过:按业务方约定 availableAmount = totalAmount / conversionRatio
+            // (注:与设计文档 §1.1 的「保函金额 × 比例」语义不同,以业务方本次决定为准)
+            if (lg.getConversionRatio() == null || lg.getConversionRatio().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BizException("换算订单额度比例必须大于 0: " + lg.getConversionRatio());
+            }
+            if (lg.getTotalAmount() == null) {
+                throw new BizException("保函金额不能为空");
+            }
+            BigDecimal available = lg.getTotalAmount().divide(lg.getConversionRatio(), 4, java.math.RoundingMode.HALF_UP);
+            lg.setAvailableAmount(available);
         } else {
             lg.setApprovalStatus(ApprovalStatusEnum.REJECTED.getCode());
             // lg_status 保持 10(未生效)

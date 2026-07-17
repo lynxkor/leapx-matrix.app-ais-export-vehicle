@@ -147,6 +147,12 @@
             <if test="qo.orderStatus != null">
                 AND m.order_status = #{qo.orderStatus}
             </if>
+            <if test="qo.orderStatuses != null and qo.orderStatuses.size() > 0">
+                AND m.order_status IN
+                <foreach collection="qo.orderStatuses" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
             <if test="qo.soNos != null and qo.soNos.size() > 0">
                 AND m.so_no IN
                 <foreach collection="qo.soNos" item="item" open="(" separator="," close=")">
@@ -189,8 +195,20 @@
             <if test="qo.materialCodeLike != null and qo.materialCodeLike != ''">
                 AND d.material_code LIKE CONCAT('%', #{qo.materialCodeLike}, '%')
             </if>
+            <if test="qo.materialCodes != null and qo.materialCodes.size() > 0">
+                AND d.material_code IN
+                <foreach collection="qo.materialCodes" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
             <if test="qo.materialDescriptionLike != null and qo.materialDescriptionLike != ''">
                 AND d.material_description LIKE CONCAT('%', #{qo.materialDescriptionLike}, '%')
+            </if>
+            <if test="qo.materialDescriptions != null and qo.materialDescriptions.size() > 0">
+                AND d.material_description IN
+                <foreach collection="qo.materialDescriptions" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
             </if>
             <if test="qo.syncApsResult != null">
                 AND d.sync_aps_result = #{qo.syncApsResult}

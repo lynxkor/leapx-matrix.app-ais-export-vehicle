@@ -544,7 +544,7 @@ public class VehicleCbuSoCmdExe {
      */
     @Transactional(rollbackFor = Exception.class)
     public void receiveQcResult(VehicleCbuSoReceiveQcReq req) {
-        if (req == null || StringUtils.isBlank(req.getVin()) || StringUtils.isBlank(req.getResult())) {
+        if (req == null || StringUtils.isBlank(req.getVin()) || req.getResult() == null) {
             throw new BizException("VIN与质检结果不能为空");
         }
         VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailByVin(req.getVin());
@@ -561,9 +561,9 @@ public class VehicleCbuSoCmdExe {
             throw new BizException("SO[" + so.getSoNo() + "]未总装下线，不能接收质检结果");
         }
 
-        VehicleCbuSoQcResultEnum qcEnum = VehicleCbuSoQcResultEnum.fromExternalChar(req.getResult());
+        VehicleCbuSoQcResultEnum qcEnum = VehicleCbuSoQcResultEnum.of(req.getResult());
         if (qcEnum == null) {
-            throw new BizException("不支持的质检结果字符：" + req.getResult());
+            throw new BizException("不支持的质检结果：" + req.getResult());
         }
 
         // 通过状态不允许回退
@@ -583,7 +583,7 @@ public class VehicleCbuSoCmdExe {
 
         // 写红旗反馈同步记录（类型 3）
         VehicleCbuSoInterfaceSyncDo hongqiSync = buildInterfaceSyncDo(so, 3, "红旗质检结果反馈",
-                req.getVin(), 1, req.getResult());
+                req.getVin(), 1, String.valueOf(req.getResult()));
         vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(hongqiSync);
 
         // 质检通过时同步 SAP

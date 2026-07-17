@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 /**
  * 红旗质检结果回传请求
  *
- * <p>外部字符 {@code result} 映射：P→10 通过、N→20 不通过、F→30 未收到车辆。
+ * <p>直接使用内部状态码：10 通过、20 不通过、30 未收到车辆。
  */
 @Data
 public class VehicleCbuSoReceiveQcReq implements Serializable {
@@ -21,9 +21,9 @@ public class VehicleCbuSoReceiveQcReq implements Serializable {
     private String vin;
 
     /**
-     * 质检结果：P/N/F
+     * 质检结果：10 通过、20 不通过、30 未收到车辆
      */
-    private String result;
+    private Integer result;
 
     /**
      * 质检说明

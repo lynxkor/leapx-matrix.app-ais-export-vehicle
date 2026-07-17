@@ -1,7 +1,6 @@
-package com.leapmotor.export.vehicle.controller.open.so;
+package com.leapmotor.export.vehicle.controller.open.aps;
 
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveStatusReq;
-import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
 import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,31 +12,28 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * CBU 整车销售订单主表开放接口（供 APS / 红旗回调）。
- * 签名校验由上层网关统一处理，本地不注册 SignUrlInterceptor。
+ * APS 系统开放接口（APS → SO，入站）。
+ * 路径前缀 /openApi/aps，不走 @ResourcePermission（系统间调用）。
+ * 鉴权/签名由上层网关统一处理，本接口不配签名拦截器。
  *
  * @author lijianuo
- * @since 2026-07-16
+ * @since 2026-07-17
  */
-@Tag(name = "CBU整车销售订单主表开放接口", description = "供APS/红旗等外部系统回调")
+@Tag(name = "APS系统开放接口", description = "APS → SO 入站接口")
 @RestController
 @AllArgsConstructor
-@RequestMapping("/openApi/so/vehicleCbuSo")
-public class VehicleCbuSoOpenController {
+@RequestMapping("/openApi/aps")
+public class ApsOpenController {
 
     private VehicleCbuSoService vehicleCbuSoService;
 
-    @Operation(summary = "接收 APS 生产状态回传")
-    @PostMapping("/receiveProductionStatus")
+    /**
+     * 接收 APS 生产状态回传
+     */
+    @Operation(summary = "接收APS生产状态回传")
+    @PostMapping("/vehicleCbuSo/receiveProductionStatus")
     public AjaxResult<Void> receiveProductionStatus(@RequestBody VehicleCbuSoReceiveStatusReq req) {
         vehicleCbuSoService.receiveProductionStatus(req);
-        return AjaxResult.success();
-    }
-
-    @Operation(summary = "接收红旗质检结果回传")
-    @PostMapping("/receiveQcResult")
-    public AjaxResult<Void> receiveQcResult(@RequestBody VehicleCbuSoReceiveQcReq req) {
-        vehicleCbuSoService.receiveQcResult(req);
         return AjaxResult.success();
     }
 }

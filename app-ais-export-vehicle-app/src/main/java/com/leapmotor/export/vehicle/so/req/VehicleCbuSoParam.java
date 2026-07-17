@@ -86,6 +86,9 @@ public class VehicleCbuSoParam extends LpBaseParam implements Serializable {
     @Schema(description = "订单状态：1001未下发生产、1002已下发生产、1003排产中、1004焊装上线、1005涂装上线、1006总装上线、1007总装下线、1008质检通过、1009质检未通过、1010质检未收到车、1011已收款、1012已作废")
     private Integer orderStatus;
 
+    @Schema(description = "订单状态列表（批量精确查询）")
+    private List<Integer> orderStatuses;
+
     @Schema(description = "下发生产时间")
     private LocalDateTime issueTime;
 
@@ -137,8 +140,14 @@ public class VehicleCbuSoParam extends LpBaseParam implements Serializable {
     @Schema(description = "物料编码（模糊查询）")
     private String materialCodeLike;
 
+    @Schema(description = "物料编码列表（批量精确查询）")
+    private List<String> materialCodes;
+
     @Schema(description = "物料描述（模糊查询）")
     private String materialDescriptionLike;
+
+    @Schema(description = "物料描述列表（批量精确查询）")
+    private List<String> materialDescriptions;
 
     @Schema(description = "SO单号列表（批量精确查询）")
     private List<String> soNos;

@@ -109,7 +109,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
     }
 
     @Test
-    @DisplayName("receiveQcResult - 质检通过 P -> 1008；N/F 可互相覆盖且可被 P 覆盖")
+    @DisplayName("receiveQcResult - 质检通过 10 -> 1008；20/30 可互相覆盖且可被 10 覆盖")
     public void testReceiveQcResult_stateTransition() {
         String poNo = "PO-CB-" + UUID.randomUUID().toString().substring(0, 8);
         SoResult.SoItem soItem = createSingleSo(poNo);
@@ -121,22 +121,22 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.ASSEMBLY_OUT.getCode());
 
         // N -> 1009
-        service.receiveQcResult(buildQcReq(vin, "N", "初检不通过"));
+        service.receiveQcResult(buildQcReq(vin, 20, "初检不通过"));
         VehicleCbuSoDo soN = getSoBySoNo(poNo, soNo);
         assertEquals(VehicleCbuSoStatusEnum.QC_FAILED.getCode(), soN.getOrderStatus());
 
         // F -> 1010
-        service.receiveQcResult(buildQcReq(vin, "F", "未收到车辆"));
+        service.receiveQcResult(buildQcReq(vin, 30, "未收到车辆"));
         VehicleCbuSoDo soF = getSoBySoNo(poNo, soNo);
         assertEquals(VehicleCbuSoStatusEnum.QC_NO_VEHICLE.getCode(), soF.getOrderStatus());
 
         // P -> 1008，覆盖 N/F
-        service.receiveQcResult(buildQcReq(vin, "P", "复检通过"));
+        service.receiveQcResult(buildQcReq(vin, 10, "复检通过"));
         VehicleCbuSoDo soP = getSoBySoNo(poNo, soNo);
         assertEquals(VehicleCbuSoStatusEnum.QC_PASSED.getCode(), soP.getOrderStatus());
 
         // P 不回退
-        assertThrows(BizException.class, () -> service.receiveQcResult(buildQcReq(vin, "N", "不应覆盖")));
+        assertThrows(BizException.class, () -> service.receiveQcResult(buildQcReq(vin, 20, "不应覆盖")));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         String vin = "VIN" + poNo;
 
         service.receiveProductionStatus(buildStatusReq(soNo, 5, vin));
-        service.receiveQcResult(buildQcReq(vin, "P", "通过"));
+        service.receiveQcResult(buildQcReq(vin, 10, "通过"));
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.QC_PASSED.getCode());
 
         service.updateReceivedStatus(soNo);
@@ -171,7 +171,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         // 推到 1008 后补推应成功（事件异步发布，不抛异常即视为成功）
         String vin = "VIN" + poNo;
         service.receiveProductionStatus(buildStatusReq(soNo, 5, vin));
-        service.receiveQcResult(buildQcReq(vin, "P", "通过"));
+        service.receiveQcResult(buildQcReq(vin, 10, "通过"));
         assertDoesNotThrow(() -> service.reissueSap(soNo));
     }
 
@@ -222,7 +222,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         return req;
     }
 
-    private VehicleCbuSoReceiveQcReq buildQcReq(String vin, String result, String remark) {
+    private VehicleCbuSoReceiveQcReq buildQcReq(String vin, Integer result, String remark) {
         VehicleCbuSoReceiveQcReq req = new VehicleCbuSoReceiveQcReq();
         req.setVin(vin);
         req.setResult(result);

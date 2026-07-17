@@ -47,6 +47,7 @@ public class VehicleCbuSoDaoImpl extends ServiceImpl<VehicleCbuSoMapper, Vehicle
                 .eq(Objects.nonNull(query.getFrozenAmount()), VehicleCbuSo::getFrozenAmount, query.getFrozenAmount())
                 .eq(Objects.nonNull(query.getReceivableAmount()), VehicleCbuSo::getReceivableAmount, query.getReceivableAmount())
                 .eq(Objects.nonNull(query.getOrderStatus()), VehicleCbuSo::getOrderStatus, query.getOrderStatus())
+                .in(CollectionUtils.isNotEmpty(query.getOrderStatuses()), VehicleCbuSo::getOrderStatus, query.getOrderStatuses())
                 .eq(Objects.nonNull(query.getIssueTime()), VehicleCbuSo::getIssueTime, query.getIssueTime())
                 .eq(Objects.nonNull(query.getCancelTime()), VehicleCbuSo::getCancelTime, query.getCancelTime())
                 .eq(Objects.nonNull(query.getQcResult()), VehicleCbuSo::getQcResult, query.getQcResult())

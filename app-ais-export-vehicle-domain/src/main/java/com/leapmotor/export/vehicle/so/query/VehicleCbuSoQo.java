@@ -127,6 +127,11 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
     private Integer orderStatus;
 
     /**
+     * 订单状态列表（批量精确查询）
+     */
+    private List<Integer> orderStatuses;
+
+    /**
      * 下发生产时间
      */
     private LocalDateTime issueTime;
@@ -213,9 +218,19 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
     private String materialCodeLike;
 
     /**
+     * 物料编码列表（批量精确查询）
+     */
+    private List<String> materialCodes;
+
+    /**
      * 物料描述（模糊查询）
      */
     private String materialDescriptionLike;
+
+    /**
+     * 物料描述列表（批量精确查询）
+     */
+    private List<String> materialDescriptions;
 
     /**
      * SO单号列表（批量精确查询）

@@ -3,6 +3,7 @@ package com.leapmotor.export.vehicle.so.resp;
 import java.time.LocalDateTime;
 
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -71,6 +72,7 @@ public class VehicleCbuSoDetailResp extends LpBaseModel implements Serializable 
     private LocalDateTime assemblyOutTime;
 
     @Schema(description = "APS最新同步结果：0失败、1成功（下发排产或作废，取最近一次）")
+    @DictEnumType(prefix = "VehicleCbuSoSyncResultEnum")
     private Integer syncApsResult;
 
     @Schema(description = "APS最新同步时间")
@@ -80,6 +82,7 @@ public class VehicleCbuSoDetailResp extends LpBaseModel implements Serializable 
     private String syncApsResponseInfo;
 
     @Schema(description = "SAP最新同步结果：0失败、1成功")
+    @DictEnumType(prefix = "VehicleCbuSoSyncResultEnum")
     private Integer syncSapResult;
 
     @Schema(description = "SAP最新同步时间")
@@ -89,6 +92,7 @@ public class VehicleCbuSoDetailResp extends LpBaseModel implements Serializable 
     private String syncSapResponseInfo;
 
     @Schema(description = "客户系统最新同步结果：0失败、1成功")
+    @DictEnumType(prefix = "VehicleCbuSoSyncResultEnum")
     private Integer syncCustomerResult;
 
     @Schema(description = "客户系统最新同步时间")

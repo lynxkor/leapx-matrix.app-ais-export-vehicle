@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
@@ -20,6 +21,9 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceApproveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBatchReq;
+import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
 import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.web.bind.annotation.*;
@@ -63,6 +67,13 @@ public class ExportVehicleCbuPoController {
     @PostMapping(value = "/get")
     public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(id));
+    }
+
+    @Operation(summary = "PO订单主子表联查详情（主表 + 明细 + 保函关联）")
+    @ResourcePermission(value="web:po:purchaseOrder:detail",desc="PO订单主子表联查详情")
+    @PostMapping(value = "/detail")
+    public AjaxResult<ExportVehicleCbuPoDetailFullResp> detail(@RequestBody String id) {
+        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoDetailById(id));
     }
 
     @Operation(summary = "PO订单主表新增/编辑")
@@ -154,5 +165,57 @@ public class ExportVehicleCbuPoController {
     public AjaxResult<Void> balanceReject(@RequestBody @Validated ExportVehicleCbuPoBalanceRejectReq req) {
         purchaseOrderService.balanceReject(req);
         return AjaxResult.success();
+    }
+
+    @Operation(summary = "PO订单刷新价格(联动保函/SO)")
+    @ResourcePermission(value="web:po:purchaseOrder:refreshPrice",desc="PO订单刷新价格")
+    @PostMapping("/refreshPrice")
+    public AjaxResult<Void> refreshPrice(@RequestBody @Validated ExportVehicleCbuPoRefreshPriceReq req) {
+        purchaseOrderService.refreshPrice(req);
+        return AjaxResult.success();
+    }
+
+    // ==================== 批量操作 ====================
+
+    @Operation(summary = "批量提交")
+    @ResourcePermission(value="web:po:purchaseOrder:batchSubmit",desc="批量提交")
+    @PostMapping("/batchSubmit")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchSubmit(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchSubmit(req));
+    }
+
+    @Operation(summary = "批量销售驳回")
+    @ResourcePermission(value="web:po:purchaseOrder:batchReject",desc="批量销售驳回")
+    @PostMapping("/batchReject")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchReject(req));
+    }
+
+    @Operation(summary = "批量供需审核通过")
+    @ResourcePermission(value="web:po:purchaseOrder:batchSupplyApprove",desc="批量供需审核通过")
+    @PostMapping("/batchSupplyApprove")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchSupplyApprove(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchSupplyApprove(req));
+    }
+
+    @Operation(summary = "批量供需审核驳回")
+    @ResourcePermission(value="web:po:purchaseOrder:batchSupplyReject",desc="批量供需审核驳回")
+    @PostMapping("/batchSupplyReject")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchSupplyReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchSupplyReject(req));
+    }
+
+    @Operation(summary = "批量产销平衡审核通过")
+    @ResourcePermission(value="web:po:purchaseOrder:batchBalanceApprove",desc="批量产销平衡审核通过")
+    @PostMapping("/batchBalanceApprove")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchBalanceApprove(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchBalanceApprove(req));
+    }
+
+    @Operation(summary = "批量产销平衡审核驳回")
+    @ResourcePermission(value="web:po:purchaseOrder:batchBalanceReject",desc="批量产销平衡审核驳回")
+    @PostMapping("/batchBalanceReject")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchBalanceReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchBalanceReject(req));
     }
 }

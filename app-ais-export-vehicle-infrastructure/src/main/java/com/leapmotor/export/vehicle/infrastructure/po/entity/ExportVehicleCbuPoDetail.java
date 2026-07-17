@@ -34,7 +34,7 @@ public class ExportVehicleCbuPoDetail extends LpBaseEntity implements Serializab
     private String poNo;
 
     /**
-     * PO明细编号,自动生成 POD+年月日+时分+5位流水
+     * PO明细编号,自动生成 POD+YYYYMMDD+HHmm+5位流水
      */
     @TableField("po_detail_no")
     private String poDetailNo;

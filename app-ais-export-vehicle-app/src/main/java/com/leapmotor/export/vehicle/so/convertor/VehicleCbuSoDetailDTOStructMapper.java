@@ -4,6 +4,7 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.response.LpOptionalResult;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoDetailResp;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDetailDo;
+import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.request.VehicleCbuSoDetailRequest;
 import com.leapmotor.export.vehicle.so.response.VehicleCbuSoDetailResponse;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoDetailParam;
@@ -32,6 +33,11 @@ public interface VehicleCbuSoDetailDTOStructMapper {
     VehicleCbuSoDetailResp domainToResp(VehicleCbuSoDetailDo source);
 
     List<VehicleCbuSoDetailResp> domainsToResps(List<VehicleCbuSoDetailDo> sources);
+
+    /**
+     * 从 SO 主表领域对象（已 JOIN 车辆明细字段）转换车辆明细响应
+     */
+    VehicleCbuSoDetailResp domainToResp(VehicleCbuSoDo source);
 
     LpOptionalResult domainsToOptional(VehicleCbuSoDetailResp sources);
 

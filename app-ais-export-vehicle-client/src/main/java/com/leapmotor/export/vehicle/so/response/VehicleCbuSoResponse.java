@@ -143,7 +143,7 @@ public class VehicleCbuSoResponse extends LpBaseResponse implements Serializable
     private LocalDateTime cancelTime;
 
     /**
-     * 当前质检结果
+     * 当前质检结果：10通过、20不通过、30未收到车辆
      */
     private Integer qcResult;
 
@@ -158,7 +158,8 @@ public class VehicleCbuSoResponse extends LpBaseResponse implements Serializable
     private String qcRemark;
 
     /**
-     * 上次质检结果
+     * 上次质检结果：10通过、20不通过、30未收到车辆；
+     * 同一 SO 再次反馈质检时由 updateQcResult 自动将当前结果迁移至此
      */
     private Integer lastQcResult;
 

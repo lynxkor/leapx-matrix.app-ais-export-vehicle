@@ -9,8 +9,15 @@ import java.util.Arrays;
  */
 public enum HongqiEventTypeEnum implements BizEventType {
 
-    /** 推送CBU审批结果到红旗 */
+    /**
+     * 推送CBU审批结果到红旗
+     */
     PUSH_CBU_APPROVAL_RESULT("PUSH_CBU_APPROVAL_RESULT", "推送CBU审批结果到红旗"),
+
+    /**
+     * 车辆生产信息同步红旗（VDO53003）
+     */
+    PRODUCTION_NODE_SYNC("PRODUCTION_NODE_SYNC", "车辆生产信息同步红旗"),
     ;
 
     private final String type;

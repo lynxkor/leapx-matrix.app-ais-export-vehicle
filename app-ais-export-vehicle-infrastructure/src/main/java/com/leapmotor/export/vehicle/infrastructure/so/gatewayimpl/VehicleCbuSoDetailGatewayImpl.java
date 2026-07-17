@@ -46,9 +46,22 @@ public class VehicleCbuSoDetailGatewayImpl implements VehicleCbuSoDetailGateway 
 
     @Override
     public int addBatchVehicleCbuSoDetail(List<VehicleCbuSoDetailDo> vehicleCbuSoDetailDos) {
-        List<VehicleCbuSoDetail> vehicleCbuSoDetails = VehicleCbuSoDetailStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDetailDos);
+        List<VehicleCbuSoDetail> vehicleCbuSoDetails =
+                VehicleCbuSoDetailStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDetailDos);
 
         return vehicleCbuSoDetailDao.batchSaveSomeColumn(vehicleCbuSoDetails);
+    }
+
+    @Override
+    public int batchAddVehicleCbuSoDetail(List<VehicleCbuSoDetailDo> vehicleCbuSoDetailDos) {
+        List<VehicleCbuSoDetail> vehicleCbuSoDetails =
+                VehicleCbuSoDetailStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDetailDos);
+        int result = vehicleCbuSoDetailDao.batchSaveSomeColumn(vehicleCbuSoDetails);
+        // 回写主键到领域对象
+        for (int i = 0; i < vehicleCbuSoDetails.size(); i++) {
+            vehicleCbuSoDetailDos.get(i).setId(vehicleCbuSoDetails.get(i).getId());
+        }
+        return result;
     }
 
     @Override
@@ -65,6 +78,22 @@ public class VehicleCbuSoDetailGatewayImpl implements VehicleCbuSoDetailGateway 
     @Override
     public VehicleCbuSoDetailDo getVehicleCbuSoDetailById(String id) {
         VehicleCbuSoDetail vehicleCbuSoDetail = vehicleCbuSoDetailDao.getById(id);
+        return VehicleCbuSoDetailStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSoDetail);
+    }
+
+    @Override
+    public VehicleCbuSoDetailDo getVehicleCbuSoDetailBySoId(String soId) {
+        VehicleCbuSoDetailQo qo = new VehicleCbuSoDetailQo();
+        qo.setSoId(soId);
+        VehicleCbuSoDetail vehicleCbuSoDetail = vehicleCbuSoDetailDao.getOneForceLimit(qo);
+        return VehicleCbuSoDetailStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSoDetail);
+    }
+
+    @Override
+    public VehicleCbuSoDetailDo getVehicleCbuSoDetailByVin(String vin) {
+        VehicleCbuSoDetailQo qo = new VehicleCbuSoDetailQo();
+        qo.setVin(vin);
+        VehicleCbuSoDetail vehicleCbuSoDetail = vehicleCbuSoDetailDao.getOneForceLimit(qo);
         return VehicleCbuSoDetailStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSoDetail);
     }
 

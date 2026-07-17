@@ -102,6 +102,51 @@ public class VehicleCbuSoDetailDo extends LpBaseModel implements Serializable {
     private LocalDateTime assemblyOutTime;
 
     /**
+     * APS最新同步结果：0失败、1成功（下发排产或作废，取最近一次）
+     */
+    private Integer syncApsResult;
+
+    /**
+     * APS最新同步时间
+     */
+    private LocalDateTime syncApsTime;
+
+    /**
+     * APS最新返回信息
+     */
+    private String syncApsResponseInfo;
+
+    /**
+     * SAP最新同步结果：0失败、1成功
+     */
+    private Integer syncSapResult;
+
+    /**
+     * SAP最新同步时间
+     */
+    private LocalDateTime syncSapTime;
+
+    /**
+     * SAP最新返回信息
+     */
+    private String syncSapResponseInfo;
+
+    /**
+     * 客户系统最新同步结果：0失败、1成功
+     */
+    private Integer syncCustomerResult;
+
+    /**
+     * 客户系统最新同步时间
+     */
+    private LocalDateTime syncCustomerTime;
+
+    /**
+     * 客户系统最新返回信息
+     */
+    private String syncCustomerResponseInfo;
+
+    /**
      * 备注
      */
     private String remark;

@@ -1,0 +1,29 @@
+package com.leapmotor.export.vehicle.so.req;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+import java.io.Serializable;
+import java.util.List;
+
+/**
+ * SO 下发生产请求（支持单条 / 批量 / 全量三种模式）。
+ *
+ * @author lijianuo
+ * @since 2026-07-13
+ */
+@Data
+@Schema(description = "SO 下发生产请求")
+public class VehicleCbuSoIssueReq implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @Schema(description = "单条 SO 主键 ID")
+    private String id;
+
+    @Schema(description = "批量 SO 主键 ID 列表")
+    private List<String> ids;
+
+    @Schema(description = "是否全量下发（true 时按未下发生产状态全表下发，忽略 id/ids）")
+    private Boolean allFlag;
+}

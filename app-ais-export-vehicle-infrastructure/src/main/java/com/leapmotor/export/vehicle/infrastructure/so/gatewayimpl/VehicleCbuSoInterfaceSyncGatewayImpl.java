@@ -1,5 +1,7 @@
 package com.leapmotor.export.vehicle.infrastructure.so.gatewayimpl;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -10,12 +12,16 @@ import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoInterfaceSyncGateway;
 import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.infrastructure.so.convertor.VehicleCbuSoInterfaceSyncStructMapper;
 import com.leapmotor.export.vehicle.infrastructure.so.dao.VehicleCbuSoInterfaceSyncDao;
+import com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSoDetail;
+import com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoDetailMapper;
 import com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoInterfaceSyncMapper;
 import com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSoInterfaceSync;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * SO接口同步记录表领域网关实现
@@ -29,8 +35,10 @@ public class VehicleCbuSoInterfaceSyncGatewayImpl implements VehicleCbuSoInterfa
 
     private VehicleCbuSoInterfaceSyncMapper vehicleCbuSoInterfaceSyncMapper;
     private VehicleCbuSoInterfaceSyncDao vehicleCbuSoInterfaceSyncDao;
+    private VehicleCbuSoDetailMapper vehicleCbuSoDetailMapper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public String addVehicleCbuSoInterfaceSync(VehicleCbuSoInterfaceSyncDo vehicleCbuSoInterfaceSyncDo) {
         VehicleCbuSoInterfaceSync vehicleCbuSoInterfaceSync = VehicleCbuSoInterfaceSyncStructMapper.INSTANCE.domainToDataObject(vehicleCbuSoInterfaceSyncDo);
         int result = vehicleCbuSoInterfaceSyncMapper.insert(vehicleCbuSoInterfaceSync);
@@ -38,10 +46,39 @@ public class VehicleCbuSoInterfaceSyncGatewayImpl implements VehicleCbuSoInterfa
         vehicleCbuSoInterfaceSyncDo.setId(vehicleCbuSoInterfaceSync.getId());
 
         if (result > 0) {
+            refreshDetailSyncSnapshot(vehicleCbuSoInterfaceSyncDo);
             return vehicleCbuSoInterfaceSync.getId();
-        } else {
-            return null;
         }
+        return null;
+    }
+
+    /**
+     * 根据接口同步记录刷新明细表同步快照
+     */
+    private void refreshDetailSyncSnapshot(VehicleCbuSoInterfaceSyncDo syncDo) {
+        if (StringUtils.isBlank(syncDo.getSoId()) || Objects.isNull(syncDo.getInterfaceType())) {
+            return;
+        }
+        Integer interfaceType = syncDo.getInterfaceType();
+        UpdateWrapper<VehicleCbuSoDetail> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("so_id", syncDo.getSoId());
+
+        if (interfaceType == 1 || interfaceType == 2) {
+            updateWrapper.set("sync_aps_result", syncDo.getResultStatus())
+                    .set("sync_aps_time", syncDo.getCallTime())
+                    .set("sync_aps_response_info", syncDo.getResponseInfo());
+        } else if (interfaceType == 3) {
+            updateWrapper.set("sync_customer_result", syncDo.getResultStatus())
+                    .set("sync_customer_time", syncDo.getCallTime())
+                    .set("sync_customer_response_info", syncDo.getResponseInfo());
+        } else if (interfaceType == 4) {
+            updateWrapper.set("sync_sap_result", syncDo.getResultStatus())
+                    .set("sync_sap_time", syncDo.getCallTime())
+                    .set("sync_sap_response_info", syncDo.getResponseInfo());
+        } else {
+            return;
+        }
+        vehicleCbuSoDetailMapper.update(null, updateWrapper);
     }
 
     @Override

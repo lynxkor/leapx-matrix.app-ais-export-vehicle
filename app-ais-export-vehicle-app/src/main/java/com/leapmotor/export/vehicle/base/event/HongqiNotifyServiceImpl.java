@@ -1,7 +1,7 @@
 package com.leapmotor.export.vehicle.base.event;
 
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
-import com.leapmotor.export.vehicle.base.event.enums.HongqiThirdTargetPlatformEnum;
+import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;
 import com.leapmotor.paltform.ais.common.event.core.config.EventConfig;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
@@ -31,7 +31,7 @@ public class HongqiNotifyServiceImpl extends AbstractThirdNotifyService {
         super(List.of(HongqiEventTypeEnum.values()), eventConfig, eventNotifyTaskService);
         handlerMap = new HashMap<>();
         for (AbstractEventHandler handler : handlers) {
-            if (Strings.CS.equals(HongqiThirdTargetPlatformEnum.HONGQI.getPlatform(),
+            if (Strings.CS.equals(ThirdTargetPlatformEnum.HONGQI.getPlatform(),
                     handler.getSupportPlatform().getPlatform())) {
                 handlerMap.put(handler.getSupportEvent(), handler);
             }
@@ -51,6 +51,6 @@ public class HongqiNotifyServiceImpl extends AbstractThirdNotifyService {
 
     @Override
     public String platform() {
-        return HongqiThirdTargetPlatformEnum.HONGQI.getPlatform();
+        return ThirdTargetPlatformEnum.HONGQI.getPlatform();
     }
 }

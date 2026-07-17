@@ -153,17 +153,18 @@
 
 - 目标：接入平台 `ais-event` 标准事件驱动（本地消息表 + XXL-Job 失败重试），实现推红旗 CBU 审批结果的可靠投递。
 - 产出：
-  - 依赖：新增 `com.leapmotor.platform:ais-event`（已确认完整含：`EventPublisher`/`NotifyEventSourceAdapter`/`AbstractThirdNotifyService`/`BizEventType`/`ThirdTargetPlatform`/`BizOptionalDefinition`/`EventNotifyTask` + Service/Manager/Mapper/Controller + `NotifyEventJob` XXL-Job 重试调度，包 `com.leapmotor.paltform.ais.common.event.*`）。
+  - 依赖：新增 `com.leapmotor.platform:ais-event`（已确认完整含：`EventPublisher`/`NotifyEventSourceAdapter`/`AbstractThirdNotifyService`/`BizEventType`/`ThirdTargetPlatform`/`BizOptionalDefinition`/`EventNotifyTask` + `EventConfig`/`EventNotifyTaskService` + Service/Manager/Mapper/Controller + `NotifyEventJob` XXL-Job 重试调度，包 `com.leapmotor.paltform.ais.common.event.*`）。
   - 本地消息表：建 `event_notify_task`（ais-event 自带实体，DDL 从 ais-event 制品/maintain 找）。
   - 事件类型：`HongqiEventTypeEnum implements BizEventType`（审批结果反馈等，字段 type/desc）。
-  - 目标平台：本项目 `ThirdTargetPlatformEnum implements ThirdTargetPlatform`（含 HONGQI，字段 code/desc）。
-  - 注册事件↔平台：`BizOptionalDefinitionImpl implements BizOptionalDefinition`，`findEventTypeList()` 绑定 `HongqiEventTypeEnum.XXX ↔ HONGQI`。
-  - 通知服务：`HongqiNotifyServiceImpl extends AbstractThirdNotifyService`，实现 `support()`+`doInvoke()`，`doInvoke` 调 `HongqiClient` 推红旗。
-  - 发布：业务侧 `eventPublisher.publishAsync(NotifyEventSourceAdapter.builder().eventType().thirdTargetPlatform().content().build())`。
-  - domain/acl/http/hongqi：`HongqiClient`（@FeignClient 对接红旗 CBU 反馈）+ request/response。
+  - 目标平台：本项目 `ThirdTargetPlatformEnum implements ThirdTargetPlatform`（含 HONGQI，字段 platform/desc）。
+  - 事件/平台下拉定义：`BizOptionalDefinitionImpl implements BizOptionalDefinition`，`findEventTypeList()`/`findThirdTargetPlatformList()` 供前端下拉（事件↔平台绑定见下行）。
+  - 通知服务（平台路由）：`HongqiNotifyServiceImpl extends AbstractThirdNotifyService`，`platform()=HONGQI` + 构造器 `super(List.of(HongqiEventTypeEnum.values()),...)` 绑定该平台支持的事件类型，`doExecuteNotify(task)` 按 `task.type` 分发给匹配的 `AbstractEventHandler`。
+  - 单事件处理器：`CbuApprovalResultToHongqi extends AbstractEventHandler`，`getSupportEvent()`+`getSupportPlatform()`+`handle(task)`，`handle` 调 `HongqiGateway` 推红旗（抛异常=失败触发重试）。
+  - 发布：业务侧调 `EventHandlerHelper.publishAsync(platform, eventType, bizNo, data)`（内部 `EventPublisher.publish(NotifyEventSourceAdapter{targetPlatforms,bizEventType,bizNo,dataParam}, true,true,true)`）。
+  - domain/acl/http/hongqi：`HongqiGateway`（领域网关接口）+ request/response；infrastructure/acl/http/hongqi：`HongqiClientApi`（@FeignClient name=app-ais-xuanniao, path=/external/hongqi 对接红旗 CBU 反馈）+ `HongqiGatewayImpl`。
   - 配置：nacos event 配置（参考 maintain `app-ais-maintain-event.yaml`）+ 注册 ais-event 的 `NotifyEventJob` 到 XXL-Job 调度。
 - 参考：rules `backend-coding-constraints.md` §15（权威，含完整示例）、maintain `ServiceProxyToGms`。
-- 验收：发测试事件 → `event_notify_task` 落记录 → `HongqiNotifyServiceImpl.doInvoke` 调通 `HongqiClient`（红旗可先 mock）→ 失败时 XXL-Job 重试。
+- 验收：发测试事件 → `event_notify_task` 落记录 → `NotifyEventJob` 轮询 → `HongqiNotifyServiceImpl.doExecuteNotify` → `CbuApprovalResultToHongqi.handle` 调通 `HongqiGateway`（红旗可先 mock）→ 失败时 XXL-Job 重试。
 - 依赖：T01。
 
 ### T04 - 4.1 红旗订单同步创建（入站接口 + 匹配逻辑）
@@ -214,7 +215,7 @@
 - 产出：
   - 通过 `balanceApprove`：状态→产销平衡通过（终态）、记 production_sales_balance_approve_time/approver；推红旗。
   - 驳回 `balanceReject`：校验 SO 状态（焊装上线及之后不可驳回）；SO 全作废；按需调 APS「SO订单作废同步」；保函解冻；状态→产销平衡驳回（终态）；推红旗。
-  - SO 作废 + APS：`SoClient` 作废、`ApsClient`（domain/acl/http/aps）同步。
+  - SO 作废 + APS：`SoClient` 作废、`ApsGateway`（domain/acl/http/aps/gateway）→ infrastructure `ApsClientApi`（@FeignClient name=app-ais-xuanniao, path=/external/aps）同步。
 - 参考：评审 05 节点。
 - 验收：通过终态 + 推红旗；驳回按 SO 状态分支、SO 作废 + APS + 保函解冻 + 推红旗；APS/红旗走事件最终一致，SO/保函走本地事务强一致。
 - 依赖：T07。
@@ -274,7 +275,7 @@
   - 保函联动：冻结/解冻/刷新调额后关联表 po_current_occupied_amount 的正确性。
   - 刷新价格：分支 A（仅重算）与分支 B（重算 + 联动保函/SO）各测。
   - 批量操作：单条失败不影响其他条，返回成功/失败汇总。
-- 外部依赖隔离：HongqiClient / SoClient / ApsClient / 保函内部接口 / 主数据查询用 `@MockBean` 或 Mockito mock，禁止真连外部。
+- 外部依赖隔离：HongqiGateway / HongqiClientApi / SoClient / ApsGateway / ApsClientApi / 保函内部接口 / 主数据查询用 `@MockBean` 或 Mockito mock，禁止真连外部。
 - 数据层：Dao/Mapper 自定义 SQL（batchInsert / 复杂关联查询）配集成测试（连测试库）。
 - 覆盖率目标：核心业务方法行覆盖 + 分支覆盖 ≥ 80%；审批/状态/金额计算类逻辑分支覆盖 100%。
 - 金额/数量断言对齐业务展示口径（从明细聚合计算，勿用汇总字段等价替换），避免汇总字段与展示口径不一致的坑。

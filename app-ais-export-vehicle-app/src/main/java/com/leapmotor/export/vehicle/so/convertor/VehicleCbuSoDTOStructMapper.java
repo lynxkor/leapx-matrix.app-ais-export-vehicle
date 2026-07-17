@@ -8,9 +8,12 @@ import com.leapmotor.export.vehicle.so.request.VehicleCbuSoRequest;
 import com.leapmotor.export.vehicle.so.response.VehicleCbuSoResponse;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoParam;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoAddOrUpdateReq;
+import com.leapmotor.export.vehicle.so.req.SoCreateReq;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
+import com.leapmotor.export.vehicle.so.resp.SoResult;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
@@ -50,4 +53,11 @@ public interface VehicleCbuSoDTOStructMapper {
     List<VehicleCbuSoResponse> domainsToResponses(List<VehicleCbuSoResp> sources);
 
     PageResult<VehicleCbuSoResponse> domainsToResponsePage(PageResult<VehicleCbuSoResp> sources);
+
+    VehicleCbuSoDo createReqToDomain(SoCreateReq source);
+
+    @Mapping(target = "soId", source = "id")
+    SoResult.SoItem domainToSoItem(VehicleCbuSoDo source);
+
+    List<SoResult.SoItem> domainsToSoItems(List<VehicleCbuSoDo> sources);
 }

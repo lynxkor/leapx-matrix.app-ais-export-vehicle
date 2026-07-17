@@ -3,16 +3,17 @@ package com.leapmotor.export.vehicle.base.event.enums;
 import com.leapmotor.paltform.ais.common.event.core.base.ThirdTargetPlatform;
 
 /**
- * 红旗事件目标平台
+ * 第三方目标平台枚举（红旗 / SAP）
  */
-public enum HongqiThirdTargetPlatformEnum implements ThirdTargetPlatform {
+public enum ThirdTargetPlatformEnum implements ThirdTargetPlatform {
 
-    HONGQI("HONGQI", "红旗系统");
+    HONGQI("HONGQI", "红旗系统"),
+    SAP("SAP", "SAP系统");
 
     private final String platform;
     private final String desc;
 
-    HongqiThirdTargetPlatformEnum(String platform, String desc) {
+    ThirdTargetPlatformEnum(String platform, String desc) {
         this.platform = platform;
         this.desc = desc;
     }

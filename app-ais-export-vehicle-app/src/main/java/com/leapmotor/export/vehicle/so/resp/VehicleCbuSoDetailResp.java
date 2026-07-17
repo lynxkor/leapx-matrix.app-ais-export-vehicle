@@ -70,6 +70,33 @@ public class VehicleCbuSoDetailResp extends LpBaseModel implements Serializable 
     @Schema(description = "总装下线时间，从APS获取")
     private LocalDateTime assemblyOutTime;
 
+    @Schema(description = "APS最新同步结果：0失败、1成功（下发排产或作废，取最近一次）")
+    private Integer syncApsResult;
+
+    @Schema(description = "APS最新同步时间")
+    private LocalDateTime syncApsTime;
+
+    @Schema(description = "APS最新返回信息")
+    private String syncApsResponseInfo;
+
+    @Schema(description = "SAP最新同步结果：0失败、1成功")
+    private Integer syncSapResult;
+
+    @Schema(description = "SAP最新同步时间")
+    private LocalDateTime syncSapTime;
+
+    @Schema(description = "SAP最新返回信息")
+    private String syncSapResponseInfo;
+
+    @Schema(description = "客户系统最新同步结果：0失败、1成功")
+    private Integer syncCustomerResult;
+
+    @Schema(description = "客户系统最新同步时间")
+    private LocalDateTime syncCustomerTime;
+
+    @Schema(description = "客户系统最新返回信息")
+    private String syncCustomerResponseInfo;
+
     @Schema(description = "备注")
     private String remark;
 

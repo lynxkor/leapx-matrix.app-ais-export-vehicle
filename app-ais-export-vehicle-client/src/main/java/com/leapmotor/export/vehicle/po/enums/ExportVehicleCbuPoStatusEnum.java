@@ -14,7 +14,7 @@ import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
  *                                供需审核通过(40) ──产销平衡驳回──▶ 产销平衡驳回(70,终态)
  * </pre>
  * 终态: 销售已驳回(30) / 供需审核驳回(50) / 产销平衡驳回(70) / 产销平衡通过(60)。
- * 红旗重推按 4.1 创建为新订单(新 po_no),原驳回单不复活。
+ * 红旗重推创建为新订单(新 po_no),原驳回单不复活。
  */
 public enum ExportVehicleCbuPoStatusEnum implements IBaseEnum<String> {
 

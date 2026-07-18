@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
-import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSubmitReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRejectReq;
@@ -74,13 +73,6 @@ public class ExportVehicleCbuPoController {
     @PostMapping(value = "/detail")
     public AjaxResult<ExportVehicleCbuPoDetailFullResp> detail(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoDetailById(id));
-    }
-
-    @Operation(summary = "PO订单主表新增/编辑")
-    @ResourcePermission(value="web:po:purchaseOrder:addOrUpdate",desc="PO订单主表新增/编辑")
-    @PostMapping("/addOrUpdate")
-    public AjaxResult<String> addOrUpdate(@RequestBody @Validated ExportVehicleCbuPoAddOrUpdateReq purchaseOrderAddOrUpdateReq) {
-        return AjaxResult.success(purchaseOrderService.addOrUpdateExportVehicleCbuPo(purchaseOrderAddOrUpdateReq));
     }
 
     @Operation(summary = "PO订单主表删除")

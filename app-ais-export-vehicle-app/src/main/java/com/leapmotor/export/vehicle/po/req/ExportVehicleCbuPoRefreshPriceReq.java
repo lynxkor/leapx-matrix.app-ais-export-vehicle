@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * PO 刷新价格请求（4.6）。
+ * PO 刷新价格请求。
  *
  * @author leapmotor
  * @since 2026-07-14

@@ -4,7 +4,6 @@ import com.leapmotor.export.vehicle.po.api.ExportVehicleCbuPoApi;
 import com.leapmotor.export.vehicle.po.request.ExportVehicleCbuPoRequest;
 import com.leapmotor.export.vehicle.po.response.ExportVehicleCbuPoResponse;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
-import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
@@ -52,13 +51,6 @@ public class ExportVehicleCbuPoApiImpl implements ExportVehicleCbuPoApi {
         ExportVehicleCbuPoResp resp = purchaseOrderService.getExportVehicleCbuPoById(id);
         ExportVehicleCbuPoResponse dto = ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResponse(resp);
         return AjaxResult.success(dto);
-    }
-
-    @PostMapping("/addOrUpdate")
-    @Override
-    public AjaxResult<String> addOrUpdate(@RequestBody ExportVehicleCbuPoRequest purchaseOrderRequest) {
-        ExportVehicleCbuPoAddOrUpdateReq req = ExportVehicleCbuPoDTOStructMapper.INSTANCE.dtoToReq(purchaseOrderRequest);
-        return AjaxResult.success(purchaseOrderService.addOrUpdateExportVehicleCbuPo(req));
     }
 
 }

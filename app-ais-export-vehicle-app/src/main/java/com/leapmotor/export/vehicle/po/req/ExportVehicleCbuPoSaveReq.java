@@ -9,7 +9,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 4.2 订单编辑保存入参（仅草稿态；仅销售公司 + 明细生产备注可改）
+ * 订单编辑保存入参（仅草稿态；仅销售公司 + 明细生产备注可改）
  */
 @Data
 @Schema(description = "PO订单编辑保存")

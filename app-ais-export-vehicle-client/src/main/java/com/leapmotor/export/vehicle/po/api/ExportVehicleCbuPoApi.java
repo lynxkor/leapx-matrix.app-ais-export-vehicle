@@ -44,13 +44,4 @@ public interface ExportVehicleCbuPoApi {
      */
     @PostMapping("/get")
     AjaxResult<ExportVehicleCbuPoResponse> getExportVehicleCbuPoById(@RequestBody String id);
-
-    /**
-     * PO订单主表新增/编辑
-     *
-     * @param purchaseOrderRequest 新增/编辑请求参数
-     * @return 操作结果
-     */
-    @PostMapping("/addOrUpdate")
-    AjaxResult<String> addOrUpdate(@RequestBody ExportVehicleCbuPoRequest purchaseOrderRequest);
 }

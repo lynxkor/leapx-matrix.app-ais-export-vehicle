@@ -25,11 +25,12 @@ public class ExportVehicleCbuPoDaoImpl extends ServiceImpl<ExportVehicleCbuPoMap
     public QueryWrapper<ExportVehicleCbuPo> buildQueryWrapper(ExportVehicleCbuPoQo query) {
         QueryWrapper<ExportVehicleCbuPo> queryWrapper = ExportVehicleCbuPoDao.super.buildBasicQueryWrapper(query);
         queryWrapper.lambda()
+            .eq(ExportVehicleCbuPo::getStatus,1)
             .eq(StringUtils.isNotBlank(query.getPoNo()),ExportVehicleCbuPo::getPoNo,query.getPoNo())
             .eq(StringUtils.isNotBlank(query.getOrderStatus()),ExportVehicleCbuPo::getOrderStatus,query.getOrderStatus())
             .eq(StringUtils.isNotBlank(query.getSalesCompanyCode()),ExportVehicleCbuPo::getSalesCompanyCode,query.getSalesCompanyCode())
             .eq(StringUtils.isNotBlank(query.getCustomerCode()),ExportVehicleCbuPo::getCustomerCode,query.getCustomerCode())
-            .eq(StringUtils.isNotBlank(query.getCustomerName()),ExportVehicleCbuPo::getCustomerName,query.getCustomerName())
+            .like(StringUtils.isNotBlank(query.getCustomerName()),ExportVehicleCbuPo::getCustomerName,query.getCustomerName())
             .eq(StringUtils.isNotBlank(query.getExternalCustomerCode()),ExportVehicleCbuPo::getExternalCustomerCode,query.getExternalCustomerCode())
             .eq(Objects.nonNull(query.getTotalAmount()),ExportVehicleCbuPo::getTotalAmount,query.getTotalAmount())
             .ge(Objects.nonNull(query.getSubmitTimeStart()),ExportVehicleCbuPo::getSubmitTime,query.getSubmitTimeStart())

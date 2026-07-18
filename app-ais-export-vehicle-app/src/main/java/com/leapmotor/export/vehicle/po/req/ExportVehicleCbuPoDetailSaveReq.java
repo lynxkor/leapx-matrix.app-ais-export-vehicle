@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 4.2 明细生产备注编辑入参
+ * 明细生产备注编辑入参
  */
 @Data
 @Schema(description = "明细生产备注")

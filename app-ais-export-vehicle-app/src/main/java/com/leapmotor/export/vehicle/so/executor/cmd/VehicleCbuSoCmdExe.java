@@ -179,6 +179,7 @@ public class VehicleCbuSoCmdExe {
         so.setVehiclePrice(detailReq.getUnitPrice());
         so.setFrozenAmount(detailReq.getUnitPrice());
         so.setReceivableAmount(BigDecimal.ZERO);
+        so.setDataSource(req.getDataSource());
         so.setOrderStatus(VehicleCbuSoStatusEnum.NOT_ISSUED.getCode());
         so.setStatus(1);
         return so;

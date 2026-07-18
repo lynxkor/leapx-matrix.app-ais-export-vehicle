@@ -290,6 +290,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         req.setExternalCustomerCode(order.getExternalCustomerCode());
         req.setPlanVersion(order.getPlanVersion());
         req.setReceiveOrderTime(order.getCreateTime());
+        req.setDataSource(order.getDataSource());
         req.setDetails(details.stream().map(d -> {
             SoCreateReq.SoDetailReq sd = new SoCreateReq.SoDetailReq();
             sd.setPoDetailId(d.getId());

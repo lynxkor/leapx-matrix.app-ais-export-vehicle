@@ -8,21 +8,21 @@ import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
  * @author leapmotor
  * @since 2026-07-13
  */
-public enum DataSourceEnum implements IBaseEnum<String> {
+public enum DataSourceEnum implements IBaseEnum<Integer> {
 
-    HONGQI("红旗", "红旗CBU订单"),
-    SALES_SERVICE("销服", "销服订单");
+    SALES_SERVICE(1, "销服"),
+    HONGQI(2, "红旗");
 
-    private final String code;
+    private final Integer code;
     private final String message;
 
-    DataSourceEnum(String code, String message) {
+    DataSourceEnum(Integer code, String message) {
         this.code = code;
         this.message = message;
     }
 
     @Override
-    public String getCode() {
+    public Integer getCode() {
         return code;
     }
 

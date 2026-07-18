@@ -118,6 +118,10 @@ public class VehicleCbuSoResp extends LpBaseModel implements Serializable {
     @Schema(description = "完成收款时间")
     private LocalDateTime receiveTime;
 
+    @Schema(description = "数据来源，枚举:1销服/2红旗")
+    @DictEnumType(prefix = "DataSourceEnum")
+    private Integer dataSource;
+
     @Schema(description = "备注")
     private String remark;
 

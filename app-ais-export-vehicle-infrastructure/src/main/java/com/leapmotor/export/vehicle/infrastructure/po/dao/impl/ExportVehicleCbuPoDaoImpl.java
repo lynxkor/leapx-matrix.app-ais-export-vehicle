@@ -43,7 +43,7 @@ public class ExportVehicleCbuPoDaoImpl extends ServiceImpl<ExportVehicleCbuPoMap
             .le(Objects.nonNull(query.getProductionSalesBalanceApproveTimeEnd()),ExportVehicleCbuPo::getProductionSalesBalanceApproveTime,query.getProductionSalesBalanceApproveTimeEnd())
             .eq(StringUtils.isNotBlank(query.getProductionSalesBalanceApprover()),ExportVehicleCbuPo::getProductionSalesBalanceApprover,query.getProductionSalesBalanceApprover())
             .eq(StringUtils.isNotBlank(query.getRejectReason()),ExportVehicleCbuPo::getRejectReason,query.getRejectReason())
-            .eq(StringUtils.isNotBlank(query.getDataSource()),ExportVehicleCbuPo::getDataSource,query.getDataSource())
+            .eq(Objects.nonNull(query.getDataSource()),ExportVehicleCbuPo::getDataSource,query.getDataSource())
             .eq(Objects.nonNull(query.getOrderType()),ExportVehicleCbuPo::getOrderType,query.getOrderType())
             .eq(StringUtils.isNotBlank(query.getPlanVersion()),ExportVehicleCbuPo::getPlanVersion,query.getPlanVersion())
             .eq(Objects.nonNull(query.getAuditResultSyncTime()),ExportVehicleCbuPo::getAuditResultSyncTime,query.getAuditResultSyncTime())

@@ -42,6 +42,9 @@ public class SoCreateReq implements Serializable {
     @Schema(description = "接单时间，取 PO 主单创建时间")
     private LocalDateTime receiveOrderTime;
 
+    @Schema(description = "数据来源，枚举:1销服/2红旗")
+    private Integer dataSource;
+
     @Schema(description = "PO 明细列表（一车一单拆分来源）")
     private List<SoDetailReq> details;
 

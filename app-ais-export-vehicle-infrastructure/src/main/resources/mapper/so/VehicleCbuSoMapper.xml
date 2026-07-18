@@ -42,12 +42,13 @@
         <result column="last_qc_result_time" property="lastQcResultTime"/>
         <result column="last_qc_remark" property="lastQcRemark"/>
         <result column="receive_time" property="receiveTime"/>
+        <result column="data_source" property="dataSource"/>
         <result column="remark" property="remark"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, so_no, po_id, po_no, po_detail_id, po_detail_no, line_no, sales_company_code, customer_code, customer_name, external_customer_code, order_type, plan_version, expected_offline_date, vin_year, production_remark, vehicle_price, frozen_amount, receivable_amount, order_status, issue_time, cancel_time, qc_result, qc_result_time, qc_remark, last_qc_result, last_qc_result_time, last_qc_remark, receive_time, remark
+        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, so_no, po_id, po_no, po_detail_id, po_detail_no, line_no, sales_company_code, customer_code, customer_name, external_customer_code, order_type, plan_version, expected_offline_date, vin_year, production_remark, vehicle_price, frozen_amount, receivable_amount, order_status, issue_time, cancel_time, qc_result, qc_result_time, qc_remark, last_qc_result, last_qc_result_time, last_qc_remark, receive_time, data_source, remark
     </sql>
 
     <!-- SO 主表 LEFT JOIN 车辆明细表结果映射 -->
@@ -89,6 +90,7 @@
         <result column="last_qc_result_time" property="lastQcResultTime"/>
         <result column="last_qc_remark" property="lastQcRemark"/>
         <result column="receive_time" property="receiveTime"/>
+        <result column="data_source" property="dataSource"/>
         <result column="remark" property="remark"/>
         <result column="internal_vehicle_no" property="internalVehicleNo"/>
         <result column="production_identify_code" property="productionIdentifyCode"/>
@@ -121,7 +123,7 @@
         m.so_no, m.po_id, m.po_no, m.po_detail_id, m.po_detail_no, m.line_no, m.sales_company_code, m.customer_code, m.customer_name,
         m.external_customer_code, m.order_type, m.plan_version, m.expected_offline_date, m.vin_year, m.production_remark,
         m.vehicle_price, m.frozen_amount, m.receivable_amount, m.order_status, m.issue_time, m.cancel_time, m.qc_result, m.qc_result_time,
-        m.qc_remark, m.last_qc_result, m.last_qc_result_time, m.last_qc_remark, m.receive_time, m.remark,
+        m.qc_remark, m.last_qc_result, m.last_qc_result_time, m.last_qc_remark, m.receive_time, m.data_source, m.remark,
         d.internal_vehicle_no, d.production_identify_code, d.vin, d.material_code, d.material_description, d.sales_market, d.model_year,
         d.optional_package, d.schedule_time, d.barcode_print_time, d.body_in_time, d.paint_in_time, d.assembly_in_time, d.assembly_out_time,
         d.sync_aps_result, d.sync_aps_time, d.sync_aps_response_info, d.sync_sap_result, d.sync_sap_time, d.sync_sap_response_info,

@@ -212,6 +212,12 @@ public class VehicleCbuSo extends LpBaseEntity implements Serializable {
     private LocalDateTime receiveTime;
 
     /**
+     * 数据来源，枚举:1销服/2红旗
+     */
+    @TableField("data_source")
+    private Integer dataSource;
+
+    /**
      * 备注
      */
     @TableField("remark")

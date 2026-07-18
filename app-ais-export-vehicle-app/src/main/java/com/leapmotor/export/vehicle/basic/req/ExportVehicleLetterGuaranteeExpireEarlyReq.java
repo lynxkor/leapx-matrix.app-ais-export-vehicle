@@ -15,6 +15,6 @@ public class ExportVehicleLetterGuaranteeExpireEarlyReq implements Serializable 
     @Schema(description = "保函ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private String id;
 
-    @Schema(description = "失效原因")
+    @Schema(description = "失效原因(可选,不填则流水 transaction_remark 留空)")
     private String remark;
 }

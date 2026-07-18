@@ -82,7 +82,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     @Transactional(rollbackFor = Exception.class)
     public boolean expireEarly(String id, String reason) {
         log.info("保函手动失效: id={}, reason={}", id, reason);
-        return exportVehicleLetterGuaranteeGateway.expireEarly(id, reason);
+        return exportVehicleLetterGuaranteeGateway.expireEarly(id, "手动操作保函失效");
     }
 
     // ============== 资金流 ==============

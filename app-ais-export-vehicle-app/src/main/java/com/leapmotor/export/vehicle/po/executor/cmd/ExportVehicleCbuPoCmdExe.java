@@ -25,7 +25,6 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
-import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,12 +63,6 @@ public class ExportVehicleCbuPoCmdExe {
     private VehiclePriceHqApi vehiclePriceHqApi;
 
 
-    public String addOrUpdateExportVehicleCbuPo(ExportVehicleCbuPoDo purchaseOrderDo) {
-        return purchaseOrderDo.getId() == null
-                ? purchaseOrderGateway.addExportVehicleCbuPo(purchaseOrderDo)
-                : purchaseOrderGateway.updateExportVehicleCbuPo(purchaseOrderDo);
-    }
-
     public boolean deleteExportVehicleCbuPoByIds(List<String> ids) {
         return purchaseOrderGateway.deleteExportVehicleCbuPoByIds(ids);
     }
@@ -78,13 +71,12 @@ public class ExportVehicleCbuPoCmdExe {
         return purchaseOrderGateway.enableOrDisableExportVehicleCbuPoByIds(param);
     }
 
-    // ==================== 4.1 红旗CBU推送创建草稿订单 ====================
+    // ==================== 红旗CBU推送创建草稿订单 ====================
 
     /**
      * 红旗 CBU 订单采购申请 → 创建草稿 PO 订单（主表 + 明细联保存）。
-     * 匹配类字段（客户/物料/单价）匹配不到则留空，留待 4.3 提交时强校验。
+     * 匹配类字段（客户/物料/单价）匹配不到则留空，留待 提交时强校验。
      */
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:createFromHongqi", value = "#req.poNo", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在创建，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public String createFromHongqi(HongqiCbuPurchaseOrderReq req) {
         // 1. PO单号唯一性（已存在则报错，重复推送同样报错）
@@ -190,15 +182,12 @@ public class ExportVehicleCbuPoCmdExe {
         }
     }
 
-    // ==================== 4.2 订单编辑保存（仅草稿态；仅销售公司 + 明细生产备注） ====================
+    // ==================== 订单编辑保存（仅草稿态；仅销售公司 + 明细生产备注） ====================
 
     /**
      * 草稿态编辑保存：仅改销售公司（抬头）+ 明细生产备注（逐行）。
      * 防篡改：update Do 只 set 可编辑字段，updateById 走 not_null 策略只更新这几项，其余字段不动。
-     * 防并发：@DistributeLock 按 poId 加锁。
      */
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:save", value = "#req.poId",
-            tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在被他人编辑，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public void saveExportVehicleCbuPo(ExportVehicleCbuPoSaveReq req) {
         // 1. 查订单 + 草稿态校验
@@ -218,6 +207,11 @@ public class ExportVehicleCbuPoCmdExe {
 
         // 3. 明细生产备注逐行更新（按 detailId，只 set id + productionRemark）
         for (ExportVehicleCbuPoDetailSaveReq d : req.getDetailList()) {
+            // 校验明细归属当前 PO，防跨 PO 篡改他人明细
+            ExportVehicleCbuPoDetailDo existDetail = purchaseOrderDetailGateway.getExportVehicleCbuPoDetailById(d.getDetailId());
+            if (existDetail == null || !order.getPoNo().equals(existDetail.getPoNo())) {
+                throw new BizException("明细不属于当前订单，不允许编辑");
+            }
             ExportVehicleCbuPoDetailDo detailUpdate = new ExportVehicleCbuPoDetailDo();
             detailUpdate.setId(d.getDetailId());
             detailUpdate.setProductionRemark(d.getProductionRemark());

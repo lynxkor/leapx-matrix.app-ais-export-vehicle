@@ -32,7 +32,7 @@ public class HongqiOpenController {
     private VehicleCbuSoService vehicleCbuSoService;
 
     /**
-     * 4.1 红旗CBU订单采购申请 → 创建草稿PO订单（主表+明细联保存）
+     * 红旗CBU订单采购申请 → 创建草稿PO订单（主表+明细联保存）
      */
     @Operation(summary = "红旗CBU订单采购申请-创建草稿订单")
     @PostMapping("/purchaseOrder/sync")

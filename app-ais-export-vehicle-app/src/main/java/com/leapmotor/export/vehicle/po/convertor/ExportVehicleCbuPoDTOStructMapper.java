@@ -7,7 +7,6 @@ import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.request.ExportVehicleCbuPoRequest;
 import com.leapmotor.export.vehicle.po.response.ExportVehicleCbuPoResponse;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
-import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoQo;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 
@@ -26,8 +25,6 @@ import java.util.List;
 public interface ExportVehicleCbuPoDTOStructMapper {
     ExportVehicleCbuPoDTOStructMapper INSTANCE = Mappers.getMapper(ExportVehicleCbuPoDTOStructMapper.class);
 
-    ExportVehicleCbuPoDo addCmdToDomain(ExportVehicleCbuPoAddOrUpdateReq source);
-
     ExportVehicleCbuPoResp domainToResp(ExportVehicleCbuPoDo source);
 
     List<ExportVehicleCbuPoResp> domainsToResps(List<ExportVehicleCbuPoDo> sources);
@@ -41,8 +38,6 @@ public interface ExportVehicleCbuPoDTOStructMapper {
     ExportVehicleCbuPoQo paramToQuery(ExportVehicleCbuPoParam source);
 
     ExportVehicleCbuPoParam requestToParam(ExportVehicleCbuPoRequest source);
-
-    ExportVehicleCbuPoAddOrUpdateReq dtoToReq(ExportVehicleCbuPoRequest source);
 
     ExportVehicleCbuPoResponse domainToResponse(ExportVehicleCbuPoResp source);
 

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 4.4 供需审核通过入参
+ * 供需审核通过入参
  */
 @Data
 @Schema(description = "PO订单供需审核通过")

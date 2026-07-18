@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.po.service.impl;
 
+import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.executor.cmd.ExportVehicleCbuPoApprovalCmdExe;
@@ -17,7 +18,6 @@ import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
-import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSubmitReq;
@@ -60,6 +60,9 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     @Override
     public ExportVehicleCbuPoResp getExportVehicleCbuPoById(String id) {
         ExportVehicleCbuPoDo purchaseOrderDo = purchaseOrderGateway.getExportVehicleCbuPoById(id);
+        if (purchaseOrderDo == null) {
+            throw new BizException("PO订单不存在");
+        }
         return ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(purchaseOrderDo);
     }
 
@@ -95,12 +98,6 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     public PageResult<ExportVehicleCbuPoResp> pageExportVehicleCbuPo(ExportVehicleCbuPoParam purchaseOrderParam) {
         PageResult<ExportVehicleCbuPoDo> page = purchaseOrderQryExe.pageExportVehicleCbuPo(purchaseOrderParam);
         return ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainsToRespPage(page);
-    }
-
-    @Override
-    public String addOrUpdateExportVehicleCbuPo(ExportVehicleCbuPoAddOrUpdateReq purchaseOrderAddOrUpdateReq) {
-        ExportVehicleCbuPoDo purchaseOrderDo = ExportVehicleCbuPoDTOStructMapper.INSTANCE.addCmdToDomain(purchaseOrderAddOrUpdateReq);
-        return purchaseOrderCmdExe.addOrUpdateExportVehicleCbuPo(purchaseOrderDo);
     }
 
     @Override

@@ -6,7 +6,6 @@ import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
-import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSubmitReq;
@@ -40,37 +39,35 @@ public interface ExportVehicleCbuPoService {
 
     PageResult<ExportVehicleCbuPoResp> pageExportVehicleCbuPo(ExportVehicleCbuPoParam purchaseOrderParam);
 
-    String addOrUpdateExportVehicleCbuPo(ExportVehicleCbuPoAddOrUpdateReq purchaseOrderAddOrUpdateReq);
-
     boolean deleteExportVehicleCbuPoByIds(List<String> ids);
 
     boolean enableOrDisableExportVehicleCbuPoByIds(LpBaseParam param);
 
-    /** 4.1 红旗CBU推送创建草稿订单 */
+    /** 红旗CBU推送创建草稿订单 */
     String createFromHongqi(HongqiCbuPurchaseOrderReq req);
 
-    /** 4.2 草稿态编辑保存 */
+    /** 草稿态编辑保存 */
     void saveExportVehicleCbuPo(ExportVehicleCbuPoSaveReq req);
 
-    /** 4.3 销售提交 */
+    /** 销售提交 */
     void submitExportVehicleCbuPo(ExportVehicleCbuPoSubmitReq req);
 
-    /** 4.3 销售驳回 */
+    /** 销售驳回 */
     void rejectExportVehicleCbuPo(ExportVehicleCbuPoRejectReq req);
 
-    /** 4.4 供需审核通过（生成 SO 单） */
+    /** 供需审核通过（生成 SO 单） */
     void supplyApprove(ExportVehicleCbuPoSupplyApproveReq req);
 
-    /** 4.4 供需审核驳回（解冻保函 + 推红旗） */
+    /** 供需审核驳回（解冻保函 + 推红旗） */
     void supplyReject(ExportVehicleCbuPoSupplyRejectReq req);
 
-    /** 4.5 产销平衡审核通过（终态 + 推红旗） */
+    /** 产销平衡审核通过（终态 + 推红旗） */
     void balanceApprove(ExportVehicleCbuPoBalanceApproveReq req);
 
-    /** 4.5 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） */
+    /** 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） */
     void balanceReject(ExportVehicleCbuPoBalanceRejectReq req);
 
-    /** 4.6 刷新订单价格（联动保函 / SO） */
+    /** 刷新订单价格（联动保函 / SO） */
     void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req);
 
     /** 批量提交 */

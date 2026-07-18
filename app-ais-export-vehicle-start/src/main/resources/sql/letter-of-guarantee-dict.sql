@@ -33,9 +33,7 @@ VALUES ('letter_guarantee_lg_type', 'PREPAYMENT', '预付款保函', 1, NULL, 's
 
 -- ---------- 订单类型 letter_guarantee_order_type ----------
 INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`, `creator`, `creator_name`, `create_time`)
-VALUES ('letter_guarantee_order_type', 'CBU', 'CBU', 1, NULL, 'system', CURRENT_TIMESTAMP),
-       ('letter_guarantee_order_type', 'SKD', 'SKD', 2, NULL, 'system', CURRENT_TIMESTAMP),
-       ('letter_guarantee_order_type', 'CKD', 'CKD', 3, NULL, 'system', CURRENT_TIMESTAMP);
+VALUES ('letter_guarantee_order_type', 'CBU', 'CBU', 1, NULL, 'system', CURRENT_TIMESTAMP);
 
 -- ---------- 审核状态 letter_guarantee_approval_status ----------
 INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`, `creator`, `creator_name`, `create_time`)

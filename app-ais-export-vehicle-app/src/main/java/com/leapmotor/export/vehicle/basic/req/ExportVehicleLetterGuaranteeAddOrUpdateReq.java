@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
 import java.io.Serializable;
@@ -22,6 +24,8 @@ public class ExportVehicleLetterGuaranteeAddOrUpdateReq extends LpBaseModel impl
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "保函编号" ,requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "保函编号不能为空")
+    @Size(max = 30, message = "保函编号长度不能超过30")
     private String lgCode;
 
     @Schema(description = "客户ID" ,requiredMode = Schema.RequiredMode.REQUIRED)
@@ -34,6 +38,8 @@ public class ExportVehicleLetterGuaranteeAddOrUpdateReq extends LpBaseModel impl
     private String orderType;
 
     @Schema(description = "开户银行(开立银行+支行合并,如\"中国工商银行杭州武林支行\")" ,requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "开户银行不能为空")
+    @Size(max = 100, message = "开户银行长度不能超过100")
     private String bankName;
 
     @Schema(description = "保函金额(人民币CNY)" ,requiredMode = Schema.RequiredMode.REQUIRED)

@@ -140,10 +140,12 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
         }
         // 必填校验
         requireNotBlank(req.getLgCode(), "保函编号");
+        requireMaxLength(req.getLgCode(), LG_CODE_MAX_LENGTH, "保函编号");
         requireNotBlank(req.getCustomerId(), "客户ID");
         requireNotBlank(req.getLgType(), "保函类型");
         requireNotBlank(req.getOrderType(), "订单类型");
         requireNotBlank(req.getBankName(), "开户银行");
+        requireMaxLength(req.getBankName(), BANK_NAME_MAX_LENGTH, "开户银行");
         if (req.getEffectiveDate() == null) {
             throw new BizException("生效日期不能为空");
         }
@@ -191,9 +193,21 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     /** 保函金额上限 10 亿 */
     private static final BigDecimal MAX_TOTAL_AMOUNT = new BigDecimal("1000000000");
 
+    /** 保函编号最大长度 */
+    private static final int LG_CODE_MAX_LENGTH = 30;
+
+    /** 开户银行最大长度 */
+    private static final int BANK_NAME_MAX_LENGTH = 100;
+
     private static void requireNotBlank(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
             throw new BizException(fieldName + "不能为空");
+        }
+    }
+
+    private static void requireMaxLength(String value, int max, String fieldName) {
+        if (value != null && value.length() > max) {
+            throw new BizException(fieldName + "长度不能超过" + max);
         }
     }
 

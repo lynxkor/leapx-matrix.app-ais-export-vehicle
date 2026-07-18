@@ -50,7 +50,7 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     @Schema(description = "客户名称(冗余展示,本地缓存填充)")
     private String customerName;
 
-    @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)")
+    @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40应收释放 50失效)")
     @DictEnumType(type = RecordTypeEnum.class)
     private String transactionType;
 
@@ -77,7 +77,7 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     @BigDecimalFormat(pattern = "#.########")
     private BigDecimal afterOccupied;
 
-    @Schema(description = "变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/释放应收 时填值)")
+    @Schema(description = "变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/应收释放 时填值)")
     @BigDecimalFormat(pattern = "#.########")
     private BigDecimal beforeReceivable;
 
@@ -88,7 +88,7 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     @Schema(description = "PO 单号(不允许编辑,根据冻结/解冻情况自动赋值)")
     private String poNo;
 
-    @Schema(description = "SO 单号(不允许编辑,根据转应收/释放应收情况自动赋值,冻结/解冻 时为 NULL)")
+    @Schema(description = "SO 单号(不允许编辑,根据转应收/应收释放情况自动赋值,冻结/解冻 时为 NULL)")
     private String soNo;
 
     @Schema(description = "VIN 车辆识别码(不允许编辑,根据转应收情况自动赋值,冻结/解冻 时为 NULL)")

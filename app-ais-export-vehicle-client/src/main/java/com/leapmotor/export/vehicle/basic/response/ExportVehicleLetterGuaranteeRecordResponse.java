@@ -48,7 +48,7 @@ public class ExportVehicleLetterGuaranteeRecordResponse extends LpBaseResponse i
     private String customerId;
 
     /**
-     * 变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)
+     * 变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40应收释放 50失效)
      */
     private String transactionType;
 
@@ -83,7 +83,7 @@ public class ExportVehicleLetterGuaranteeRecordResponse extends LpBaseResponse i
     private BigDecimal afterOccupied;
 
     /**
-     * 变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/释放应收 时填值)
+     * 变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/应收释放 时填值)
      */
     private BigDecimal beforeReceivable;
 
@@ -98,7 +98,7 @@ public class ExportVehicleLetterGuaranteeRecordResponse extends LpBaseResponse i
     private String poNo;
 
     /**
-     * SO 单号(不允许编辑,根据转应收/释放应收情况自动赋值,冻结/解冻 时为 NULL)
+     * SO 单号(不允许编辑,根据转应收/应收释放情况自动赋值,冻结/解冻 时为 NULL)
      */
     private String soNo;
 

@@ -94,7 +94,7 @@ public class ExportVehicleLetterGuaranteeAppController {
         return AjaxResult.success();
     }
 
-    @Operation(summary = "释放应收 — SAP 清账")
+    @Operation(summary = "应收释放 — SAP 清账")
     @PostMapping("/releaseReceivable")
     public AjaxResult<Void> releaseReceivable(@RequestBody ExportVehicleLetterGuaranteeReleaseReq req) {
         exportVehicleLetterGuaranteeService.releaseReceivable(req);

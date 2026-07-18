@@ -46,7 +46,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
     private static String lgApprovedBId;    // 审核通过(有可用金额,可被 freeze)
     private static String lgRejectedId;     // 驳回状态保函(可重提交或作废)
     private static String lgCancelledId;    // 已作废保函
-    private static String lgFrozenPoId;     // 已被 PO 冻结的保函(用于解冻/转应收/释放应收)
+    private static String lgFrozenPoId;     // 已被 PO 冻结的保函(用于解冻/转应收/应收释放)
     private static String lgInvalidId;      // 已失效(lg_status=30)
 
     // ============== CRUD(对应 /list /page /get /addOrUpdate /delete /enableOrDisable) ==============
@@ -722,7 +722,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
 
     @Test
     @Order(92)
-    @DisplayName("releaseReceivable — SAP 清账释放应收")
+    @DisplayName("releaseReceivable — SAP 清账应收释放")
     public void testReleaseReceivable_dropsReceivable() {
         String custId = "CUST_REL_" + UUID.randomUUID().toString().substring(0, 8);
         String lgId = createApprovedLg("LG_REL_" + UUID.randomUUID().toString().substring(0, 8), custId, "CBU",

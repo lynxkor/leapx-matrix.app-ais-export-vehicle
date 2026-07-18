@@ -194,7 +194,7 @@ APP_APIS = [
     (4, "POST", "/app/basic/exportVehicleLetterGuarantee/unfreeze", "单 PO 解冻 — PO 驳回", "(内部 HTTP,无 @ResourcePermission)", "逐张全额释放"),
     (5, "POST", "/app/basic/exportVehicleLetterGuarantee/batchUnfreeze", "批量 PO 解冻", "(内部 HTTP,无 @ResourcePermission)", "每 PO 独立事务"),
     (6, "POST", "/app/basic/exportVehicleLetterGuarantee/transferToReceivable", "单 PO 转应收 — 质检通过", "(内部 HTTP,无 @ResourcePermission)", "record_type=30"),
-    (7, "POST", "/app/basic/exportVehicleLetterGuarantee/releaseReceivable", "单 PO 释放应收 — SAP 清账", "(内部 HTTP,无 @ResourcePermission)", "record_type=40"),
+    (7, "POST", "/app/basic/exportVehicleLetterGuarantee/releaseReceivable", "单 PO 应收释放 — SAP 清账", "(内部 HTTP,无 @ResourcePermission)", "record_type=40"),
     (8, "POST", "/app/basic/exportVehicleLetterGuarantee/adjustFreeze", "调增补冻 — PO 刷新价格(总金额上升)", "(内部 HTTP,无 @ResourcePermission)", "设计文档 §3.5.2"),
     (9, "POST", "/app/basic/exportVehicleLetterGuarantee/adjustUnfreeze", "调减退差 — PO 刷新价格(总金额下降)", "(内部 HTTP,无 @ResourcePermission)", "设计文档 §3.5.3"),
 ]
@@ -406,10 +406,10 @@ APP_SCENARIOS = [
     },
     # -------- /releaseReceivable --------
     {
-        "name": "releaseReceivable — SAP 清账释放应收",
+        "name": "releaseReceivable — SAP 清账应收释放",
         "pre": "PO101/SO_S001 已转应收 200 万(在保函 A 120 + 保函 B 80),SAP 已完成清账",
         "steps": "1. 内部 HTTP 调用 POST /releaseReceivable\n2. 传入 ReleaseReq(poNo=PO101, soNo=SO_S001, orderId=O101, reason=SAP清账单号 XYZ)",
-        "expected": "响应 success;保函 A/B receivable-=对应金额(核销完毕);2 条 record_type=40 释放应收流水写入",
+        "expected": "响应 success;保函 A/B receivable-=对应金额(核销完毕);2 条 record_type=40 应收释放流水写入",
         "data": "poNo=PO101, soNo=SO_S001, reason=SAP清账单号 XYZ",
         "priority": "高",
         "note": "record_type=40",
@@ -862,7 +862,7 @@ MAIN_STATE_MACHINE = [
         "from": "失效(lg_status=30)",
         "event": "AppController /unfreeze(poNo=PO101)",
         "to": "lg_status=30(保持)",
-        "expected": "解冻成功;失效后的占用/应收可继续冻结/解冻/转应收/释放应收",
+        "expected": "解冻成功;失效后的占用/应收可继续冻结/解冻/转应收/应收释放",
         "data": "lg_status=30 后调用 /unfreeze",
         "priority": "高",
         "note": "设计文档 §4.2 重要语义",

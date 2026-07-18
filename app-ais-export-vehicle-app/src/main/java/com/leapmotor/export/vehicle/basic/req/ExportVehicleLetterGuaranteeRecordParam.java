@@ -53,7 +53,7 @@ public class ExportVehicleLetterGuaranteeRecordParam extends LpBaseParam impleme
     @Schema(description = "变动类型(单值精确,字典 letter_guarantee_record_type)")
     private String transactionType;
 
-    @Schema(description = "变动类型-多选(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效;数组形式 IN 查询)")
+    @Schema(description = "变动类型-多选(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40应收释放 50失效;数组形式 IN 查询)")
     private List<String> transactionTypes;
 
     @Schema(description = "变动金额(始终为正)")
@@ -74,7 +74,7 @@ public class ExportVehicleLetterGuaranteeRecordParam extends LpBaseParam impleme
     @Schema(description = "变动后占用订单金额")
     private BigDecimal afterOccupied;
 
-    @Schema(description = "变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/释放应收 时填值)")
+    @Schema(description = "变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/应收释放 时填值)")
     private BigDecimal beforeReceivable;
 
     @Schema(description = "变动后应收订单金额(同上)")
@@ -89,7 +89,7 @@ public class ExportVehicleLetterGuaranteeRecordParam extends LpBaseParam impleme
     @Schema(description = "PO单号-批量精确(逗号或数组传入,多条 IN 精确匹配)")
     private List<String> poNos;
 
-    @Schema(description = "SO 单号(不允许编辑,根据转应收/释放应收情况自动赋值,冻结/解冻 时为 NULL)")
+    @Schema(description = "SO 单号(不允许编辑,根据转应收/应收释放情况自动赋值,冻结/解冻 时为 NULL)")
     private String soNo;
 
     @Schema(description = "SO单号-单条模糊(输入单个值时模糊匹配)")

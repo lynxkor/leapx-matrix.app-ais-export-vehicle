@@ -138,7 +138,7 @@ public interface ExportVehicleLetterGuaranteeGateway {
     boolean transferToReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String vin, String reason);
 
     /**
-     * 释放应收(应收清账,record_type=40)
+     * 应收释放(应收清账,record_type=40)
      * receivable -= amount(核销完毕,保函不补回)
      * <p>操作人由内部通过 {@code LoginUserUtils.getCurrentUser()} 获取
      */

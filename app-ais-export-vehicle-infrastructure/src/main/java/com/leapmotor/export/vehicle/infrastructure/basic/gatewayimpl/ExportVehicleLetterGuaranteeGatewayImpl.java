@@ -245,7 +245,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         }
         // 先捕获变化前金额(主表随后被 update 改写,直接读 lg 会得到 after)
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
-        // 可用金额归零(若有),占用/应收保留继续走完转应收/释放应收
+        // 可用金额归零(若有),占用/应收保留继续走完转应收/应收释放
         BigDecimal afterAvailable = BigDecimal.ZERO;
         if (beforeAvailable.compareTo(BigDecimal.ZERO) != 0) {
             lg.setAvailableAmount(afterAvailable);
@@ -356,7 +356,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     @Override
     public boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String reason) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BizException("释放应收金额必须大于 0");
+            throw new BizException("应收释放金额必须大于 0");
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
         if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
@@ -373,7 +373,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
             lg.setAvailableAmount(afterAvailable);
         }
 
-        // 释放应收:应收 - amount(保函不补回,核销完毕)
+        // 应收释放:应收 - amount(保函不补回,核销完毕)
         BigDecimal afterReceivable = beforeReceivable.subtract(amount);
         lg.setReceivableAmount(afterReceivable);
 

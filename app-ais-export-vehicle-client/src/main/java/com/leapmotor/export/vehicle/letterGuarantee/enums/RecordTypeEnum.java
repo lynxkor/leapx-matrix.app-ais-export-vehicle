@@ -10,7 +10,7 @@ import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
  *   <li>10 冻结:PO 提交时占用可用金额</li>
  *   <li>20 解冻:PO 驳回时释放占用金额</li>
  *   <li>30 转应收:质检通过,占用 → 应收</li>
- *   <li>40 释放应收:SAP 清账,应收冲销</li>
+ *   <li>40 应收释放:SAP 清账,应收冲销</li>
  *   <li>50 保函失效:lg_status 20→30,无可用金额时置 0(凌晨任务 / 手动失效)</li>
  * </ul>
  *
@@ -20,7 +20,7 @@ public enum RecordTypeEnum implements IBaseEnum<String> {
     FREEZE("10", "冻结"),
     UNFREEZE("20", "解冻"),
     TRANSFER_RECEIVABLE("30", "转应收"),
-    RELEASE_RECEIVABLE("40", "释放应收"),
+    RELEASE_RECEIVABLE("40", "应收释放"),
     EXPIRE("50", "保函失效");
 
     private final String code;

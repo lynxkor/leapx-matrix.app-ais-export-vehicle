@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.basic.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
@@ -36,6 +37,7 @@ public class ExportVehicleLetterGuaranteeApproveReq implements Serializable {
     @Schema(description = "是否审核通过(同一审核结论适用于全部 ids)", requiredMode = Schema.RequiredMode.REQUIRED)
     private Boolean approved;
 
-    @Schema(description = "审核意见(适用于全部 ids)")
+    @Schema(description = "审核意见(适用于全部 ids;审核通过时可空;审核驳回时必填)")
+    @Size(max = 200, message = "审核意见长度不能超过200")
     private String approveRemark;
 }

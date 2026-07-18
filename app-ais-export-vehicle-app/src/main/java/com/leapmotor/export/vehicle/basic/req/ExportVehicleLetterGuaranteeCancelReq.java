@@ -31,6 +31,6 @@ public class ExportVehicleLetterGuaranteeCancelReq implements Serializable {
     @Schema(description = "保函ID列表(批量场景),与 id 互斥")
     private List<String> ids;
 
-    @Schema(description = "作废原因(适用于全部 ids)", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "作废原因(适用于全部 ids,可选)")
     private String remark;
 }

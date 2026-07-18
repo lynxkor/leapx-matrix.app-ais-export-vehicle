@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.infrastructure.so.dao.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,7 @@ public class VehicleCbuSoDaoImpl extends ServiceImpl<VehicleCbuSoMapper, Vehicle
                 .eq(Objects.nonNull(query.getFrozenAmount()), VehicleCbuSo::getFrozenAmount, query.getFrozenAmount())
                 .eq(Objects.nonNull(query.getReceivableAmount()), VehicleCbuSo::getReceivableAmount, query.getReceivableAmount())
                 .eq(Objects.nonNull(query.getOrderStatus()), VehicleCbuSo::getOrderStatus, query.getOrderStatus())
+                .in(CollectionUtils.isNotEmpty(query.getOrderStatuses()), VehicleCbuSo::getOrderStatus, query.getOrderStatuses())
                 .eq(Objects.nonNull(query.getIssueTime()), VehicleCbuSo::getIssueTime, query.getIssueTime())
                 .eq(Objects.nonNull(query.getCancelTime()), VehicleCbuSo::getCancelTime, query.getCancelTime())
                 .eq(Objects.nonNull(query.getQcResult()), VehicleCbuSo::getQcResult, query.getQcResult())
@@ -56,6 +58,21 @@ public class VehicleCbuSoDaoImpl extends ServiceImpl<VehicleCbuSoMapper, Vehicle
                 .eq(StringUtils.isNotBlank(query.getLastQcRemark()), VehicleCbuSo::getLastQcRemark, query.getLastQcRemark())
                 .eq(Objects.nonNull(query.getReceiveTime()), VehicleCbuSo::getReceiveTime, query.getReceiveTime())
                 .eq(StringUtils.isNotBlank(query.getRemark()), VehicleCbuSo::getRemark, query.getRemark())
+                .like(StringUtils.isNotBlank(query.getCustomerNameLike()),
+                        VehicleCbuSo::getCustomerName, query.getCustomerNameLike())
+                .like(StringUtils.isNotBlank(query.getSoNoLike()), VehicleCbuSo::getSoNo, query.getSoNoLike())
+                .like(StringUtils.isNotBlank(query.getPoNoLike()), VehicleCbuSo::getPoNo, query.getPoNoLike())
+                .in(CollectionUtils.isNotEmpty(query.getSoNos()), VehicleCbuSo::getSoNo, query.getSoNos())
+                .in(CollectionUtils.isNotEmpty(query.getPoNos()), VehicleCbuSo::getPoNo, query.getPoNos())
+                .ge(Objects.nonNull(query.getCreateTimeStart()),
+                        VehicleCbuSo::getCreateTime, query.getCreateTimeStart())
+                .le(Objects.nonNull(query.getCreateTimeEnd()), VehicleCbuSo::getCreateTime, query.getCreateTimeEnd())
+                .ge(Objects.nonNull(query.getIssueTimeStart()), VehicleCbuSo::getIssueTime, query.getIssueTimeStart())
+                .le(Objects.nonNull(query.getIssueTimeEnd()), VehicleCbuSo::getIssueTime, query.getIssueTimeEnd())
+                .ge(Objects.nonNull(query.getQcResultTimeStart()),
+                        VehicleCbuSo::getQcResultTime, query.getQcResultTimeStart())
+                .le(Objects.nonNull(query.getQcResultTimeEnd()),
+                        VehicleCbuSo::getQcResultTime, query.getQcResultTimeEnd())
         ;
         queryWrapper.orderByDesc(STATUS_COLUMN).orderByDesc(CREATED_TIME_COLUMN).orderByDesc(ID_COLUMN);
         return queryWrapper;

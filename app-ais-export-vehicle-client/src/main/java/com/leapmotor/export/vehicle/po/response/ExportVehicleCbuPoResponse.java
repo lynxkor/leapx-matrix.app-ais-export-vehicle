@@ -98,9 +98,9 @@ public class ExportVehicleCbuPoResponse extends LpBaseResponse implements Serial
     private String rejectReason;
 
     /**
-     * 数据来源,枚举:销服/红旗
+     * 数据来源,枚举:1销服/2红旗
      */
-    private String dataSource;
+    private Integer dataSource;
 
     /**
      * 订单类型,红旗接口同步

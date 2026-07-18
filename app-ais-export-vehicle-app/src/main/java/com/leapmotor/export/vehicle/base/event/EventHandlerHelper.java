@@ -1,14 +1,16 @@
 package com.leapmotor.export.vehicle.base.event;
 
 import com.alibaba.fastjson2.JSON;
-import com.leapmotor.export.vehicle.base.event.enums.HongqiThirdTargetPlatformEnum;
 import com.leapmotor.paltform.ais.common.event.core.EventPublisher;
 import com.leapmotor.paltform.ais.common.event.core.NotifyEventSourceAdapter;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;
+import com.leapmotor.paltform.ais.common.event.core.base.ThirdTargetPlatform;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Set;
@@ -24,7 +26,7 @@ public class EventHandlerHelper {
     private final List<AbstractEventHandler> handlers;
     private final EventPublisher eventPublisher;
 
-    public AbstractEventHandler getHandler(HongqiThirdTargetPlatformEnum platform, BizEventType eventType) {
+    public AbstractEventHandler getHandler(ThirdTargetPlatform platform, BizEventType eventType) {
         return handlers.stream()
                 .filter(handler -> handler.getSupportEvent().equals(eventType)
                         && handler.getSupportPlatform().equals(platform))
@@ -32,8 +34,10 @@ public class EventHandlerHelper {
                 .orElse(null);
     }
 
-    /** 同步发布事件 */
-    public void publishSync(HongqiThirdTargetPlatformEnum platform, BizEventType eventType, String bizNo) {
+    /**
+     * 同步发布事件
+     */
+    public void publishSync(ThirdTargetPlatform platform, BizEventType eventType, String bizNo) {
         NotifyEventSourceAdapter event = new NotifyEventSourceAdapter();
         event.setTargetPlatforms(Set.of(platform));
         event.setBizEventType(eventType);
@@ -47,8 +51,10 @@ public class EventHandlerHelper {
         eventPublisher.publish(event, false, false, false);
     }
 
-    /** 同步发布事件（带预构建 data） */
-    public void publishSync(HongqiThirdTargetPlatformEnum platform, BizEventType eventType, String bizNo, Object data) {
+    /**
+     * 同步发布事件（带预构建 data）
+     */
+    public void publishSync(ThirdTargetPlatform platform, BizEventType eventType, String bizNo, Object data) {
         NotifyEventSourceAdapter event = new NotifyEventSourceAdapter();
         event.setTargetPlatforms(Set.of(platform));
         event.setBizEventType(eventType);
@@ -59,8 +65,10 @@ public class EventHandlerHelper {
         eventPublisher.publish(event, false, false, false);
     }
 
-    /** 异步发布事件（落表后由 Job 轮询消费，推荐） */
-    public void publishAsync(HongqiThirdTargetPlatformEnum platform, BizEventType eventType, String bizNo, String relatedNo) {
+    /**
+     * 异步发布事件（落表后由 Job 轮询消费，推荐）
+     */
+    public void publishAsync(ThirdTargetPlatform platform, BizEventType eventType, String bizNo, String relatedNo) {
         NotifyEventSourceAdapter event = new NotifyEventSourceAdapter();
         event.setTargetPlatforms(Set.of(platform));
         event.setBizEventType(eventType);
@@ -76,12 +84,14 @@ public class EventHandlerHelper {
         eventPublisher.publish(event, true, false, true);
     }
 
-    public void publishAsync(HongqiThirdTargetPlatformEnum platform, BizEventType eventType, String bizNo) {
+    public void publishAsync(ThirdTargetPlatform platform, BizEventType eventType, String bizNo) {
         publishAsync(platform, eventType, bizNo, bizNo);
     }
 
-    /** 异步发布事件（带预构建 data，落表后立即异步执行） */
-    public void publishAsync(HongqiThirdTargetPlatformEnum platform, BizEventType eventType, String bizNo, Object data) {
+    /**
+     * 异步发布事件（带预构建 data，落表后立即异步执行）
+     */
+    public void publishAsync(ThirdTargetPlatform platform, BizEventType eventType, String bizNo, Object data) {
         NotifyEventSourceAdapter event = new NotifyEventSourceAdapter();
         event.setTargetPlatforms(Set.of(platform));
         event.setBizEventType(eventType);
@@ -90,11 +100,21 @@ public class EventHandlerHelper {
         if (data != null) {
             event.setDataParam(getDataParam(data));
         }
-        eventPublisher.publish(event, true, true, true);
+        // 处于事务中时延迟到提交后再发布：executeImmediately 会在事务提交前就触发外部推送，若事务回滚会留下"外部已收到、本地未变更"的不一致
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publish(event, true, true, true);
+                }
+            });
+        } else {
+            eventPublisher.publish(event, true, true, true);
+        }
         log.info("异步发布事件成功，event:{}", event);
     }
 
-    public void publish(HongqiThirdTargetPlatformEnum platform, BizEventType eventType, String bizNo,
+    public void publish(ThirdTargetPlatform platform, BizEventType eventType, String bizNo,
                         boolean publishAsync, boolean executeImmediately, boolean executeAsync) {
         NotifyEventSourceAdapter event = new NotifyEventSourceAdapter();
         event.setTargetPlatforms(Set.of(platform));

@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.po.gatewayimpl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -13,6 +14,7 @@ import com.leapmotor.export.vehicle.infrastructure.po.dao.ExportVehicleCbuPoDeta
 import com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportVehicleCbuPoDetailMapper;
 import com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPoDetail;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
@@ -59,6 +61,15 @@ public class ExportVehicleCbuPoDetailGatewayImpl implements ExportVehicleCbuPoDe
         }else {
             return null;
         }
+    }
+
+    @Override
+    public int updatePriceById(String id, BigDecimal unitPrice, BigDecimal totalAmount) {
+        return purchaseOrderDetailMapper.update(null,
+                new LambdaUpdateWrapper<ExportVehicleCbuPoDetail>()
+                        .set(ExportVehicleCbuPoDetail::getUnitPrice, unitPrice)
+                        .set(ExportVehicleCbuPoDetail::getTotalAmount, totalAmount)
+                        .eq(ExportVehicleCbuPoDetail::getId, id));
     }
 
     @Override

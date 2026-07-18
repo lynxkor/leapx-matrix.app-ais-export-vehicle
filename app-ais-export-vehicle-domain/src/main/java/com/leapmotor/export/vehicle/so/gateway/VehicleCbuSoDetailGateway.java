@@ -33,6 +33,14 @@ public interface VehicleCbuSoDetailGateway {
     int addBatchVehicleCbuSoDetail(List<VehicleCbuSoDetailDo> vehicleCbuSoDetailDos);
 
     /**
+     * 批量新增VehicleCbuSoDetail，并将生成的主键回写到领域对象
+     *
+     * @param vehicleCbuSoDetailDos
+     * @return 结果
+     */
+    int batchAddVehicleCbuSoDetail(List<VehicleCbuSoDetailDo> vehicleCbuSoDetailDos);
+
+    /**
      * 修改VehicleCbuSoDetail
      *
      * @param vehicleCbuSoDetailDo
@@ -47,6 +55,22 @@ public interface VehicleCbuSoDetailGateway {
      * @return 结果
      */
     VehicleCbuSoDetailDo getVehicleCbuSoDetailById(String id);
+
+    /**
+     * 按 SO 主表 ID 查询车辆明细
+     *
+     * @param soId SO 主表 ID
+     * @return 车辆明细领域对象
+     */
+    VehicleCbuSoDetailDo getVehicleCbuSoDetailBySoId(String soId);
+
+    /**
+     * 按 VIN 查询车辆明细
+     *
+     * @param vin VIN 码
+     * @return 车辆明细领域对象
+     */
+    VehicleCbuSoDetailDo getVehicleCbuSoDetailByVin(String vin);
 
     /**
      * 唯一查询VehicleCbuSoDetail

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -85,13 +86,16 @@ public class VehicleCbuSoParam extends LpBaseParam implements Serializable {
     @Schema(description = "订单状态：1001未下发生产、1002已下发生产、1003排产中、1004焊装上线、1005涂装上线、1006总装上线、1007总装下线、1008质检通过、1009质检未通过、1010质检未收到车、1011已收款、1012已作废")
     private Integer orderStatus;
 
+    @Schema(description = "订单状态列表（批量精确查询）")
+    private List<Integer> orderStatuses;
+
     @Schema(description = "下发生产时间")
     private LocalDateTime issueTime;
 
     @Schema(description = "作废时间")
     private LocalDateTime cancelTime;
 
-    @Schema(description = "当前质检结果")
+    @Schema(description = "当前质检结果：10通过、20不通过、30未收到车辆")
     private Integer qcResult;
 
     @Schema(description = "当前质检结果反馈时间")
@@ -100,7 +104,7 @@ public class VehicleCbuSoParam extends LpBaseParam implements Serializable {
     @Schema(description = "当前质检说明")
     private String qcRemark;
 
-    @Schema(description = "上次质检结果")
+    @Schema(description = "上次质检结果：10通过、20不通过、30未收到车辆；再次反馈时由 updateQcResult 自动将当前结果迁移至此")
     private Integer lastQcResult;
 
     @Schema(description = "上次质检结果反馈时间")
@@ -114,6 +118,75 @@ public class VehicleCbuSoParam extends LpBaseParam implements Serializable {
 
     @Schema(description = "备注")
     private String remark;
+
+    @Schema(description = "客户名称（模糊查询）")
+    private String customerNameLike;
+
+    @Schema(description = "SO单号（模糊查询）")
+    private String soNoLike;
+
+    @Schema(description = "PO单号（模糊查询）")
+    private String poNoLike;
+
+    @Schema(description = "VIN号（模糊查询）")
+    private String vinLike;
+
+    @Schema(description = "产销识别码（模糊查询）")
+    private String productionIdentifyCodeLike;
+
+    @Schema(description = "内部车辆号（模糊查询）")
+    private String internalVehicleNoLike;
+
+    @Schema(description = "物料编码（模糊查询）")
+    private String materialCodeLike;
+
+    @Schema(description = "物料编码列表（批量精确查询）")
+    private List<String> materialCodes;
+
+    @Schema(description = "物料描述（模糊查询）")
+    private String materialDescriptionLike;
+
+    @Schema(description = "物料描述列表（批量精确查询）")
+    private List<String> materialDescriptions;
+
+    @Schema(description = "SO单号列表（批量精确查询）")
+    private List<String> soNos;
+
+    @Schema(description = "PO单号列表（批量精确查询）")
+    private List<String> poNos;
+
+    @Schema(description = "VIN号列表（批量精确查询）")
+    private List<String> vins;
+
+    @Schema(description = "产销识别码列表（批量精确查询）")
+    private List<String> productionIdentifyCodes;
+
+    @Schema(description = "内部车辆号列表（批量精确查询）")
+    private List<String> internalVehicleNos;
+
+    @Schema(description = "APS最新同步结果：0失败、1成功")
+    private Integer syncApsResult;
+
+    @Schema(description = "SAP最新同步结果：0失败、1成功")
+    private Integer syncSapResult;
+
+    @Schema(description = "创建时间范围起")
+    private LocalDateTime createTimeStart;
+
+    @Schema(description = "创建时间范围止")
+    private LocalDateTime createTimeEnd;
+
+    @Schema(description = "下发生产时间范围起")
+    private LocalDateTime issueTimeStart;
+
+    @Schema(description = "下发生产时间范围止")
+    private LocalDateTime issueTimeEnd;
+
+    @Schema(description = "质检反馈时间范围起")
+    private LocalDateTime qcResultTimeStart;
+
+    @Schema(description = "质检反馈时间范围止")
+    private LocalDateTime qcResultTimeEnd;
 
 
 }

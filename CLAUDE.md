@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-智能服务系统--整车订单业务服务（app-ais-export-vehicle），覆盖 CBU/SKD/CKD 整车订单主体（LPMI/SVZ/G117/more）。干净的 DDD 框架，保留通用基础设施，内置 `DemoOrder` 全分层贯穿示例供新业务起步参考。
+智能服务系统--整车订单业务服务（app-ais-export-vehicle），覆盖 CBU/SKD/CKD 整车订单主体（LPMI/SVZ/G117/more）。干净的 DDD 框架，保留通用基础设施。
 
 ## 构建与运行
 
@@ -50,12 +50,10 @@ cd app-ais-export-vehicle-start && mvn spring-boot:run
 
 根包 `com.leapmotor.export.vehicle`，包与目录严格一致：
 - `base.config` / `base.constant`：通用配置（Async/Rest/Swagger）与常量
-- `job`：定时任务（DemoJob，`@XxlJob`）
-- `demo.*`：DemoOrder 贯穿示例（各层）
-- `infrastructure.demo.*`：DemoOrder 基础设施层
+- `job`：定时任务（`@XxlJob`，新建业务时按需新增 `XxxJob` 类）
 - mapper XML：`infrastructure/src/main/resources/mapper/**/*.xml`（`mapper-locations` 为 `classpath*:/mapper/**/*.xml`）
 
-> 平台响应/基类包名是 `com.leapmotor.paltform.ais.common.model.*`（`paltform` 为平台历史拼写，**非笔误**）；`permission`/`mybatis` 等在正确拼写 `com.leapmotor.platform.ais.common.*`。按现有 demo 的 import 照抄。
+> 平台响应/基类包名是 `com.leapmotor.paltform.ais.common.model.*`（`paltform` 为平台历史拼写，**非笔误**）；`permission`/`mybatis` 等在正确拼写 `com.leapmotor.platform.ais.common.*`。按现有业务模块的 import 照抄。
 
 ## 服务配置
 
@@ -85,26 +83,12 @@ spring.cloud.nacos.discovery.password=<密码>
 - `logback-spring.xml` — 日志配置：按 `${spring.application.name}` 分目录，info/error 分文件，单文件 100MB、保留 7 天、总量 1GB，含 `traceId` 占位。
 - `i18n/messages*.properties` — 国际化消息资源（默认 + `zh_CN`），含校验/登录/权限等提示文案，供 `MessageSource` 取用。
 - `properties/common_*.properties` — 业务国际化语言包（`zh_CN`/`en_US`）。
-- `sql/demo-order.sql` — DemoOrder 建表 SQL，本地验证用。
 
 > 注意：`application.yml` 的 `spring.cache.ehcache.config: classpath:ehcache.xml` 引用了一项目前不存在的 `ehcache.xml`（模板遗留的悬空引用）。若启用本地 ehcache 缓存需补建该文件，否则可移除该引用。
 
-## DemoOrder 示例（新业务参考）
+## 新业务模块起步
 
-贯穿全分层的最小 CRUD，演示 CQRS+Gateway+MapStruct 完整闭环：
-
-```
-client   demo.api.DemoOrderApi / demo.dto.DemoOrderDto / demo.api.fallback.DemoOrderApiFallbackFactory
-adapter  demo.controller.DemoOrderController
-app      demo.executor.cmd.DemoOrderCmdExe / demo.executor.query.DemoOrderQryExe
-         demo.service.DemoOrderService(Impl) / demo.convertor.DemoOrderDTOStructMapper
-         demo.req.DemoOrderAddOrUpdateReq / DemoOrderParam / demo.resp.DemoOrderResp
-domain   demo.model.DemoOrderDo(extends LpBaseModel) / demo.query.DemoOrderQo(extends LpBaseParam) / demo.gateway.DemoOrderGateway
-infra    demo.entity.DemoOrder(extends LpBaseEntity) / demo.mapper.DemoOrderMapper / demo.dao.DemoOrderDao(Impl)
-         demo.gatewayimpl.DemoOrderGatewayImpl / demo.convertor.DemoOrderStructMapper
-```
-
-建表 SQL：`app-ais-export-vehicle-start/src/main/resources/sql/demo-order.sql`。
+新业务优先使用 `ais-generator`（配置见 `app-ais-export-vehicle-generator/src/main/resources/generator.properties`，当前已配为 `business.name=so` / `generate.table.name=export_vehicle_cbu_so_interface_sync`）生成 DDD 全分层代码，再补业务逻辑。Generator 输出 Client/Adapter/App/Domain/Infrastructure 完整闭环，覆盖 CQRS+Gateway+MapStruct 模板；具体约束详见根目录 `.claude/rules/backend-coding-constraints.md`。
 
 ## 参考文档（内网 Wiki）
 

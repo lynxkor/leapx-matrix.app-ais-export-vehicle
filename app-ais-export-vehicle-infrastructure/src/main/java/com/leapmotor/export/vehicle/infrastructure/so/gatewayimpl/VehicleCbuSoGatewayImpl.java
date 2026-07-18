@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.so.gatewayimpl;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -12,8 +13,10 @@ import com.leapmotor.export.vehicle.infrastructure.so.convertor.VehicleCbuSoStru
 import com.leapmotor.export.vehicle.infrastructure.so.dao.VehicleCbuSoDao;
 import com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoMapper;
 import com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSo;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -52,6 +55,20 @@ public class VehicleCbuSoGatewayImpl implements VehicleCbuSoGateway {
     }
 
     @Override
+    public int batchAddVehicleCbuSo(List<VehicleCbuSoDo> vehicleCbuSoDos) {
+        List<VehicleCbuSo> vehicleCbuSos = VehicleCbuSoStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDos);
+        int result = vehicleCbuSoDao.batchSaveSomeColumn(vehicleCbuSos);
+        // 回写主键与 SO 单号到领域对象
+        for (int i = 0; i < vehicleCbuSos.size(); i++) {
+            VehicleCbuSoDo domain = vehicleCbuSoDos.get(i);
+            VehicleCbuSo entity = vehicleCbuSos.get(i);
+            domain.setId(entity.getId());
+            domain.setSoNo(entity.getSoNo());
+        }
+        return result;
+    }
+
+    @Override
     public String updateVehicleCbuSo(VehicleCbuSoDo vehicleCbuSoDo) {
         VehicleCbuSo vehicleCbuSo = VehicleCbuSoStructMapper.INSTANCE.domainToDataObject(vehicleCbuSoDo);
         int result = vehicleCbuSoMapper.updateById(vehicleCbuSo);
@@ -65,6 +82,14 @@ public class VehicleCbuSoGatewayImpl implements VehicleCbuSoGateway {
     @Override
     public VehicleCbuSoDo getVehicleCbuSoById(String id) {
         VehicleCbuSo vehicleCbuSo = vehicleCbuSoDao.getById(id);
+        return VehicleCbuSoStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSo);
+    }
+
+    @Override
+    public VehicleCbuSoDo getVehicleCbuSoBySoNo(String soNo) {
+        VehicleCbuSoQo qo = new VehicleCbuSoQo();
+        qo.setSoNo(soNo);
+        VehicleCbuSo vehicleCbuSo = vehicleCbuSoDao.getOneForceLimit(qo);
         return VehicleCbuSoStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSo);
     }
 
@@ -84,6 +109,40 @@ public class VehicleCbuSoGatewayImpl implements VehicleCbuSoGateway {
     public PageResult<VehicleCbuSoDo> pageVehicleCbuSo(VehicleCbuSoQo vehicleCbuSoQo) {
         Page<VehicleCbuSo> page = vehicleCbuSoDao.findPage(vehicleCbuSoQo);
         return PageUtils.transferPage(VehicleCbuSoStructMapper.INSTANCE::dataObjectsToDomains, page);
+    }
+
+    @Override
+    public List<VehicleCbuSoDo> listSoList(VehicleCbuSoQo vehicleCbuSoQo) {
+        return vehicleCbuSoMapper.listSoList(vehicleCbuSoQo);
+    }
+
+    @Override
+    public PageResult<VehicleCbuSoDo> pageSoList(VehicleCbuSoQo vehicleCbuSoQo) {
+        Page<VehicleCbuSoDo> page = new Page<>(vehicleCbuSoQo.getPageNum(), vehicleCbuSoQo.getPageSize());
+        Page<VehicleCbuSoDo> result = vehicleCbuSoMapper.pageSoList(page, vehicleCbuSoQo);
+        return PageUtils.transferPage(r -> r, result);
+    }
+
+    @Override
+    public VehicleCbuSoDo getSoDetailById(String id) {
+        return vehicleCbuSoMapper.getSoDetailById(id);
+    }
+
+    @Override
+    public int batchUpdateStatus(List<String> ids, Integer orderStatus,
+                                 LocalDateTime issueTime, LocalDateTime cancelTime) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return 0;
+        }
+        UpdateWrapper<VehicleCbuSo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.in("id", ids).set("order_status", orderStatus);
+        if (issueTime != null) {
+            updateWrapper.set("issue_time", issueTime);
+        }
+        if (cancelTime != null) {
+            updateWrapper.set("cancel_time", cancelTime);
+        }
+        return vehicleCbuSoMapper.update(null, updateWrapper);
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -85,6 +86,7 @@ public class VehicleCbuSoResp extends LpBaseModel implements Serializable {
     private BigDecimal receivableAmount;
 
     @Schema(description = "订单状态：1001未下发生产、1002已下发生产、1003排产中、1004焊装上线、1005涂装上线、1006总装上线、1007总装下线、1008质检通过、1009质检未通过、1010质检未收到车、1011已收款、1012已作废")
+    @DictEnumType(prefix = "VehicleCbuSoStatusEnum")
     private Integer orderStatus;
 
     @Schema(description = "下发生产时间")
@@ -93,7 +95,8 @@ public class VehicleCbuSoResp extends LpBaseModel implements Serializable {
     @Schema(description = "作废时间")
     private LocalDateTime cancelTime;
 
-    @Schema(description = "当前质检结果")
+    @Schema(description = "当前质检结果：10通过、20不通过、30未收到车辆")
+    @DictEnumType(prefix = "VehicleCbuSoQcResultEnum")
     private Integer qcResult;
 
     @Schema(description = "当前质检结果反馈时间")
@@ -102,7 +105,8 @@ public class VehicleCbuSoResp extends LpBaseModel implements Serializable {
     @Schema(description = "当前质检说明")
     private String qcRemark;
 
-    @Schema(description = "上次质检结果")
+    @Schema(description = "上次质检结果：10通过、20不通过、30未收到车辆；再次反馈时由 updateQcResult 自动将当前结果迁移至此")
+    @DictEnumType(prefix = "VehicleCbuSoQcResultEnum")
     private Integer lastQcResult;
 
     @Schema(description = "上次质检结果反馈时间")
@@ -114,8 +118,87 @@ public class VehicleCbuSoResp extends LpBaseModel implements Serializable {
     @Schema(description = "完成收款时间")
     private LocalDateTime receiveTime;
 
+    @Schema(description = "数据来源，枚举:1销服/2红旗")
+    @DictEnumType(prefix = "DataSourceEnum")
+    private Integer dataSource;
+
     @Schema(description = "备注")
     private String remark;
+
+    @Schema(description = "销售公司名称")
+    private String salesCompanyName;
+
+    @Schema(description = "内部车辆号，从APS获取")
+    private String internalVehicleNo;
+
+    @Schema(description = "产销识别码，从APS获取")
+    private String productionIdentifyCode;
+
+    @Schema(description = "VIN号，从APS获取")
+    private String vin;
+
+    @Schema(description = "物料编码，取自PO单")
+    private String materialCode;
+
+    @Schema(description = "物料描述")
+    private String materialDescription;
+
+    @Schema(description = "销售市场")
+    private String salesMarket;
+
+    @Schema(description = "年款")
+    private String modelYear;
+
+    @Schema(description = "选装包")
+    private String optionalPackage;
+
+    @Schema(description = "排产时间，从APS获取")
+    private LocalDateTime scheduleTime;
+
+    @Schema(description = "打印条码时间，从APS获取")
+    private LocalDateTime barcodePrintTime;
+
+    @Schema(description = "焊装上线时间，从APS获取")
+    private LocalDateTime bodyInTime;
+
+    @Schema(description = "涂装上线时间，从APS获取")
+    private LocalDateTime paintInTime;
+
+    @Schema(description = "总装上线时间，从APS获取")
+    private LocalDateTime assemblyInTime;
+
+    @Schema(description = "总装下线时间，从APS获取")
+    private LocalDateTime assemblyOutTime;
+
+    @Schema(description = "APS最新同步结果：0失败、1成功（下发排产或作废，取最近一次）")
+    @DictEnumType(prefix = "VehicleCbuSoSyncResultEnum")
+    private Integer syncApsResult;
+
+    @Schema(description = "APS最新同步时间")
+    private LocalDateTime syncApsTime;
+
+    @Schema(description = "APS最新返回信息")
+    private String syncApsResponseInfo;
+
+    @Schema(description = "SAP最新同步结果：0失败、1成功")
+    @DictEnumType(prefix = "VehicleCbuSoSyncResultEnum")
+    private Integer syncSapResult;
+
+    @Schema(description = "SAP最新同步时间")
+    private LocalDateTime syncSapTime;
+
+    @Schema(description = "SAP最新返回信息")
+    private String syncSapResponseInfo;
+
+    @Schema(description = "客户系统最新同步结果：0失败、1成功")
+    @DictEnumType(prefix = "VehicleCbuSoSyncResultEnum")
+    private Integer syncCustomerResult;
+
+    @Schema(description = "客户系统最新同步时间")
+    private LocalDateTime syncCustomerTime;
+
+    @Schema(description = "客户系统最新返回信息")
+    private String syncCustomerResponseInfo;
 
 
 }

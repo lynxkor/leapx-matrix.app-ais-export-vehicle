@@ -90,7 +90,7 @@ public class VehicleCbuSoAddOrUpdateReq extends LpBaseModel implements Serializa
     @Schema(description = "作废时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime cancelTime;
 
-    @Schema(description = "当前质检结果", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "当前质检结果：10通过、20不通过、30未收到车辆", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer qcResult;
 
     @Schema(description = "当前质检结果反馈时间", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -99,7 +99,7 @@ public class VehicleCbuSoAddOrUpdateReq extends LpBaseModel implements Serializa
     @Schema(description = "当前质检说明", requiredMode = Schema.RequiredMode.REQUIRED)
     private String qcRemark;
 
-    @Schema(description = "上次质检结果", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "上次质检结果：10通过、20不通过、30未收到车辆；再次反馈时由 updateQcResult 自动将当前结果迁移至此", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer lastQcResult;
 
     @Schema(description = "上次质检结果反馈时间", requiredMode = Schema.RequiredMode.REQUIRED)

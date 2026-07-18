@@ -65,8 +65,8 @@ public class ExportVehicleCbuPoAddOrUpdateReq extends LpBaseModel implements Ser
     @Schema(description = "驳回说明,各类驳回时必填" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private String rejectReason;
 
-    @Schema(description = "数据来源,枚举:销服/红旗" ,requiredMode = Schema.RequiredMode.REQUIRED)
-    private String dataSource;
+    @Schema(description = "数据来源,枚举:1销服/2红旗" ,requiredMode = Schema.RequiredMode.REQUIRED)
+    private Integer dataSource;
 
     @Schema(description = "订单类型,红旗接口同步" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer orderType;

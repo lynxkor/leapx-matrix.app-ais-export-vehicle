@@ -66,8 +66,8 @@ public class ExportVehicleCbuPoParam extends LpBaseParam implements Serializable
     @Schema(description = "驳回说明,各类驳回时必填")
     private String rejectReason;
 
-    @Schema(description = "数据来源,枚举:销服/红旗")
-    private String dataSource;
+    @Schema(description = "数据来源,枚举:1销服/2红旗")
+    private Integer dataSource;
 
     @Schema(description = "订单类型,红旗接口同步")
     private Integer orderType;

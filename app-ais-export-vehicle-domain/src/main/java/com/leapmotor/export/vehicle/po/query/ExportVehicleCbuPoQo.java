@@ -62,6 +62,12 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
     private LocalDateTime submitTime;
 
     /**
+     * 提交时间起止（列表筛选用）
+     */
+    private LocalDateTime submitTimeStart;
+    private LocalDateTime submitTimeEnd;
+
+    /**
      * 驳回时间,各类驳回时记录
      */
     private LocalDateTime rejectTime;
@@ -77,6 +83,12 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
     private LocalDateTime supplyDemandApproveTime;
 
     /**
+     * 供需审核通过时间起止（列表筛选用）
+     */
+    private LocalDateTime supplyDemandApproveTimeStart;
+    private LocalDateTime supplyDemandApproveTimeEnd;
+
+    /**
      * 供需审核人
      */
     private String supplyDemandApprover;
@@ -85,6 +97,12 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
      * 产销平衡通过时间
      */
     private LocalDateTime productionSalesBalanceApproveTime;
+
+    /**
+     * 产销平衡通过时间起止（列表筛选用）
+     */
+    private LocalDateTime productionSalesBalanceApproveTimeStart;
+    private LocalDateTime productionSalesBalanceApproveTimeEnd;
 
     /**
      * 产销平衡审核人
@@ -97,9 +115,9 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
     private String rejectReason;
 
     /**
-     * 数据来源,枚举:销服/红旗
+     * 数据来源,枚举:1销服/2红旗
      */
-    private String dataSource;
+    private Integer dataSource;
 
     /**
      * 订单类型,红旗接口同步

@@ -122,6 +122,60 @@ public class VehicleCbuSoDetail extends LpBaseEntity implements Serializable {
     private LocalDateTime assemblyOutTime;
 
     /**
+     * APS最新同步结果：0失败、1成功（下发排产或作废，取最近一次）
+     */
+    @TableField("sync_aps_result")
+    private Integer syncApsResult;
+
+    /**
+     * APS最新同步时间
+     */
+    @TableField("sync_aps_time")
+    private LocalDateTime syncApsTime;
+
+    /**
+     * APS最新返回信息
+     */
+    @TableField("sync_aps_response_info")
+    private String syncApsResponseInfo;
+
+    /**
+     * SAP最新同步结果：0失败、1成功
+     */
+    @TableField("sync_sap_result")
+    private Integer syncSapResult;
+
+    /**
+     * SAP最新同步时间
+     */
+    @TableField("sync_sap_time")
+    private LocalDateTime syncSapTime;
+
+    /**
+     * SAP最新返回信息
+     */
+    @TableField("sync_sap_response_info")
+    private String syncSapResponseInfo;
+
+    /**
+     * 客户系统最新同步结果：0失败、1成功
+     */
+    @TableField("sync_customer_result")
+    private Integer syncCustomerResult;
+
+    /**
+     * 客户系统最新同步时间
+     */
+    @TableField("sync_customer_time")
+    private LocalDateTime syncCustomerTime;
+
+    /**
+     * 客户系统最新返回信息
+     */
+    @TableField("sync_customer_response_info")
+    private String syncCustomerResponseInfo;
+
+    /**
      * 备注
      */
     @TableField("remark")

@@ -24,7 +24,7 @@ CREATE TABLE `export_vehicle_cbu_po` (
     `production_sales_balance_approve_time` DATETIME       DEFAULT NULL                     COMMENT '产销平衡通过时间',
     `production_sales_balance_approver`     VARCHAR(30)    DEFAULT NULL                     COMMENT '产销平衡审核人',
     `reject_reason`                       VARCHAR(100)     DEFAULT NULL                     COMMENT '驳回说明,各类驳回时必填',
-    `data_source`                         VARCHAR(10)      NOT NULL DEFAULT '红旗'          COMMENT '数据来源,枚举:销服/红旗',
+    `data_source`                         tinyint          NOT NULL DEFAULT 2             COMMENT '数据来源,枚举:1销服/2红旗',
     `order_type`                          tinyint DEFAULT 1           COMMENT '订单类型,红旗接口同步',
     `plan_version`                        VARCHAR(30)      NOT NULL                         COMMENT '计划版本号,取自红旗CBU接口',
     `audit_result_sync_time`              DATETIME         DEFAULT NULL                     COMMENT '审结结果同步时间,反馈红旗接口的发送时间',

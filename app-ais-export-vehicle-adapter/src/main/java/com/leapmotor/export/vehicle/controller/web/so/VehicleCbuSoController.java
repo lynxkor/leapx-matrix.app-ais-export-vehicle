@@ -11,6 +11,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoParam;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
+import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoDetailAggregateResp;
+import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoOperateResult;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoResp;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.so.convertor.VehicleCbuSoDTOStructMapper;
@@ -58,6 +62,35 @@ public class VehicleCbuSoController {
     @PostMapping(value = "/get")
     public AjaxResult<VehicleCbuSoResp> getVehicleCbuSoById(@RequestBody String id) {
         return AjaxResult.success(vehicleCbuSoService.getVehicleCbuSoById(id));
+    }
+
+    @Operation(summary = "CBU整车销售订单聚合详情")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:detail", desc = "CBU整车销售订单聚合详情")
+    @PostMapping("/detail")
+    public AjaxResult<VehicleCbuSoDetailAggregateResp> detail(@RequestBody String id) {
+        return AjaxResult.success(vehicleCbuSoService.detail(id));
+    }
+
+    @Operation(summary = "CBU整车销售订单下发生产")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:issueToProduction", desc = "CBU整车销售订单下发生产")
+    @PostMapping("/issueToProduction")
+    public AjaxResult<VehicleCbuSoOperateResult> issueToProduction(@RequestBody @Validated VehicleCbuSoIssueReq req) {
+        return AjaxResult.success(vehicleCbuSoService.issueToProduction(req));
+    }
+
+    @Operation(summary = "CBU整车销售订单作废")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:cancel", desc = "CBU整车销售订单作废")
+    @PostMapping("/cancel")
+    public AjaxResult<VehicleCbuSoOperateResult> cancel(@RequestBody @Validated VehicleCbuSoCancelReq req) {
+        return AjaxResult.success(vehicleCbuSoService.cancel(req));
+    }
+
+    @Operation(summary = "CBU整车销售订单SAP手动补推")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:reissueSap", desc = "CBU整车销售订单SAP手动补推")
+    @PostMapping("/reissueSap")
+    public AjaxResult<Void> reissueSap(@RequestBody String soNo) {
+        vehicleCbuSoService.reissueSap(soNo);
+        return AjaxResult.success();
     }
 
     @Operation(summary = "CBU整车销售订单主表新增/编辑")

@@ -1,10 +1,12 @@
 package com.leapmotor.export.vehicle.so.query;
 
+import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoQcResultEnum;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseQo;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -125,6 +127,11 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
     private Integer orderStatus;
 
     /**
+     * 订单状态列表（批量精确查询）
+     */
+    private List<Integer> orderStatuses;
+
+    /**
      * 下发生产时间
      */
     private LocalDateTime issueTime;
@@ -135,7 +142,7 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
     private LocalDateTime cancelTime;
 
     /**
-     * 当前质检结果
+     * 当前质检结果：{@link VehicleCbuSoQcResultEnum}（10通过、20不通过、30未收到车辆）
      */
     private Integer qcResult;
 
@@ -150,7 +157,8 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
     private String qcRemark;
 
     /**
-     * 上次质检结果
+     * 上次质检结果：{@link VehicleCbuSoQcResultEnum}（10通过、20不通过、30未收到车辆）；
+     * 同一 SO 再次反馈质检时由 updateQcResult 自动将当前结果迁移至此
      */
     private Integer lastQcResult;
 
@@ -173,6 +181,121 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
      * 备注
      */
     private String remark;
+
+    /**
+     * 客户名称（模糊查询）
+     */
+    private String customerNameLike;
+
+    /**
+     * SO单号（模糊查询）
+     */
+    private String soNoLike;
+
+    /**
+     * PO单号（模糊查询）
+     */
+    private String poNoLike;
+
+    /**
+     * VIN号（模糊查询）
+     */
+    private String vinLike;
+
+    /**
+     * 产销识别码（模糊查询）
+     */
+    private String productionIdentifyCodeLike;
+
+    /**
+     * 内部车辆号（模糊查询）
+     */
+    private String internalVehicleNoLike;
+
+    /**
+     * 物料编码（模糊查询）
+     */
+    private String materialCodeLike;
+
+    /**
+     * 物料编码列表（批量精确查询）
+     */
+    private List<String> materialCodes;
+
+    /**
+     * 物料描述（模糊查询）
+     */
+    private String materialDescriptionLike;
+
+    /**
+     * 物料描述列表（批量精确查询）
+     */
+    private List<String> materialDescriptions;
+
+    /**
+     * SO单号列表（批量精确查询）
+     */
+    private List<String> soNos;
+
+    /**
+     * PO单号列表（批量精确查询）
+     */
+    private List<String> poNos;
+
+    /**
+     * VIN号列表（批量精确查询）
+     */
+    private List<String> vins;
+
+    /**
+     * 产销识别码列表（批量精确查询）
+     */
+    private List<String> productionIdentifyCodes;
+
+    /**
+     * 内部车辆号列表（批量精确查询）
+     */
+    private List<String> internalVehicleNos;
+
+    /**
+     * APS最新同步结果：0失败、1成功
+     */
+    private Integer syncApsResult;
+
+    /**
+     * SAP最新同步结果：0失败、1成功
+     */
+    private Integer syncSapResult;
+
+    /**
+     * 创建时间范围起
+     */
+    private LocalDateTime createTimeStart;
+
+    /**
+     * 创建时间范围止
+     */
+    private LocalDateTime createTimeEnd;
+
+    /**
+     * 下发生产时间范围起
+     */
+    private LocalDateTime issueTimeStart;
+
+    /**
+     * 下发生产时间范围止
+     */
+    private LocalDateTime issueTimeEnd;
+
+    /**
+     * 质检反馈时间范围起
+     */
+    private LocalDateTime qcResultTimeStart;
+
+    /**
+     * 质检反馈时间范围止
+     */
+    private LocalDateTime qcResultTimeEnd;
 
 
 }

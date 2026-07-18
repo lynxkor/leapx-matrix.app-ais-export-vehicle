@@ -117,10 +117,10 @@ public class ExportVehicleCbuPo extends LpBaseEntity implements Serializable {
     private String rejectReason;
 
     /**
-     * 数据来源,枚举:销服/红旗
+     * 数据来源,枚举:1销服/2红旗
      */
     @TableField("data_source")
-    private String dataSource;
+    private Integer dataSource;
 
     /**
      * 订单类型,红旗接口同步

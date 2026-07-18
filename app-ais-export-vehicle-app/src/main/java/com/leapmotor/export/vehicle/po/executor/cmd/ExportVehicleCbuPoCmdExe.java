@@ -1,25 +1,34 @@
 package com.leapmotor.export.vehicle.po.executor.cmd;
 
 
-import com.leapmotor.export.vehicle.po.gateway.PlaceholderCustomerDataGateway;
-import com.leapmotor.export.vehicle.po.gateway.PlaceholderMaterialDataGateway;
-import com.leapmotor.export.vehicle.po.gateway.PlaceholderPriceDataGateway;
+import com.leapmotor.export.nexus.customer.api.CustomerApi;
+import com.leapmotor.export.nexus.customer.request.CustomerRequest;
+import com.leapmotor.export.nexus.customer.response.CustomerResponse;
+import com.leapmotor.export.nexus.vehicle.api.VehicleMaterialApi;
+import com.leapmotor.export.nexus.vehicle.api.VehiclePriceHqApi;
+import com.leapmotor.export.nexus.vehicle.dto.VehicleMaterialDto;
+import com.leapmotor.export.nexus.vehicle.dto.VehiclePriceHqDto;
+import com.leapmotor.export.nexus.vehicle.request.VehicleMaterialBatchMatchReq;
+import com.leapmotor.export.nexus.vehicle.request.VehiclePriceHqMatchReq;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoDetailGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
-import com.leapmotor.export.vehicle.po.model.PlaceholderCustomerDataDo;
-import com.leapmotor.export.vehicle.po.model.PlaceholderMaterialDataDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoQo;
+import com.leapmotor.export.vehicle.po.enums.DataSourceEnum;
 import com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum;
+import com.leapmotor.export.vehicle.po.enums.OrderTypeEnum;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuOrderDetailReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoDetailSaveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
+import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
+import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,10 +37,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 
 /**
@@ -40,18 +49,19 @@ import java.util.Set;
  * @author leapmotor
  * @since 2026-07-08
  */
+@Slf4j
 @AllArgsConstructor
 @Component
 public class ExportVehicleCbuPoCmdExe {
 
     private ExportVehicleCbuPoGateway purchaseOrderGateway;
     private ExportVehicleCbuPoDetailGateway purchaseOrderDetailGateway;
-    /** 【占位】客户主数据查询，团队真代码到位后换成真 Gateway */
-    private PlaceholderCustomerDataGateway customerDataGateway;
-    /** 【占位】整编主数据查询 */
-    private PlaceholderMaterialDataGateway materialDataGateway;
-    /** 【占位】价格主数据查询 */
-    private PlaceholderPriceDataGateway priceDataGateway;
+    /** 客户主数据，对接 app-ais-export-nexus 客户服务 */
+    private CustomerApi customerApi;
+    /** 整编物料主数据，对接 app-ais-export-nexus 整编物料服务 */
+    private VehicleMaterialApi vehicleMaterialApi;
+    /** 价格主数据，对接 app-ais-export-nexus 价格服务 */
+    private VehiclePriceHqApi vehiclePriceHqApi;
 
 
     public String addOrUpdateExportVehicleCbuPo(ExportVehicleCbuPoDo purchaseOrderDo) {
@@ -74,6 +84,7 @@ public class ExportVehicleCbuPoCmdExe {
      * 红旗 CBU 订单采购申请 → 创建草稿 PO 订单（主表 + 明细联保存）。
      * 匹配类字段（客户/物料/单价）匹配不到则留空，留待 4.3 提交时强校验。
      */
+    @DistributeLock(nameSpace = "export-vehicle", prefix = "po:createFromHongqi", value = "#req.poNo", tryLockTimeout = 3000, expireAfter = 60000, failedCode = 600, failedMsg = "订单正在创建，请稍后重试")
     @Transactional(rollbackFor = Exception.class)
     public String createFromHongqi(HongqiCbuPurchaseOrderReq req) {
         // 1. PO单号唯一性（已存在则报错，重复推送同样报错）
@@ -87,7 +98,7 @@ public class ExportVehicleCbuPoCmdExe {
         checkDetailNumberUnique(req);
 
         // 3. 客户匹配（接口客户编码 = 外部客户编码 → 客户主数据）
-        PlaceholderCustomerDataDo customer = customerDataGateway.getByExternalCode(req.getCustomerCode());
+        CustomerResponse customer = queryCustomerByExternalCode(req.getCustomerCode());
 
         // 4. 抬头组装
         LocalDateTime now = LocalDateTime.now();
@@ -99,8 +110,8 @@ public class ExportVehicleCbuPoCmdExe {
             order.setCustomerCode(customer.getCustomerCode());
             order.setCustomerName(customer.getCustomerName());
         }
-        order.setDataSource("红旗");
-        order.setOrderType(1);
+        order.setDataSource(DataSourceEnum.HONGQI.getCode());
+        order.setOrderType(OrderTypeEnum.CBU.getCode());
         order.setPlanVersion(req.getPlanVersion());
 
         // 5. 明细组装（物料匹配 + 单价匹配 + 金额合计）
@@ -135,7 +146,7 @@ public class ExportVehicleCbuPoCmdExe {
         for (HongqiCbuOrderDetailReq d : req.getOrderDetailList()) {
             ExportVehicleCbuPoDetailDo detail = new ExportVehicleCbuPoDetailDo();
             detail.setPoNo(req.getPoNo());
-            detail.setPoDetailNo(generatePoDetailNo());
+            detail.setPoDetailNo(NoGenerator.genNoOnly("POD", "yyyyMMddHHmm", 5));
             detail.setOrderDetailNumber(d.getDetailNumber());
             detail.setSyncMaterialCode(d.getMaterialCode());
             detail.setDemandQuantity(d.getDemandQuantity());
@@ -144,18 +155,18 @@ public class ExportVehicleCbuPoCmdExe {
             // 生产备注：接口不传，草稿态业务填，留空
 
             // 物料匹配（18位同步物料编码 → 整编主数据）
-            PlaceholderMaterialDataDo material = materialDataGateway.getBySyncMaterialCode(d.getMaterialCode());
+            VehicleMaterialDto material = queryMaterialByCode(d.getMaterialCode());
             if (material != null) {
-                detail.setMaterialCode(material.getMaterialCode());
-                detail.setMaterialDescription(material.getMaterialDescription());
+                detail.setMaterialCode(material.getCode());
+                detail.setMaterialDescription(material.getMaterialDesc());
                 detail.setSalesMarket(material.getSalesMarket());
-                detail.setModelYear(material.getModelYear());
-                detail.setOptionalPackage(material.getOptionalPackage());
+                detail.setModelYear(material.getYearType());
+                detail.setOptionalPackage(material.getOptionPackage());
             }
 
             // 单价匹配（物料编码 + 订单类型 + 订单创建时间 → 价格主数据，多条取审批最新）
             if (detail.getMaterialCode() != null) {
-                BigDecimal unitPrice = priceDataGateway.getLatestApprovedPrice(
+                BigDecimal unitPrice = queryLatestApprovedPrice(
                         detail.getMaterialCode(), 1, orderCreateTime);
                 detail.setUnitPrice(unitPrice);
                 if (unitPrice != null && d.getDemandQuantity() != null) {
@@ -177,16 +188,6 @@ public class ExportVehicleCbuPoCmdExe {
         } catch (Exception e) {
             throw new BizException("期望下线日期格式错误(应为YYYYMMDD): " + yyyymmdd);
         }
-    }
-
-    /**
-     * PO 明细编号：POD + 年月日 + 时分 + 5位流水。
-     * TODO 正式用平台 @AutoCode 或 NoGenerator（防并发冲突），当前占位。
-     */
-    private String generatePoDetailNo() {
-        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-        String seq = String.format("%05d", new Random().nextInt(100000));
-        return "POD" + ts + seq;
     }
 
     // ==================== 4.2 订单编辑保存（仅草稿态；仅销售公司 + 明细生产备注） ====================
@@ -221,6 +222,58 @@ public class ExportVehicleCbuPoCmdExe {
             detailUpdate.setId(d.getDetailId());
             detailUpdate.setProductionRemark(d.getProductionRemark());
             purchaseOrderDetailGateway.updateExportVehicleCbuPoDetail(detailUpdate);
+        }
+    }
+
+    // ==================== 主数据查询辅助方法（直调 nexus Feign API） ====================
+
+    private CustomerResponse queryCustomerByExternalCode(String externalCode) {
+        if (externalCode == null || externalCode.isEmpty()) {
+            return null;
+        }
+        try {
+            CustomerRequest req = new CustomerRequest();
+            req.setExternalCode(externalCode);
+            AjaxResult<List<CustomerResponse>> ret = customerApi.list(req);
+            List<CustomerResponse> list = (ret != null) ? ret.getData() : null;
+            return (list != null && !list.isEmpty()) ? list.get(0) : null;
+        } catch (Exception e) {
+            log.error("客户主数据查询失败 externalCode={}", externalCode, e);
+            return null;
+        }
+    }
+
+    private VehicleMaterialDto queryMaterialByCode(String materialCode) {
+        if (materialCode == null || materialCode.isEmpty()) {
+            return null;
+        }
+        try {
+            VehicleMaterialBatchMatchReq req = new VehicleMaterialBatchMatchReq();
+            req.setMaterialCodes(Collections.singletonList(materialCode));
+            AjaxResult<List<VehicleMaterialDto>> ret = vehicleMaterialApi.batchMatch(req);
+            List<VehicleMaterialDto> list = (ret != null) ? ret.getData() : null;
+            return (list != null && !list.isEmpty()) ? list.get(0) : null;
+        } catch (Exception e) {
+            log.error("整编主数据查询失败 materialCode={}", materialCode, e);
+            return null;
+        }
+    }
+
+    private BigDecimal queryLatestApprovedPrice(String materialCode, Integer orderType, LocalDateTime orderCreateTime) {
+        if (materialCode == null || materialCode.isEmpty()) {
+            return null;
+        }
+        try {
+            VehiclePriceHqMatchReq req = new VehiclePriceHqMatchReq();
+            req.setMaterialCode(materialCode);
+            req.setOrderType(orderType != null ? String.valueOf(orderType) : null);
+            req.setOrderCreateTime(orderCreateTime);
+            AjaxResult<VehiclePriceHqDto> ret = vehiclePriceHqApi.match(req);
+            VehiclePriceHqDto dto = (ret != null) ? ret.getData() : null;
+            return dto != null ? dto.getPrice() : null;
+        } catch (Exception e) {
+            log.error("价格主数据查询失败 materialCode={}, orderType={}", materialCode, orderType, e);
+            return null;
         }
     }
 }

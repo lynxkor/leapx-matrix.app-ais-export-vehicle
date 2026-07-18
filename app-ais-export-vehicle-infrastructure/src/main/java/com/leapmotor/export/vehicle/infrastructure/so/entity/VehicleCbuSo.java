@@ -2,6 +2,8 @@ package com.leapmotor.export.vehicle.infrastructure.so.entity;
 
 import java.io.Serializable;
 
+import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoQcResultEnum;
+import com.leapmotor.platform.ais.common.mybatis.annotation.AutoCode;
 import com.leapmotor.platform.ais.common.mybatis.support.entity.LpBaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -43,6 +45,7 @@ public class VehicleCbuSo extends LpBaseEntity implements Serializable {
      * SO单号，后台自动生成
      */
     @TableField("so_no")
+    @AutoCode(prefix = "SO")
     private String soNo;
 
     /**
@@ -166,7 +169,7 @@ public class VehicleCbuSo extends LpBaseEntity implements Serializable {
     private LocalDateTime cancelTime;
 
     /**
-     * 当前质检结果
+     * 当前质检结果：{@link VehicleCbuSoQcResultEnum}（10通过、20不通过、30未收到车辆）
      */
     @TableField("qc_result")
     private Integer qcResult;
@@ -184,7 +187,8 @@ public class VehicleCbuSo extends LpBaseEntity implements Serializable {
     private String qcRemark;
 
     /**
-     * 上次质检结果
+     * 上次质检结果：{@link VehicleCbuSoQcResultEnum}（10通过、20不通过、30未收到车辆）；
+     * 同一 SO 再次反馈质检时由 updateQcResult 自动将当前结果迁移至此
      */
     @TableField("last_qc_result")
     private Integer lastQcResult;
@@ -206,6 +210,12 @@ public class VehicleCbuSo extends LpBaseEntity implements Serializable {
      */
     @TableField("receive_time")
     private LocalDateTime receiveTime;
+
+    /**
+     * 数据来源，枚举:1销服/2红旗
+     */
+    @TableField("data_source")
+    private Integer dataSource;
 
     /**
      * 备注

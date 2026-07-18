@@ -1,12 +1,13 @@
 package com.leapmotor.export.vehicle.base.event;
 
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
-import com.leapmotor.export.vehicle.base.event.enums.HongqiThirdTargetPlatformEnum;
+import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;
 import com.leapmotor.paltform.ais.common.event.core.config.EventConfig;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import com.leapmotor.paltform.ais.common.event.core.support.AbstractThirdNotifyService;
 import com.leapmotor.paltform.ais.common.event.service.EventNotifyTaskService;
+import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class HongqiNotifyServiceImpl extends AbstractThirdNotifyService {
         super(List.of(HongqiEventTypeEnum.values()), eventConfig, eventNotifyTaskService);
         handlerMap = new HashMap<>();
         for (AbstractEventHandler handler : handlers) {
-            if (Strings.CS.equals(HongqiThirdTargetPlatformEnum.HONGQI.getPlatform(),
+            if (Strings.CS.equals(ThirdTargetPlatformEnum.HONGQI.getPlatform(),
                     handler.getSupportPlatform().getPlatform())) {
                 handlerMap.put(handler.getSupportEvent(), handler);
             }
@@ -43,14 +44,14 @@ public class HongqiNotifyServiceImpl extends AbstractThirdNotifyService {
         HongqiEventTypeEnum eventTypeEnum = HongqiEventTypeEnum.matchByType(task.getType());
         AbstractEventHandler handler = handlerMap.get(eventTypeEnum);
         if (handler == null) {
-            log.error("红旗事件未找到对应的处理类:{}", eventTypeEnum);
-            return;
+            // 找不到处理类属于配置缺失(事件类型已注册但没有对应 handler Bean)，抛异常让框架走失败重试，避免静默返回被标记成成功而丢事件
+            throw new BizException("红旗事件未找到对应的处理类: " + eventTypeEnum);
         }
         handler.handle(task);
     }
 
     @Override
     public String platform() {
-        return HongqiThirdTargetPlatformEnum.HONGQI.getPlatform();
+        return ThirdTargetPlatformEnum.HONGQI.getPlatform();
     }
 }

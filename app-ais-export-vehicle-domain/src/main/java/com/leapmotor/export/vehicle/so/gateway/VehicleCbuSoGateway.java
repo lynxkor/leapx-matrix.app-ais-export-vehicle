@@ -5,6 +5,7 @@ import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -33,6 +34,14 @@ public interface VehicleCbuSoGateway {
     int addBatchVehicleCbuSo(List<VehicleCbuSoDo> vehicleCbuSoDos);
 
     /**
+     * 批量新增VehicleCbuSo，并将生成的主键回写到领域对象
+     *
+     * @param vehicleCbuSoDos
+     * @return 结果
+     */
+    int batchAddVehicleCbuSo(List<VehicleCbuSoDo> vehicleCbuSoDos);
+
+    /**
      * 修改VehicleCbuSo
      *
      * @param vehicleCbuSoDo
@@ -47,6 +56,14 @@ public interface VehicleCbuSoGateway {
      * @return 结果
      */
     VehicleCbuSoDo getVehicleCbuSoById(String id);
+
+    /**
+     * 按 SO 单号查询 SO 主表
+     *
+     * @param soNo SO 单号
+     * @return SO 领域对象
+     */
+    VehicleCbuSoDo getVehicleCbuSoBySoNo(String soNo);
 
     /**
      * 唯一查询VehicleCbuSo
@@ -71,6 +88,41 @@ public interface VehicleCbuSoGateway {
      * @return 结果
      */
     PageResult<VehicleCbuSoDo> pageVehicleCbuSo(VehicleCbuSoQo vehicleCbuSoQo);
+
+    /**
+     * 列表查询 SO 聚合车辆明细数据
+     *
+     * @param vehicleCbuSoQo
+     * @return 结果
+     */
+    List<VehicleCbuSoDo> listSoList(VehicleCbuSoQo vehicleCbuSoQo);
+
+    /**
+     * 分页查询 SO 聚合车辆明细数据
+     *
+     * @param vehicleCbuSoQo
+     * @return 结果
+     */
+    PageResult<VehicleCbuSoDo> pageSoList(VehicleCbuSoQo vehicleCbuSoQo);
+
+    /**
+     * 查询 SO 聚合详情（含车辆明细）
+     *
+     * @param id
+     * @return 结果
+     */
+    VehicleCbuSoDo getSoDetailById(String id);
+
+    /**
+     * 按 ID 列表批量更新订单状态及下发/作废时间。
+     *
+     * @param ids         SO 主键列表
+     * @param orderStatus 目标状态
+     * @param issueTime   下发时间（可为空）
+     * @param cancelTime  作废时间（可为空）
+     * @return 受影响行数
+     */
+    int batchUpdateStatus(List<String> ids, Integer orderStatus, LocalDateTime issueTime, LocalDateTime cancelTime);
 
     /**
      * 删除VehicleCbuSo

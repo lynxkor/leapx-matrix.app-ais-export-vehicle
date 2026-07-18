@@ -199,6 +199,9 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
     /** 开户银行最大长度 */
     private static final int BANK_NAME_MAX_LENGTH = 100;
 
+    /** 审核意见最大长度(通过/驳回通用) */
+    private static final int APPROVE_REMARK_MAX_LENGTH = 200;
+
     private static void requireNotBlank(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
             throw new BizException(fieldName + "不能为空");
@@ -232,8 +235,18 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
 
     @Override
     public ExportVehicleLetterGuaranteeBatchStateMachineResp approve(ExportVehicleLetterGuaranteeApproveReq req) {
+        Boolean approvedFlag = req.getApproved();
+        if (approvedFlag == null) {
+            throw new BizException("审核结论(approved)不能为空");
+        }
+        boolean approved = Boolean.TRUE.equals(approvedFlag);
+        if (!approved) {
+            // 驳回时审核意见必填且 ≤ 200
+            requireNotBlank(req.getApproveRemark(), "驳回原因");
+            requireMaxLength(req.getApproveRemark(), APPROVE_REMARK_MAX_LENGTH, "驳回原因");
+        }
+
         List<String> ids = resolveIds(req.getId(), req.getIds());
-        boolean approved = Boolean.TRUE.equals(req.getApproved());
         return runBatch(ids, id -> exportVehicleLetterGuaranteeCmdExe.approve(id, approved, req.getApproveRemark()));
     }
 

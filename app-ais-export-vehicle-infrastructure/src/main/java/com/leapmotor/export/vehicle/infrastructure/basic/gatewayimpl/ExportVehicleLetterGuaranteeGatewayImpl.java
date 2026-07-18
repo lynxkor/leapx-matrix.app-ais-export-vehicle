@@ -172,7 +172,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         lg.setSubmitterId(user.getUserId());
         lg.setSubmitterName(user.getUserName());
         lg.setSubmitTime(LocalDateTime.now());
-        // 提交原因非空时落主表 remark(与 cancel 对齐;为空则不覆盖,保留驳回时的旧 remark)
+        // 提交原因非空时落主表 remark(与 cancel 对齐;为空则不覆盖,保留驳回/历史原因)
         if (remark != null && !remark.isEmpty()) {
             lg.setRemark(remark);
         }
@@ -209,7 +209,10 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         lg.setApproverId(user.getUserId());
         lg.setApproverName(user.getUserName());
         lg.setApproveTime(LocalDateTime.now());
-        lg.setApproveRemark(approveRemark);
+        // 审核意见非空时才覆盖(与 submit/cancel 对齐;通过可空 → 不覆盖,保留历史意见;驳回时 Service 已强制非空)
+        if (approveRemark != null && !approveRemark.isEmpty()) {
+            lg.setApproveRemark(approveRemark);
+        }
         return updateExportVehicleLetterGuarantee(lg) != null;
     }
 
@@ -224,7 +227,10 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         }
         lg.setApprovalStatus(ApprovalStatusEnum.CANCELLED.getCode());
         // lg_status 保持 10
-        lg.setRemark(remark);
+        // 作废原因非空时落主表 remark(与 submit 对齐;为空则不覆盖,保留驳回/历史原因)
+        if (remark != null && !remark.isEmpty()) {
+            lg.setRemark(remark);
+        }
         return updateExportVehicleLetterGuarantee(lg) != null;
     }
 

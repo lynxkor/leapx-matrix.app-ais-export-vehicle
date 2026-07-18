@@ -55,18 +55,18 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     private String transactionType;
 
     @Schema(description = "变动金额(始终为正)")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal transactionAmount;
 
     @Schema(description = "变动说明(如 \"PO单 101提交,资金冻结\")")
     private String transactionRemark;
 
     @Schema(description = "变动前可用订单金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal beforeAvailable;
 
     @Schema(description = "变动后可用订单金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal afterAvailable;
 
     @Schema(description = "变动前占用订单金额")

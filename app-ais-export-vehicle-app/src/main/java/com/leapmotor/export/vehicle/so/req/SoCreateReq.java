@@ -21,6 +21,9 @@ public class SoCreateReq implements Serializable {
     @Schema(description = "PO单号")
     private String poNo;
 
+    @Schema(description = "PO单ID")
+    private String poId;
+
     @Schema(description = "销售公司编码")
     private String salesCompanyCode;
 

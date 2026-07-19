@@ -40,8 +40,8 @@ CREATE TABLE `export_vehicle_cbu_po` (
     `delete_status`                       BIGINT           NOT NULL DEFAULT '0'             COMMENT '删除状态(0=正常,1=已删除),逻辑删除',
     `status`                              SMALLINT UNSIGNED NOT NULL DEFAULT '1'            COMMENT '状态(1:启用,0:停用),平台规范,业务流转用 order_status',
     `status_desc`                         VARCHAR(256)     DEFAULT NULL                     COMMENT '状态变更描述',
-    `owner_user_id`                       BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'          COMMENT '归属用户ID',
-    `owner_org_id`                        BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'          COMMENT '归属门店ID(组织ID)',
+    `owner_user_id`                       BIGINT(20) UNSIGNED DEFAULT NULL          COMMENT '归属用户ID',
+    `owner_org_id`                        BIGINT(20) UNSIGNED DEFAULT NULL          COMMENT '归属门店ID(组织ID)',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_po_no` (`po_no`)
 ) DEFAULT CHARSET=utf8mb4 COMMENT='PO订单主表';
@@ -74,8 +74,8 @@ CREATE TABLE `export_vehicle_cbu_po_detail` (
     `delete_status`         BIGINT          NOT NULL DEFAULT '0'            COMMENT '删除状态(0=正常,1=已删除),逻辑删除',
     `status`                SMALLINT UNSIGNED NOT NULL DEFAULT '1'          COMMENT '状态(1:启用,0:停用),平台规范',
     `status_desc`           VARCHAR(256)    DEFAULT NULL                    COMMENT '状态变更描述',
-    `owner_user_id`         BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'       COMMENT '归属用户ID',
-    `owner_org_id`          BIGINT(20) UNSIGNED NOT NULL DEFAULT '0'       COMMENT '归属门店ID(组织ID)',
+    `owner_user_id`         BIGINT(20) UNSIGNED DEFAULT NULL       COMMENT '归属用户ID',
+    `owner_org_id`          BIGINT(20) UNSIGNED DEFAULT NULL       COMMENT '归属门店ID(组织ID)',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_po_detail` (`po_no`, `po_detail_no`)
 ) DEFAULT CHARSET=utf8mb4 COMMENT='PO订单明细表';
@@ -84,8 +84,8 @@ CREATE TABLE `export_vehicle_cbu_po_detail` (
 CREATE TABLE `export_vehicle_cbu_po_guarantee` (
     `id`                            VARCHAR(64)   NOT NULL                 COMMENT '主键ID(UUID 或雪花ID 字符串形式)',
     `po_no`                     VARCHAR(30)   NOT NULL                 COMMENT 'PO单号,关联主表 export_vehicle_cbu_po.po_no',
-    `guarantee_id`                  VARCHAR(32)   NOT NULL                 COMMENT '保函ID,关联保函表',
-    `guarantee_number`              VARCHAR(30)   NOT NULL                 COMMENT '保函编号',
+    `guarantee_id`                  VARCHAR(64)   NOT NULL                 COMMENT '保函ID,关联保函表export_vehicle_letter_guarantee.id',
+    `guarantee_number`              VARCHAR(64)   NOT NULL                 COMMENT '保函编号,关联保函表lg_code',
     `po_current_occupied_amount`    DECIMAL(20,2) NOT NULL DEFAULT '0.00'  COMMENT 'PO当前占用金额,= 该保函的冻结金额',
     `po_current_receivable_amount`  DECIMAL(20,2) NOT NULL DEFAULT '0.00'  COMMENT 'PO当前应收金额,= 0',
     -- 基础字段(平台模板 §7.0)
@@ -98,8 +98,8 @@ CREATE TABLE `export_vehicle_cbu_po_guarantee` (
     `delete_status`                 BIGINT        NOT NULL DEFAULT '0'     COMMENT '删除状态(0=正常,1=已删除),逻辑删除',
     `status`                        SMALLINT UNSIGNED NOT NULL DEFAULT '1' COMMENT '状态(1:启用,0:停用),平台规范',
     `status_desc`                   VARCHAR(256)  DEFAULT NULL             COMMENT '状态变更描述',
-    `owner_user_id`                 BIGINT(20) UNSIGNED NOT NULL DEFAULT '0' COMMENT '归属用户ID',
-    `owner_org_id`                  BIGINT(20) UNSIGNED NOT NULL DEFAULT '0' COMMENT '归属门店ID(组织ID)',
+    `owner_user_id`                 BIGINT(20) UNSIGNED DEFAULT NULL COMMENT '归属用户ID',
+    `owner_org_id`                  BIGINT(20) UNSIGNED DEFAULT NULL COMMENT '归属门店ID(组织ID)',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_po_guarantee` (`po_no`, `guarantee_id`)
 ) DEFAULT CHARSET=utf8mb4 COMMENT='PO-保函关联表(一个PO多保函)';

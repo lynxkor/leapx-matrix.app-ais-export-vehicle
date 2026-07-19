@@ -73,6 +73,14 @@ public class ExportVehicleCbuPoDetailGatewayImpl implements ExportVehicleCbuPoDe
     }
 
     @Override
+    public int updateProductionRemark(String id, String productionRemark) {
+        return purchaseOrderDetailMapper.update(null,
+                new LambdaUpdateWrapper<ExportVehicleCbuPoDetail>()
+                        .set(ExportVehicleCbuPoDetail::getProductionRemark, productionRemark)
+                        .eq(ExportVehicleCbuPoDetail::getId, id));
+    }
+
+    @Override
     public ExportVehicleCbuPoDetailDo getExportVehicleCbuPoDetailById(String id) {
         ExportVehicleCbuPoDetail purchaseOrderDetail = purchaseOrderDetailDao.getById(id);
         return ExportVehicleCbuPoDetailStructMapper.INSTANCE.dataObjectToDomain(purchaseOrderDetail);

@@ -64,6 +64,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -139,13 +140,19 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             order.setCustomerCode(customer.getCustomerCode());
             order.setCustomerName(customer.getCustomerName());
         }
-        // 明细物料兜底
+        // 明细物料兜底（批量匹配：一次 Feign 替代循环内逐条）
         ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
+        Map<String, VehicleMaterialDto> materialMap = queryMaterialByCodes(details.stream()
+                .filter(d -> StringUtils.isBlank(d.getMaterialCode()))
+                .map(ExportVehicleCbuPoDetailDo::getSyncMaterialCode)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList()));
         for (ExportVehicleCbuPoDetailDo d : details) {
             if (StringUtils.isBlank(d.getMaterialCode())) {
-                VehicleMaterialDto m = queryMaterialByCode(d.getSyncMaterialCode());
+                VehicleMaterialDto m = materialMap.get(d.getSyncMaterialCode());
                 if (m == null) {
                     throw new BizException("明细" + d.getOrderDetailNumber() + "物料编码无法匹配，不允许提交");
                 }
@@ -159,10 +166,13 @@ public class ExportVehicleCbuPoApprovalCmdExe {
 
         // ===== 步骤2 价格匹配（单价空的明细按 物料+订单类型+创建时间 取审批最新价） =====
         LocalDateTime orderCreateTime = order.getCreateTime();
+        Map<String, BigDecimal> priceMap = queryLatestApprovedPrices(
+                details.stream().map(ExportVehicleCbuPoDetailDo::getMaterialCode).filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList()),
+                order.getOrderType(), orderCreateTime);
         List<String> noPriceMaterials = new ArrayList<>();
         for (ExportVehicleCbuPoDetailDo d : details) {
             if (d.getUnitPrice() == null) {
-                BigDecimal price = queryLatestApprovedPrice(d.getMaterialCode(), order.getOrderType(), orderCreateTime);
+                BigDecimal price = priceMap.get(d.getMaterialCode());
                 if (price == null) {
                     noPriceMaterials.add(d.getMaterialCode());
                     continue;
@@ -286,6 +296,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     private SoCreateReq buildSoCreateReq(ExportVehicleCbuPoDo order, List<ExportVehicleCbuPoDetailDo> details) {
         SoCreateReq req = new SoCreateReq();
         req.setPoNo(order.getPoNo());
+        req.setPoId(order.getId());
         req.setOrderType(order.getOrderType());
         req.setSalesCompanyCode(order.getSalesCompanyCode());
         req.setCustomerCode(order.getCustomerCode());
@@ -495,13 +506,16 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             }
         }
 
-        // ===== 重算价格（步骤2，同 提交的匹配规则） =====
+        // ===== 重算价格（步骤2，同 提交的匹配规则；批量一次 Feign） =====
         BigDecimal oldTotal = order.getTotalAmount();
+        Map<String, BigDecimal> priceMap = queryLatestApprovedPrices(
+                details.stream().map(ExportVehicleCbuPoDetailDo::getMaterialCode).filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList()),
+                order.getOrderType(), order.getCreateTime());
         for (ExportVehicleCbuPoDetailDo d : details) {
             if (StringUtils.isBlank(d.getMaterialCode())) {
                 continue;
             }
-            BigDecimal newPrice = queryLatestApprovedPrice(d.getMaterialCode(), order.getOrderType(), order.getCreateTime());
+            BigDecimal newPrice = priceMap.get(d.getMaterialCode());
             if (newPrice != null) {
                 d.setUnitPrice(newPrice);
                 if (d.getDemandQuantity() == null) {
@@ -746,37 +760,55 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         }
     }
 
-    private VehicleMaterialDto queryMaterialByCode(String materialCode) {
-        if (materialCode == null || materialCode.isEmpty()) {
-            return null;
+    /** 批量查整编物料主数据（一次 Feign），返回 code → dto，循环内查 Map 替代逐条 */
+    private Map<String, VehicleMaterialDto> queryMaterialByCodes(List<String> materialCodes) {
+        if (materialCodes == null || materialCodes.isEmpty()) {
+            return Collections.emptyMap();
         }
         try {
             VehicleMaterialBatchMatchReq req = new VehicleMaterialBatchMatchReq();
-            req.setMaterialCodes(Collections.singletonList(materialCode));
+            req.setMaterialCodes(materialCodes);
             AjaxResult<List<VehicleMaterialDto>> ret = vehicleMaterialApi.batchMatch(req);
             List<VehicleMaterialDto> list = (ret != null) ? ret.getData() : null;
-            return (list != null && !list.isEmpty()) ? list.get(0) : null;
+            if (list == null || list.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            return list.stream().collect(Collectors.toMap(VehicleMaterialDto::getCode, dto -> dto, (a, b) -> a));
         } catch (Exception e) {
-            log.error("整编主数据查询失败 materialCode={}", materialCode, e);
-            return null;
+            log.error("整编主数据批量查询失败 codes={}", materialCodes, e);
+            return Collections.emptyMap();
         }
     }
 
-    private BigDecimal queryLatestApprovedPrice(String materialCode, Integer orderType, LocalDateTime orderCreateTime) {
-        if (materialCode == null || materialCode.isEmpty()) {
-            return null;
+    /** 批量匹配价格（一次 Feign batchMatch），返回 materialCode → price，无价的不入 Map */
+    private Map<String, BigDecimal> queryLatestApprovedPrices(List<String> materialCodes, Integer orderType, LocalDateTime orderCreateTime) {
+        if (materialCodes == null || materialCodes.isEmpty()) {
+            return Collections.emptyMap();
         }
         try {
-            VehiclePriceHqMatchReq req = new VehiclePriceHqMatchReq();
-            req.setMaterialCode(materialCode);
-            req.setOrderType(orderType != null ? String.valueOf(orderType) : null);
-            req.setOrderCreateTime(orderCreateTime);
-            AjaxResult<VehiclePriceHqDto> ret = vehiclePriceHqApi.match(req);
-            VehiclePriceHqDto dto = (ret != null) ? ret.getData() : null;
-            return dto != null ? dto.getPrice() : null;
+            List<VehiclePriceHqMatchReq> reqs = materialCodes.stream().map(code -> {
+                VehiclePriceHqMatchReq r = new VehiclePriceHqMatchReq();
+                r.setMaterialCode(code);
+                r.setOrderType(orderType != null ? String.valueOf(orderType) : null);
+                r.setOrderCreateTime(orderCreateTime);
+                return r;
+            }).collect(Collectors.toList());
+            AjaxResult<List<VehiclePriceHqDto>> ret = vehiclePriceHqApi.batchMatch(reqs);
+            List<VehiclePriceHqDto> list = (ret != null) ? ret.getData() : null;
+            if (list == null || list.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            Map<String, BigDecimal> map = new HashMap<>();
+            for (int i = 0; i < materialCodes.size() && i < list.size(); i++) {
+                VehiclePriceHqDto dto = list.get(i);
+                if (dto != null && dto.getPrice() != null) {
+                    map.put(materialCodes.get(i), dto.getPrice());
+                }
+            }
+            return map;
         } catch (Exception e) {
-            log.error("价格主数据查询失败 materialCode={}, orderType={}", materialCode, orderType, e);
-            return null;
+            log.error("价格主数据批量查询失败 codes={}", materialCodes, e);
+            return Collections.emptyMap();
         }
     }
 }

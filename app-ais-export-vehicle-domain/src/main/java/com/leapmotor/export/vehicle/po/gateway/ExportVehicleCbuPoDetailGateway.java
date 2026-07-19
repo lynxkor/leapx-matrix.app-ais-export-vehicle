@@ -51,6 +51,15 @@ public interface ExportVehicleCbuPoDetailGateway  {
     int updatePriceById(String id, BigDecimal unitPrice, BigDecimal totalAmount);
 
     /**
+     * 按主键更新明细生产备注（显式 set，可写入 null；用于编辑保存时清空备注）
+     *
+     * @param id 明细主键
+     * @param productionRemark 生产备注（可为 null，null 即清空）
+     * @return 受影响行数
+     */
+    int updateProductionRemark(String id, String productionRemark);
+
+    /**
      * 查询ExportVehicleCbuPoDetail
      *
      * @param id

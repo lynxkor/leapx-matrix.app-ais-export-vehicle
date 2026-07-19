@@ -45,6 +45,7 @@ public class HongqiCbuPurchaseOrderReq {
 
     @Schema(description = "订单明细列表")
     @NotEmpty(message = "订单明细不能为空")
+    @Size(max = 200, message = "单次订单明细不能超过200条")
     @Valid
     private List<HongqiCbuOrderDetailReq> orderDetailList;
 }

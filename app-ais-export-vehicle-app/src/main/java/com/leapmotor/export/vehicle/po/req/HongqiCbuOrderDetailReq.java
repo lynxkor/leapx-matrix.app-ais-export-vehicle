@@ -3,6 +3,7 @@ package com.leapmotor.export.vehicle.po.req;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -27,12 +28,13 @@ public class HongqiCbuOrderDetailReq {
 
     @Schema(description = "18位零跑物料编码", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "物料编码不能为空")
-    @Size(min = 18, max = 18, message = "物料编码必须为18位")
+    @Pattern(regexp = "^[A-Za-z0-9]{18}$", message = "物料编码必须为18位字母或数字")
     private String materialCode;
 
     @Schema(description = "需求数量", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "需求数量不能为空")
     @Positive(message = "需求数量必须大于0")
+    @Digits(integer = 18, fraction = 2, message = "需求数量整数部分不超过18位、小数不超过2位")
     private BigDecimal demandQuantity;
 
     @Schema(description = "VIN码年份，格式YYYY")

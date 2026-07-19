@@ -31,6 +31,7 @@ import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.user.LoginUser;
 import com.leapmotor.paltform.ais.common.util.LoginUserUtils;
 import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
+import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -144,7 +145,8 @@ public class VehicleCbuSoCmdExe {
             throw new BizException("未生成任何SO，请检查PO明细需求数量");
         }
 
-        // 批量保存主表；平台 LpBaseEntity 自动生成主键，需回写到领域对象供明细关联
+        // 批量保存主表；so_no 已在 buildSo 用 NoGenerator 显式生成（@AutoCode 注解本环境未生效，光靠注解生成不了），
+        // 平台 LpBaseEntity 自动生成主键并回写到领域对象，供下面明细 soId 关联使用。
         vehicleCbuSoGateway.batchAddVehicleCbuSo(soList);
         for (int i = 0; i < soList.size(); i++) {
             VehicleCbuSoDo so = soList.get(i);
@@ -161,8 +163,16 @@ public class VehicleCbuSoCmdExe {
         return result;
     }
 
+    /** 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（@AutoCode 本环境未生效，用 NoGenerator，同 po_detail_no） */
+    private String genSoNo() {
+        return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
+                + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
+    }
+
     private VehicleCbuSoDo buildSo(SoCreateReq req, SoCreateReq.SoDetailReq detailReq, int lineNo) {
         VehicleCbuSoDo so = new VehicleCbuSoDo();
+        so.setSoNo(genSoNo());
+        so.setPoId(req.getPoId());
         so.setPoNo(req.getPoNo());
         so.setPoDetailId(detailReq.getPoDetailId());
         so.setPoDetailNo(detailReq.getPoDetailNo());

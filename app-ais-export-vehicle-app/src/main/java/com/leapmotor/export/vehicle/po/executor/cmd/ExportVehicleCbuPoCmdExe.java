@@ -1,6 +1,9 @@
 package com.leapmotor.export.vehicle.po.executor.cmd;
 
 
+import com.leapmotor.export.nexus.company.api.CompanyApi;
+import com.leapmotor.export.nexus.company.request.CompanyRequest;
+import com.leapmotor.export.nexus.company.response.CompanyResponse;
 import com.leapmotor.export.nexus.customer.api.CustomerApi;
 import com.leapmotor.export.nexus.customer.request.CustomerRequest;
 import com.leapmotor.export.nexus.customer.response.CustomerResponse;
@@ -23,6 +26,7 @@ import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoDetailSaveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
@@ -35,12 +39,16 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * ExportVehicleCbuPo 写操作执行器
@@ -61,6 +69,8 @@ public class ExportVehicleCbuPoCmdExe {
     private VehicleMaterialApi vehicleMaterialApi;
     /** 价格主数据，对接 app-ais-export-nexus 价格服务 */
     private VehiclePriceHqApi vehiclePriceHqApi;
+    /** 销售公司主数据，对接 app-ais-export-nexus 销售公司服务 */
+    private CompanyApi companyApi;
 
 
     public boolean deleteExportVehicleCbuPoByIds(List<String> ids) {
@@ -89,6 +99,10 @@ public class ExportVehicleCbuPoCmdExe {
         // 2. 同一 PO 内订单明细编号唯一
         checkDetailNumberUnique(req);
 
+        // 2.1 PO单号/计划版本号 内嵌日期段合法性（@Pattern 只校验数字位，非法日期如 20261332 在此拦截）
+        validateDateSegment(req.getPoNo().substring(2, 10), "PO单号");
+        validateDateSegment(req.getPlanVersion().substring(0, 8), "计划版本号");
+
         // 3. 客户匹配（接口客户编码 = 外部客户编码 → 客户主数据）
         CustomerResponse customer = queryCustomerByExternalCode(req.getCustomerCode());
 
@@ -103,6 +117,7 @@ public class ExportVehicleCbuPoCmdExe {
             order.setCustomerName(customer.getCustomerName());
         }
         order.setDataSource(DataSourceEnum.HONGQI.getCode());
+        order.setSalesCompanyCode("1000");
         order.setOrderType(OrderTypeEnum.CBU.getCode());
         order.setPlanVersion(req.getPlanVersion());
 
@@ -132,13 +147,53 @@ public class ExportVehicleCbuPoCmdExe {
         }
     }
 
+    /** 校验 yyyyMMdd 日期段是真实合法日期（@Pattern 只验数字位，20261332 这类伪日期在此拦截） */
+    private void validateDateSegment(String yyyyMMdd, String field) {
+        try {
+            LocalDate.parse(yyyyMMdd, DateTimeFormatter.BASIC_ISO_DATE);
+        } catch (DateTimeParseException e) {
+            throw new BizException(field + "内嵌日期段非法(应为合法 yyyyMMdd): " + yyyyMMdd);
+        }
+    }
+
+    /** 校验销售公司编码在主数据中存在（数据来源为销售公司主数据下拉，禁止随意填写） */
+    private void checkSalesCompany(String companyCode) {
+        try {
+            CompanyRequest cReq = new CompanyRequest();
+            cReq.setCompanyCode(companyCode);
+            AjaxResult<List<CompanyResponse>> ret = companyApi.list(cReq);
+            if (ret == null || !Objects.equals(ResultEnum.SUCCESS.getCode(), ret.getCode())) {
+                throw new BizException("销售公司信息查询失败");
+            }
+            List<CompanyResponse> data = ret.getData();
+            if (data == null || data.stream().noneMatch(c -> companyCode.equals(c.getCompanyCode()))) {
+                throw new BizException("销售公司不存在: " + companyCode);
+            }
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("销售公司主数据查询失败 companyCode={}", companyCode, e);
+            throw new BizException("销售公司信息查询失败");
+        }
+    }
+
     /** 明细组装：物料匹配（带出描述/市场/年款/选装）+ 单价匹配 + 金额合计 */
     private List<ExportVehicleCbuPoDetailDo> buildDetails(HongqiCbuPurchaseOrderReq req, LocalDateTime orderCreateTime) {
+        // 物料批量匹配：一次 Feign，循环内查 Map
+        Map<String, VehicleMaterialDto> materialMap = queryMaterialByCodes(req.getOrderDetailList().stream()
+                .map(HongqiCbuOrderDetailReq::getMaterialCode)
+                .filter(c -> c != null && !c.isEmpty())
+                .distinct()
+                .collect(Collectors.toList()));
+        // 价格批量匹配：用物料匹配到的 code 一次 batchMatch
+        Map<String, BigDecimal> priceMap = queryLatestApprovedPrices(
+                new ArrayList<>(materialMap.values().stream().map(VehicleMaterialDto::getCode).collect(Collectors.toSet())),
+                1, orderCreateTime);
         List<ExportVehicleCbuPoDetailDo> list = new ArrayList<>();
         for (HongqiCbuOrderDetailReq d : req.getOrderDetailList()) {
             ExportVehicleCbuPoDetailDo detail = new ExportVehicleCbuPoDetailDo();
             detail.setPoNo(req.getPoNo());
-            detail.setPoDetailNo(NoGenerator.genNoOnly("POD", "yyyyMMddHHmm", 5));
+            detail.setPoDetailNo("POD" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm")) + NoGenerator.genNoOnly("POD", "yyyyMMddHHmm", 5));
             detail.setOrderDetailNumber(d.getDetailNumber());
             detail.setSyncMaterialCode(d.getMaterialCode());
             detail.setDemandQuantity(d.getDemandQuantity());
@@ -147,7 +202,7 @@ public class ExportVehicleCbuPoCmdExe {
             // 生产备注：接口不传，草稿态业务填，留空
 
             // 物料匹配（18位同步物料编码 → 整编主数据）
-            VehicleMaterialDto material = queryMaterialByCode(d.getMaterialCode());
+            VehicleMaterialDto material = materialMap.get(d.getMaterialCode());
             if (material != null) {
                 detail.setMaterialCode(material.getCode());
                 detail.setMaterialDescription(material.getMaterialDesc());
@@ -158,8 +213,7 @@ public class ExportVehicleCbuPoCmdExe {
 
             // 单价匹配（物料编码 + 订单类型 + 订单创建时间 → 价格主数据，多条取审批最新）
             if (detail.getMaterialCode() != null) {
-                BigDecimal unitPrice = queryLatestApprovedPrice(
-                        detail.getMaterialCode(), 1, orderCreateTime);
+                BigDecimal unitPrice = priceMap.get(detail.getMaterialCode());
                 detail.setUnitPrice(unitPrice);
                 if (unitPrice != null && d.getDemandQuantity() != null) {
                     detail.setTotalAmount(unitPrice.multiply(d.getDemandQuantity()));
@@ -199,6 +253,9 @@ public class ExportVehicleCbuPoCmdExe {
             throw new BizException("仅草稿态订单可编辑");
         }
 
+        // 校验销售公司存在于主数据（下拉数据源，禁止随意填写）
+        checkSalesCompany(req.getSalesCompanyCode());
+
         // 2. 改抬头销售公司（只 set id + salesCompanyCode，其余字段不更新）
         ExportVehicleCbuPoDo headerUpdate = new ExportVehicleCbuPoDo();
         headerUpdate.setId(req.getPoId());
@@ -212,10 +269,8 @@ public class ExportVehicleCbuPoCmdExe {
             if (existDetail == null || !order.getPoNo().equals(existDetail.getPoNo())) {
                 throw new BizException("明细不属于当前订单，不允许编辑");
             }
-            ExportVehicleCbuPoDetailDo detailUpdate = new ExportVehicleCbuPoDetailDo();
-            detailUpdate.setId(d.getDetailId());
-            detailUpdate.setProductionRemark(d.getProductionRemark());
-            purchaseOrderDetailGateway.updateExportVehicleCbuPoDetail(detailUpdate);
+            // 生产备注：前端传什么更新什么，传 null/空即清空（显式 set，绕开 updateById 的 not_null 策略）
+            purchaseOrderDetailGateway.updateProductionRemark(d.getDetailId(), d.getProductionRemark());
         }
     }
 
@@ -237,37 +292,55 @@ public class ExportVehicleCbuPoCmdExe {
         }
     }
 
-    private VehicleMaterialDto queryMaterialByCode(String materialCode) {
-        if (materialCode == null || materialCode.isEmpty()) {
-            return null;
+    /** 批量查整编物料主数据（一次 Feign），返回 code → dto，循环内查 Map 替代逐条 */
+    private Map<String, VehicleMaterialDto> queryMaterialByCodes(List<String> materialCodes) {
+        if (materialCodes == null || materialCodes.isEmpty()) {
+            return Collections.emptyMap();
         }
         try {
             VehicleMaterialBatchMatchReq req = new VehicleMaterialBatchMatchReq();
-            req.setMaterialCodes(Collections.singletonList(materialCode));
+            req.setMaterialCodes(materialCodes);
             AjaxResult<List<VehicleMaterialDto>> ret = vehicleMaterialApi.batchMatch(req);
             List<VehicleMaterialDto> list = (ret != null) ? ret.getData() : null;
-            return (list != null && !list.isEmpty()) ? list.get(0) : null;
+            if (list == null || list.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            return list.stream().collect(Collectors.toMap(VehicleMaterialDto::getCode, dto -> dto, (a, b) -> a));
         } catch (Exception e) {
-            log.error("整编主数据查询失败 materialCode={}", materialCode, e);
-            return null;
+            log.error("整编主数据批量查询失败 codes={}", materialCodes, e);
+            return Collections.emptyMap();
         }
     }
 
-    private BigDecimal queryLatestApprovedPrice(String materialCode, Integer orderType, LocalDateTime orderCreateTime) {
-        if (materialCode == null || materialCode.isEmpty()) {
-            return null;
+    /** 批量匹配价格（一次 Feign batchMatch），返回 materialCode → price，无价的不入 Map */
+    private Map<String, BigDecimal> queryLatestApprovedPrices(List<String> materialCodes, Integer orderType, LocalDateTime orderCreateTime) {
+        if (materialCodes == null || materialCodes.isEmpty()) {
+            return Collections.emptyMap();
         }
         try {
-            VehiclePriceHqMatchReq req = new VehiclePriceHqMatchReq();
-            req.setMaterialCode(materialCode);
-            req.setOrderType(orderType != null ? String.valueOf(orderType) : null);
-            req.setOrderCreateTime(orderCreateTime);
-            AjaxResult<VehiclePriceHqDto> ret = vehiclePriceHqApi.match(req);
-            VehiclePriceHqDto dto = (ret != null) ? ret.getData() : null;
-            return dto != null ? dto.getPrice() : null;
+            List<VehiclePriceHqMatchReq> reqs = materialCodes.stream().map(code -> {
+                VehiclePriceHqMatchReq r = new VehiclePriceHqMatchReq();
+                r.setMaterialCode(code);
+                r.setOrderType(orderType != null ? String.valueOf(orderType) : null);
+                r.setOrderCreateTime(orderCreateTime);
+                return r;
+            }).collect(Collectors.toList());
+            AjaxResult<List<VehiclePriceHqDto>> ret = vehiclePriceHqApi.batchMatch(reqs);
+            List<VehiclePriceHqDto> list = (ret != null) ? ret.getData() : null;
+            if (list == null || list.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            Map<String, BigDecimal> map = new HashMap<>();
+            for (int i = 0; i < materialCodes.size() && i < list.size(); i++) {
+                VehiclePriceHqDto dto = list.get(i);
+                if (dto != null && dto.getPrice() != null) {
+                    map.put(materialCodes.get(i), dto.getPrice());
+                }
+            }
+            return map;
         } catch (Exception e) {
-            log.error("价格主数据查询失败 materialCode={}, orderType={}", materialCode, orderType, e);
-            return null;
+            log.error("价格主数据批量查询失败 codes={}", materialCodes, e);
+            return Collections.emptyMap();
         }
     }
 }

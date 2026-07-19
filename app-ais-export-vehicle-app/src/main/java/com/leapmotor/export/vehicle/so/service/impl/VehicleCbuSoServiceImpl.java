@@ -11,6 +11,7 @@ import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
+import com.leapmotor.export.vehicle.so.req.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoParam;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
@@ -99,6 +100,11 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     @Override
     public List<SoResult.SoItem> createSo(SoCreateReq req) {
         return vehicleCbuSoCmdExe.createSo(req);
+    }
+
+    @Override
+    public void updatePrice(SoUpdatePriceReq req) {
+        vehicleCbuSoCmdExe.updatePrice(req);
     }
 
     @Override

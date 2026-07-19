@@ -20,6 +20,7 @@ import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoInterfaceSyncDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
+import com.leapmotor.export.vehicle.so.req.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveStatusReq;
@@ -213,6 +214,35 @@ public class VehicleCbuSoCmdExe {
         VehicleCbuSoQo qo = new VehicleCbuSoQo();
         qo.setPoNo(poNo);
         return vehicleCbuSoGateway.listVehicleCbuSo(qo);
+    }
+
+    /**
+     * 按 PO 刷新 SO 车辆价/冻结金额：查 PO 下 SO，按 poDetailId 匹配明细新单价更新。
+     * 调用方（refreshPrice 分支B）已校验 SO 非质检通过/已收款；作废 SO(1012) 跳过。
+     */
+    public void updatePrice(SoUpdatePriceReq req) {
+        if (req == null || StringUtils.isBlank(req.getPoNo())) {
+            throw new BizException("PO单号不能为空");
+        }
+        List<VehicleCbuSoDo> sos = listVehicleCbuSoByPoNo(req.getPoNo());
+        if (CollectionUtils.isEmpty(sos) || CollectionUtils.isEmpty(req.getDetails())) {
+            return;
+        }
+        for (VehicleCbuSoDo so : sos) {
+            if (Integer.valueOf(1012).equals(so.getOrderStatus()) || so.getPoDetailId() == null) {
+                continue;
+            }
+            for (SoUpdatePriceReq.DetailPrice dp : req.getDetails()) {
+                if (so.getPoDetailId().equals(dp.getPoDetailId()) && dp.getUnitPrice() != null) {
+                    VehicleCbuSoDo update = new VehicleCbuSoDo();
+                    update.setId(so.getId());
+                    update.setVehiclePrice(dp.getUnitPrice());
+                    update.setFrozenAmount(dp.getUnitPrice());
+                    vehicleCbuSoGateway.updateVehicleCbuSo(update);
+                    break;
+                }
+            }
+        }
     }
 
     // ==================== 下发生产 ====================

@@ -14,6 +14,7 @@ import com.leapmotor.export.vehicle.acl.http.hongqi.request.CbuApprovalResultReq
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
+import com.leapmotor.export.vehicle.so.req.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.so.resp.SoResult;
 import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
@@ -614,20 +615,18 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             }
             // 新=原：不调保函，直接更新 SO
 
-            // TODO 更新 SO 车辆价格/冻结金额
-            /*SoUpdatePriceReq soUpdateReq = new SoUpdatePriceReq();
+            // 联动 SO：按明细新单价更新 PO 下 SO 的车辆价/冻结金额（同事务，作废SO跳过）
+            SoUpdatePriceReq soUpdateReq = new SoUpdatePriceReq();
             soUpdateReq.setPoNo(order.getPoNo());
-            soUpdateReq.setDetails(details.stream().map(d -> {
-                SoUpdatePriceReq.DetailPrice dp = new SoUpdatePriceReq.DetailPrice();
-                dp.setPoDetailNo(d.getPoDetailNo());
-                dp.setUnitPrice(d.getUnitPrice());
-                dp.setTotalAmount(d.getTotalAmount());
-                return dp;
-            }).toList());
-            SoResult soUpdateResult = soClient.updatePrice(soUpdateReq);
-            if (soUpdateResult == null || soUpdateResult.getCode() != 200) {
-                throw new BizException("SO 价格更新失败: " + (soUpdateResult != null ? soUpdateResult.getMessage() : "null"));
-            }*/
+            soUpdateReq.setDetails(details.stream()
+                    .filter(d -> d.getId() != null && d.getUnitPrice() != null)
+                    .map(d -> {
+                        SoUpdatePriceReq.DetailPrice dp = new SoUpdatePriceReq.DetailPrice();
+                        dp.setPoDetailId(d.getId());
+                        dp.setUnitPrice(d.getUnitPrice());
+                        return dp;
+                    }).toList());
+            vehicleCbuSoService.updatePrice(soUpdateReq);
         }
     }
 

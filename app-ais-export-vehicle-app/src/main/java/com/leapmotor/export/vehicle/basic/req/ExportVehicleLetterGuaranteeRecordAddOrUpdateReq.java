@@ -35,7 +35,7 @@ public class ExportVehicleLetterGuaranteeRecordAddOrUpdateReq extends LpBaseMode
     @Schema(description = "客户ID" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private String customerId;
 
-    @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40释放应收 50失效)" ,requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "变动类型(字典 letter_guarantee_record_type: 10冻结 20解冻 30转应收 40应收释放 50失效)" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private String transactionType;
 
     @Schema(description = "变动金额(始终为正)" ,requiredMode = Schema.RequiredMode.REQUIRED)
@@ -56,7 +56,7 @@ public class ExportVehicleLetterGuaranteeRecordAddOrUpdateReq extends LpBaseMode
     @Schema(description = "变动后占用订单金额" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal afterOccupied;
 
-    @Schema(description = "变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/释放应收 时填值)" ,requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "变动前应收订单金额(冻结/解冻/失效 时为 NULL,转应收/应收释放 时填值)" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal beforeReceivable;
 
     @Schema(description = "变动后应收订单金额(同上)" ,requiredMode = Schema.RequiredMode.REQUIRED)
@@ -65,7 +65,7 @@ public class ExportVehicleLetterGuaranteeRecordAddOrUpdateReq extends LpBaseMode
     @Schema(description = "PO 单号(不允许编辑,根据冻结/解冻情况自动赋值)" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private String poNo;
 
-    @Schema(description = "SO 单号(不允许编辑,根据转应收/释放应收情况自动赋值,冻结/解冻 时为 NULL)" ,requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "SO 单号(不允许编辑,根据转应收/应收释放情况自动赋值,冻结/解冻 时为 NULL)" ,requiredMode = Schema.RequiredMode.REQUIRED)
     private String soNo;
 
     @Schema(description = "VIN 车辆识别码(不允许编辑,根据转应收情况自动赋值,冻结/解冻 时为 NULL)" ,requiredMode = Schema.RequiredMode.REQUIRED)

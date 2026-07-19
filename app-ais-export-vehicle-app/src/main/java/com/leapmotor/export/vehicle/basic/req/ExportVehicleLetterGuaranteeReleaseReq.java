@@ -5,10 +5,10 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * PO 单批量释放应收(record_type=40,SAP 清账)
+ * PO 单批量应收释放(record_type=40,SAP 清账)
  *
  * <p>SAP 完成清账后回调,按 PO 单批量处理:服务端从转应收明细(transaction_type=30)自动汇总
- * 该 PO 在各保函上的应收金额,按保函逐张释放并各写一笔释放应收流水,任一保函释放失败整体回滚。
+ * 该 PO 在各保函上的应收金额,按保函逐张释放并各写一笔应收释放流水,任一保函释放失败整体回滚。
  *
  * <p>输入是 SO 单粒度(soNo)— 但保函侧只需要 PO 单号即可定位转应收明细,因此保函接口只接收 poNo。
  *

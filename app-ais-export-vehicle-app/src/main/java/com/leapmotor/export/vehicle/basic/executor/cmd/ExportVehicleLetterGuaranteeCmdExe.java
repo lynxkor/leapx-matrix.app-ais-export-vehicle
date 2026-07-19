@@ -82,7 +82,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     @Transactional(rollbackFor = Exception.class)
     public boolean expireEarly(String id, String reason) {
         log.info("保函手动失效: id={}, reason={}", id, reason);
-        return exportVehicleLetterGuaranteeGateway.expireEarly(id, reason);
+        return exportVehicleLetterGuaranteeGateway.expireEarly(id, "手动操作保函失效");
     }
 
     // ============== 资金流 ==============
@@ -334,20 +334,20 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     }
 
     /**
-     * 单 PO 释放应收(SAP 清账) — 整体事务 all-or-nothing:任一保函释放失败立即抛异常,事务整体回滚
+     * 单 PO 应收释放(SAP 清账) — 整体事务 all-or-nothing:任一保函释放失败立即抛异常,事务整体回滚
      *
      * <p>输入是 PO 单粒度(poNo + soNo),服务端:
      * <ol>
      *   <li>查该 PO 下所有转应收明细(transaction_type=30),按 lgId 汇总应收金额</li>
      *   <li>逐张保函调用 {@code gateway.releaseReceivable} 释放对应金额</li>
-     *   <li>每张保函单独写一条 {@code record_type=40(释放应收)} 流水</li>
+     *   <li>每张保函单独写一条 {@code record_type=40(应收释放)} 流水</li>
      * </ol>
      *
      * <p>释放后保函不补回(应收冲销完毕),可用/占用金额不变,只减少 receivable。
      */
     @Transactional(rollbackFor = Exception.class)
     public boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req) {
-        log.info("保函单 PO 释放应收: req={} ", JSON.toJSONString(req));
+        log.info("保函单 PO 应收释放: req={} ", JSON.toJSONString(req));
 
         // 1. 查该 PO + SO 下所有转应收明细(transaction_type=30),按 lgId 汇总应收金额
         ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
@@ -356,7 +356,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         qo.setTransactionType(RecordTypeEnum.TRANSFER_RECEIVABLE.getCode());
         List<ExportVehicleLetterGuaranteeRecordDo> receivableRecords = exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(qo);
         if (receivableRecords == null || receivableRecords.isEmpty()) {
-            throw new BizException("PO " + req.getPoNo() + " / SO " + req.getSoNo() + " 下无转应收记录,无法释放应收");
+            throw new BizException("PO " + req.getPoNo() + " / SO " + req.getSoNo() + " 下无转应收记录,无法应收释放");
         }
         Map<String, BigDecimal> receivableByLgId = new LinkedHashMap<>();
         for (ExportVehicleLetterGuaranteeRecordDo rec : receivableRecords) {
@@ -372,11 +372,11 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             if (amount.compareTo(BigDecimal.ZERO) <= 0) continue;
             boolean ok = exportVehicleLetterGuaranteeGateway.releaseReceivable(lgId, amount, req.getOrderId(), req.getPoNo(), req.getSoNo(), req.getReason());
             if (!ok) {
-                throw new BizException("保函释放应收失败: lgId=" + lgId);
+                throw new BizException("保函应收释放失败: lgId=" + lgId);
             }
             releasedCount++;
         }
-        log.info("PO:{} SO:{} 释放应收完成: 共处理 {} 张保函", req.getPoNo(), req.getSoNo(), releasedCount);
+        log.info("PO:{} SO:{} 应收释放完成: 共处理 {} 张保函", req.getPoNo(), req.getSoNo(), releasedCount);
         return true;
     }
 

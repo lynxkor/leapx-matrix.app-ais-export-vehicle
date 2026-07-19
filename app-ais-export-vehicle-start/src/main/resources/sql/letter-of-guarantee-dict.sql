@@ -58,5 +58,5 @@ INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`
 VALUES ('letter_guarantee_record_type', '10', '冻结',     1, NULL, 'system', CURRENT_TIMESTAMP),
        ('letter_guarantee_record_type', '20', '解冻',     2, NULL, 'system', CURRENT_TIMESTAMP),
        ('letter_guarantee_record_type', '30', '转应收',   3, NULL, 'system', CURRENT_TIMESTAMP),
-       ('letter_guarantee_record_type', '40', '释放应收', 4, NULL, 'system', CURRENT_TIMESTAMP),
+       ('letter_guarantee_record_type', '40', '应收释放', 4, NULL, 'system', CURRENT_TIMESTAMP),
        ('letter_guarantee_record_type', '50', '保函失效', 5, NULL, 'system', CURRENT_TIMESTAMP);

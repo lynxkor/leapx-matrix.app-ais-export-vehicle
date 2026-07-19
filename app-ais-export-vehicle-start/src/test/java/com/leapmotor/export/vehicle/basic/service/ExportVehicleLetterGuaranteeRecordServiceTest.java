@@ -44,7 +44,7 @@ public class ExportVehicleLetterGuaranteeRecordServiceTest extends BaseServiceTe
     private static String recordFreezeId;      // 冻结流水记录(10 冻结)
     private static String recordUnfreezeId;    // 解冻流水记录(20 解冻)
     private static String recordTransferId;    // 转应收流水记录(30 转应收)
-    private static String recordReleaseId;     // 释放应收流水记录(40 释放应收)
+    private static String recordReleaseId;     // 应收释放流水记录(40 应收释放)
     private static String recordInvalidId;     // 失效流水记录(50 失效)
     private static String recordDuplicateId;   // 用于重复 lgRecordCode 校验
 
@@ -182,12 +182,12 @@ public class ExportVehicleLetterGuaranteeRecordServiceTest extends BaseServiceTe
 
     @Test
     @Order(13)
-    @DisplayName("addOrUpdate — 追加释放应收流水(交易类型 40)")
+    @DisplayName("addOrUpdate — 追加应收释放流水(交易类型 40)")
     public void testAddOrUpdate_createsReleaseRecord() {
         String lgRecordCode = "BK" + System.currentTimeMillis() + "00004";
         ExportVehicleLetterGuaranteeRecordAddOrUpdateReq req = baseRecordReq(lgRecordCode, "40");
         req.setTransactionAmount(new BigDecimal("100000.00"));
-        req.setTransactionRemark("SAP 清账,释放应收");
+        req.setTransactionRemark("SAP 清账,应收释放");
         req.setBeforeAvailable(new BigDecimal("700000.00"));
         req.setAfterAvailable(new BigDecimal("700000.00"));
         req.setBeforeOccupied(new BigDecimal("0"));

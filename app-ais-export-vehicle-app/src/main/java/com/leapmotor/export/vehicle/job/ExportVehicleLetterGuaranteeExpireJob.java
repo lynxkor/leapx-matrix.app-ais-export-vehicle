@@ -45,7 +45,7 @@ public class ExportVehicleLetterGuaranteeExpireJob {
         if (expired != null) {
             for (ExportVehicleLetterGuaranteeDo lg : expired) {
                 try {
-                    exportVehicleLetterGuaranteeGateway.expireEarly(lg.getId(), "凌晨任务自动失效");
+                    exportVehicleLetterGuaranteeGateway.expireEarly(lg.getId(), "保函到期自动失效");
                     success++;
                 } catch (Exception e) {
                     log.error("保函自动失效失败: id={}, err={}", lg.getId(), e.getMessage(), e);

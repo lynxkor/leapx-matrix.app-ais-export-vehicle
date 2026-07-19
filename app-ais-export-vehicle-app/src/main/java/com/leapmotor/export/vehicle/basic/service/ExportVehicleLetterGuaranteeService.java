@@ -113,7 +113,7 @@ public interface ExportVehicleLetterGuaranteeService {
     boolean transferToReceivable(ExportVehicleLetterGuaranteeTransferReq req);
 
     /**
-     * 释放应收(SAP 清账)
+     * 应收释放(SAP 清账)
      */
     boolean releaseReceivable(ExportVehicleLetterGuaranteeReleaseReq req);
 

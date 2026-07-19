@@ -86,7 +86,7 @@ public class ExportVehicleCbuPoDetailServiceTest extends BaseServiceTest<ExportV
         param.setPoNo(poNo);
         List<ExportVehicleCbuPoDetailResp> list = service.listExportVehicleCbuPoDetail(param);
         com.leapmotor.paltform.ais.common.model.base.LpBaseParam p = new com.leapmotor.paltform.ais.common.model.base.LpBaseParam();
-        p.setIdSet(java.util.Collections.singletonList(list.get(0).getId()));
+        p.setIdSet(java.util.Collections.singleton(list.get(0).getId()));
         p.setStatus(1);
         assertDoesNotThrow(() -> service.enableOrDisableExportVehicleCbuPoDetailByIds(p));
     }

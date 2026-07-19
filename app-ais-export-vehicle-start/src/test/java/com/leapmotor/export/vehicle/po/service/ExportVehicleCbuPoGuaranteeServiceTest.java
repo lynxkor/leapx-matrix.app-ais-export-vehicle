@@ -63,7 +63,7 @@ public class ExportVehicleCbuPoGuaranteeServiceTest extends BaseServiceTest<Expo
         java.util.List<com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoGuaranteeResp> list = service.listExportVehicleCbuPoGuarantee(param);
         if (!list.isEmpty()) {
             com.leapmotor.paltform.ais.common.model.base.LpBaseParam p = new com.leapmotor.paltform.ais.common.model.base.LpBaseParam();
-            p.setIdSet(java.util.Collections.singletonList(list.get(0).getId()));
+            p.setIdSet(java.util.Collections.singleton(list.get(0).getId()));
             p.setStatus(1);
             assertDoesNotThrow(() -> service.enableOrDisableExportVehicleCbuPoGuaranteeByIds(p));
         }

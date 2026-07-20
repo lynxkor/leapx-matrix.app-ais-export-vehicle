@@ -37,7 +37,7 @@ public class ExportVehicleCbuPoGuaranteeController {
     private ExportVehicleCbuPoGuaranteeService purchaseOrderGuaranteeService;
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)列表查询")
-    @ResourcePermission(value="web:po:purchaseOrderGuarantee:list",desc="PO-保函关联表(一个PO多保函)列表查询")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:list",desc="PO-保函关联表(一个PO多保函)列表查询")
     @PostMapping("/list")
     public AjaxResult<List<LpOptionalResult>> list(@RequestBody ExportVehicleCbuPoGuaranteeParam purchaseOrderGuaranteeParam) {
         List<ExportVehicleCbuPoGuaranteeResp> purchaseOrderGuaranteeRespList =purchaseOrderGuaranteeService.listExportVehicleCbuPoGuarantee(purchaseOrderGuaranteeParam);
@@ -45,28 +45,28 @@ public class ExportVehicleCbuPoGuaranteeController {
     }
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)分页查询")
-    @ResourcePermission(value="web:po:purchaseOrderGuarantee:page",desc="PO-保函关联表(一个PO多保函)分页查询")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:page",desc="PO-保函关联表(一个PO多保函)分页查询")
     @PostMapping("/page")
     public AjaxResult<PageResult<ExportVehicleCbuPoGuaranteeResp>> page(@RequestBody ExportVehicleCbuPoGuaranteeParam purchaseOrderGuaranteeParam) {
         return AjaxResult.success(purchaseOrderGuaranteeService.pageExportVehicleCbuPoGuarantee(purchaseOrderGuaranteeParam));
     }
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)详情信息")
-    @ResourcePermission(value="web:po:purchaseOrderGuarantee:get",desc="PO-保函关联表(一个PO多保函)详情信息")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:get",desc="PO-保函关联表(一个PO多保函)详情信息")
     @PostMapping(value = "/get")
     public AjaxResult<ExportVehicleCbuPoGuaranteeResp> getExportVehicleCbuPoGuaranteeById(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderGuaranteeService.getExportVehicleCbuPoGuaranteeById(id));
     }
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)新增/编辑")
-    @ResourcePermission(value="web:po:purchaseOrderGuarantee:addOrUpdate",desc="PO-保函关联表(一个PO多保函)新增/编辑")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:addOrUpdate",desc="PO-保函关联表(一个PO多保函)新增/编辑")
     @PostMapping("/addOrUpdate")
     public AjaxResult<String> addOrUpdate(@RequestBody @Validated ExportVehicleCbuPoGuaranteeAddOrUpdateReq purchaseOrderGuaranteeAddOrUpdateReq) {
         return AjaxResult.success(purchaseOrderGuaranteeService.addOrUpdateExportVehicleCbuPoGuarantee(purchaseOrderGuaranteeAddOrUpdateReq));
     }
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)删除")
-    @ResourcePermission(value="web:po:purchaseOrderGuarantee:delete",desc="PO-保函关联表(一个PO多保函)删除")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:delete",desc="PO-保函关联表(一个PO多保函)删除")
     @PostMapping("/delete")
     public AjaxResult<Void> deleteByIds(@RequestBody List<String> ids) {
         purchaseOrderGuaranteeService.deleteExportVehicleCbuPoGuaranteeByIds(ids);
@@ -75,7 +75,7 @@ public class ExportVehicleCbuPoGuaranteeController {
 
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)启用/禁用")
-    @ResourcePermission(value="web:po:purchaseOrderGuarantee:enableOrDisable",desc="PO-保函关联表(一个PO多保函)启用/禁用")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:enableOrDisable",desc="PO-保函关联表(一个PO多保函)启用/禁用")
     @PostMapping("/enableOrDisable")
     public AjaxResult<Void> enableOrDisable(@RequestBody LpBaseParam param) {
         if (CollectionUtils.isEmpty(param.getIdSet())) {

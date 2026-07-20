@@ -3,6 +3,11 @@ package com.leapmotor.export.vehicle.po.service.impl;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
+import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
+import com.leapmotor.export.nexus.company.api.CompanyApi;
+import com.leapmotor.export.nexus.company.request.CompanyRequest;
+import com.leapmotor.export.nexus.company.response.CompanyResponse;
 import com.leapmotor.export.vehicle.po.executor.cmd.ExportVehicleCbuPoApprovalCmdExe;
 import com.leapmotor.export.vehicle.po.executor.cmd.ExportVehicleCbuPoCmdExe;
 import com.leapmotor.export.vehicle.po.executor.query.ExportVehicleCbuPoQryExe;
@@ -12,6 +17,8 @@ import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoGuaranteeDTOS
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoQo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoGuaranteeQo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
@@ -37,6 +44,10 @@ import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -56,6 +67,7 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     private ExportVehicleCbuPoGateway purchaseOrderGateway;
     private ExportVehicleCbuPoDetailGateway purchaseOrderDetailGateway;
     private ExportVehicleCbuPoGuaranteeGateway purchaseOrderGuaranteeGateway;
+    private CompanyApi companyApi;
 
     @Override
     public ExportVehicleCbuPoResp getExportVehicleCbuPoById(String id) {
@@ -97,7 +109,9 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     @Override
     public PageResult<ExportVehicleCbuPoResp> pageExportVehicleCbuPo(ExportVehicleCbuPoParam purchaseOrderParam) {
         PageResult<ExportVehicleCbuPoDo> page = purchaseOrderQryExe.pageExportVehicleCbuPo(purchaseOrderParam);
-        return ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainsToRespPage(page);
+        PageResult<ExportVehicleCbuPoResp> result = ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainsToRespPage(page);
+        fillSalesCompanyName(result.getRecords());
+        return result;
     }
 
     @Override
@@ -183,5 +197,38 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     @Override
     public ExportVehicleCbuPoBatchResp batchBalanceReject(ExportVehicleCbuPoBatchReq req) {
         return purchaseOrderApprovalCmdExe.batchBalanceReject(req);
+    }
+
+    private void fillSalesCompanyName(List<ExportVehicleCbuPoResp> records) {
+        if (CollectionUtils.isEmpty(records)) {
+            return;
+        }
+        Set<String> codes = records.stream()
+                .map(ExportVehicleCbuPoResp::getSalesCompanyCode)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+        if (CollectionUtils.isEmpty(codes)) {
+            return;
+        }
+        Map<String, String> nameMap = codes.stream()
+                .map(code -> {
+                    CompanyRequest request = new CompanyRequest();
+                    request.setCompanyCode(code);
+                    AjaxResult<List<CompanyResponse>> ajaxResult = companyApi.list(request);
+                    if (ajaxResult == null || !Objects.equals(ResultEnum.SUCCESS.getCode(), ajaxResult.getCode())) {
+                        throw new BizException("销售公司信息查询失败");
+                    }
+                    return ajaxResult.getData();
+                })
+                .filter(CollectionUtils::isNotEmpty)
+                .flatMap(List::stream)
+                .filter(c -> StringUtils.isNotBlank(c.getCompanyCode()) && StringUtils.isNotBlank(c.getCompanyName()))
+                .collect(Collectors.toMap(CompanyResponse::getCompanyCode, CompanyResponse::getCompanyName,
+                        (v1, v2) -> v1));
+        for (ExportVehicleCbuPoResp record : records) {
+            if (StringUtils.isNotBlank(record.getSalesCompanyCode())) {
+                record.setSalesCompanyName(nameMap.get(record.getSalesCompanyCode()));
+            }
+        }
     }
 }

@@ -20,7 +20,7 @@ import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoQo;
 import com.leapmotor.export.vehicle.po.enums.DataSourceEnum;
 import com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum;
-import com.leapmotor.export.vehicle.po.enums.OrderTypeEnum;
+import com.leapmotor.export.vehicle.po.enums.PoOrderTypeEnum;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuOrderDetailReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoDetailSaveReq;
@@ -118,7 +118,7 @@ public class ExportVehicleCbuPoCmdExe {
         }
         order.setDataSource(DataSourceEnum.HONGQI.getCode());
         order.setSalesCompanyCode("1000");
-        order.setOrderType(OrderTypeEnum.CBU.getCode());
+        order.setOrderType(PoOrderTypeEnum.CBU.getCode());
         order.setPlanVersion(req.getPlanVersion());
 
         // 5. 明细组装（物料匹配 + 单价匹配 + 金额合计）

@@ -4,6 +4,7 @@ import com.leapmotor.paltform.ais.common.model.base.LpBaseQo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Data;
 import java.io.Serializable;
@@ -22,14 +23,29 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * PO单号(取自红旗CBU接口),业务唯一键
+     * PO单号(精确查询)
      */
     private String poNo;
 
     /**
-     * 订单状态,枚举见评审§2.1(草稿/销售已提交/销售已驳回/供需审核通过/供需审核驳回/产销平衡通过/产销平衡驳回)
+     * PO单号(模糊查询,列表搜索用)
+     */
+    private String poNoLike;
+
+    /**
+     * PO单号列表(批量精确查询)
+     */
+    private List<String> poNos;
+
+    /**
+     * 订单状态(单个查询)
      */
     private String orderStatus;
+
+    /**
+     * 订单状态列表(多选查询)
+     */
+    private List<String> orderStatuses;
 
     /**
      * 销售公司,下拉选,提交时必填
@@ -37,14 +53,19 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
     private String salesCompanyCode;
 
     /**
-     * 客户编码,按 external_customer_code 匹配客户主数据,匹配不到则空;提交时必填
+     * 客户编码
      */
     private String customerCode;
 
     /**
-     * 客户名称,按客户编码带出
+     * 客户名称
      */
     private String customerName;
+
+    /**
+     * 客户名称(模糊查询,列表搜索用)
+     */
+    private String customerNameLike;
 
     /**
      * 外部客户编码,取自红旗CBU接口
@@ -66,6 +87,12 @@ public class ExportVehicleCbuPoQo extends LpBaseQo implements Serializable {
      */
     private LocalDateTime submitTimeStart;
     private LocalDateTime submitTimeEnd;
+
+    /**
+     * 创建时间起止（列表筛选用）
+     */
+    private LocalDateTime createTimeStart;
+    private LocalDateTime createTimeEnd;
 
     /**
      * 驳回时间,各类驳回时记录

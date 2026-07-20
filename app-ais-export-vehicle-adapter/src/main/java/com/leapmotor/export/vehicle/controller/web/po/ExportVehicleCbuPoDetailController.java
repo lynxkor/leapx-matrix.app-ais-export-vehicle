@@ -37,7 +37,7 @@ public class ExportVehicleCbuPoDetailController {
     private ExportVehicleCbuPoDetailService purchaseOrderDetailService;
 
     @Operation(summary = "PO订单明细表列表查询")
-    @ResourcePermission(value="web:po:purchaseOrderDetail:list",desc="PO订单明细表列表查询")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:list",desc="PO订单明细表列表查询")
     @PostMapping("/list")
     public AjaxResult<List<LpOptionalResult>> list(@RequestBody ExportVehicleCbuPoDetailParam purchaseOrderDetailParam) {
         List<ExportVehicleCbuPoDetailResp> purchaseOrderDetailRespList =purchaseOrderDetailService.listExportVehicleCbuPoDetail(purchaseOrderDetailParam);
@@ -45,28 +45,28 @@ public class ExportVehicleCbuPoDetailController {
     }
 
     @Operation(summary = "PO订单明细表分页查询")
-    @ResourcePermission(value="web:po:purchaseOrderDetail:page",desc="PO订单明细表分页查询")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:page",desc="PO订单明细表分页查询")
     @PostMapping("/page")
     public AjaxResult<PageResult<ExportVehicleCbuPoDetailResp>> page(@RequestBody ExportVehicleCbuPoDetailParam purchaseOrderDetailParam) {
         return AjaxResult.success(purchaseOrderDetailService.pageExportVehicleCbuPoDetail(purchaseOrderDetailParam));
     }
 
     @Operation(summary = "PO订单明细表详情信息")
-    @ResourcePermission(value="web:po:purchaseOrderDetail:get",desc="PO订单明细表详情信息")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:get",desc="PO订单明细表详情信息")
     @PostMapping(value = "/get")
     public AjaxResult<ExportVehicleCbuPoDetailResp> getExportVehicleCbuPoDetailById(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderDetailService.getExportVehicleCbuPoDetailById(id));
     }
 
     @Operation(summary = "PO订单明细表新增/编辑")
-    @ResourcePermission(value="web:po:purchaseOrderDetail:addOrUpdate",desc="PO订单明细表新增/编辑")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:addOrUpdate",desc="PO订单明细表新增/编辑")
     @PostMapping("/addOrUpdate")
     public AjaxResult<String> addOrUpdate(@RequestBody @Validated ExportVehicleCbuPoDetailAddOrUpdateReq purchaseOrderDetailAddOrUpdateReq) {
         return AjaxResult.success(purchaseOrderDetailService.addOrUpdateExportVehicleCbuPoDetail(purchaseOrderDetailAddOrUpdateReq));
     }
 
     @Operation(summary = "PO订单明细表删除")
-    @ResourcePermission(value="web:po:purchaseOrderDetail:delete",desc="PO订单明细表删除")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:delete",desc="PO订单明细表删除")
     @PostMapping("/delete")
     public AjaxResult<Void> deleteByIds(@RequestBody List<String> ids) {
         purchaseOrderDetailService.deleteExportVehicleCbuPoDetailByIds(ids);
@@ -75,7 +75,7 @@ public class ExportVehicleCbuPoDetailController {
 
 
     @Operation(summary = "PO订单明细表启用/禁用")
-    @ResourcePermission(value="web:po:purchaseOrderDetail:enableOrDisable",desc="PO订单明细表启用/禁用")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:enableOrDisable",desc="PO订单明细表启用/禁用")
     @PostMapping("/enableOrDisable")
     public AjaxResult<Void> enableOrDisable(@RequestBody LpBaseParam param) {
         if (CollectionUtils.isEmpty(param.getIdSet())) {

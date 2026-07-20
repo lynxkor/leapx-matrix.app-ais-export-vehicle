@@ -47,7 +47,7 @@ public class ExportVehicleCbuPoController {
     private ExportVehicleCbuPoService purchaseOrderService;
 
     @Operation(summary = "PO订单主表列表查询")
-    @ResourcePermission(value="web:po:purchaseOrder:list",desc="PO订单主表列表查询")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:list",desc="PO订单主表列表查询")
     @PostMapping("/list")
     public AjaxResult<List<LpOptionalResult>> list(@RequestBody ExportVehicleCbuPoParam purchaseOrderParam) {
         List<ExportVehicleCbuPoResp> purchaseOrderRespList =purchaseOrderService.listExportVehicleCbuPo(purchaseOrderParam);
@@ -55,28 +55,28 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单主表分页查询")
-    @ResourcePermission(value="web:po:purchaseOrder:page",desc="PO订单主表分页查询")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:page",desc="PO订单主表分页查询")
     @PostMapping("/page")
     public AjaxResult<PageResult<ExportVehicleCbuPoResp>> page(@RequestBody ExportVehicleCbuPoParam purchaseOrderParam) {
         return AjaxResult.success(purchaseOrderService.pageExportVehicleCbuPo(purchaseOrderParam));
     }
 
     @Operation(summary = "PO订单主表详情信息")
-    @ResourcePermission(value="web:po:purchaseOrder:get",desc="PO订单主表详情信息")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:get",desc="PO订单主表详情信息")
     @PostMapping(value = "/get")
     public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(id));
     }
 
     @Operation(summary = "PO订单主子表联查详情（主表 + 明细 + 保函关联）")
-    @ResourcePermission(value="web:po:purchaseOrder:detail",desc="PO订单主子表联查详情")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:detail",desc="PO订单主子表联查详情")
     @PostMapping(value = "/detail")
     public AjaxResult<ExportVehicleCbuPoDetailFullResp> detail(@RequestBody String id) {
         return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoDetailById(id));
     }
 
     @Operation(summary = "PO订单主表删除")
-    @ResourcePermission(value="web:po:purchaseOrder:delete",desc="PO订单主表删除")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:delete",desc="PO订单主表删除")
     @PostMapping("/delete")
     public AjaxResult<Void> deleteByIds(@RequestBody List<String> ids) {
         purchaseOrderService.deleteExportVehicleCbuPoByIds(ids);
@@ -85,7 +85,7 @@ public class ExportVehicleCbuPoController {
 
 
     @Operation(summary = "PO订单主表启用/禁用")
-    @ResourcePermission(value="web:po:purchaseOrder:enableOrDisable",desc="PO订单主表启用/禁用")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:enableOrDisable",desc="PO订单主表启用/禁用")
     @PostMapping("/enableOrDisable")
     public AjaxResult<Void> enableOrDisable(@RequestBody LpBaseParam param) {
         if (CollectionUtils.isEmpty(param.getIdSet())) {
@@ -104,7 +104,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单编辑保存(仅草稿态,改销售公司+明细生产备注)")
-    @ResourcePermission(value="web:po:purchaseOrder:save",desc="PO订单编辑保存")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:save",desc="PO订单编辑保存")
     @PostMapping("/save")
     public AjaxResult<Void> save(@RequestBody @Validated ExportVehicleCbuPoSaveReq req) {
         purchaseOrderService.saveExportVehicleCbuPo(req);
@@ -112,7 +112,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单销售提交")
-    @ResourcePermission(value="web:po:purchaseOrder:submit",desc="PO订单销售提交")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:submit",desc="PO订单销售提交")
     @PostMapping("/submit")
     public AjaxResult<Void> submit(@RequestBody @Validated ExportVehicleCbuPoSubmitReq req) {
         purchaseOrderService.submitExportVehicleCbuPo(req);
@@ -120,7 +120,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单销售驳回")
-    @ResourcePermission(value="web:po:purchaseOrder:reject",desc="PO订单销售驳回")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:reject",desc="PO订单销售驳回")
     @PostMapping("/reject")
     public AjaxResult<Void> reject(@RequestBody @Validated ExportVehicleCbuPoRejectReq req) {
         purchaseOrderService.rejectExportVehicleCbuPo(req);
@@ -128,7 +128,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单供需审核通过")
-    @ResourcePermission(value="web:po:purchaseOrder:supplyApprove",desc="PO订单供需审核通过")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:supplyApprove",desc="PO订单供需审核通过")
     @PostMapping("/supplyApprove")
     public AjaxResult<Void> supplyApprove(@RequestBody @Validated ExportVehicleCbuPoSupplyApproveReq req) {
         purchaseOrderService.supplyApprove(req);
@@ -136,7 +136,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单供需审核驳回")
-    @ResourcePermission(value="web:po:purchaseOrder:supplyReject",desc="PO订单供需审核驳回")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:supplyReject",desc="PO订单供需审核驳回")
     @PostMapping("/supplyReject")
     public AjaxResult<Void> supplyReject(@RequestBody @Validated ExportVehicleCbuPoSupplyRejectReq req) {
         purchaseOrderService.supplyReject(req);
@@ -144,7 +144,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单产销平衡审核通过")
-    @ResourcePermission(value="web:po:purchaseOrder:balanceApprove",desc="PO订单产销平衡审核通过")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:balanceApprove",desc="PO订单产销平衡审核通过")
     @PostMapping("/balanceApprove")
     public AjaxResult<Void> balanceApprove(@RequestBody @Validated ExportVehicleCbuPoBalanceApproveReq req) {
         purchaseOrderService.balanceApprove(req);
@@ -152,7 +152,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单产销平衡审核驳回")
-    @ResourcePermission(value="web:po:purchaseOrder:balanceReject",desc="PO订单产销平衡审核驳回")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:balanceReject",desc="PO订单产销平衡审核驳回")
     @PostMapping("/balanceReject")
     public AjaxResult<Void> balanceReject(@RequestBody @Validated ExportVehicleCbuPoBalanceRejectReq req) {
         purchaseOrderService.balanceReject(req);
@@ -160,7 +160,7 @@ public class ExportVehicleCbuPoController {
     }
 
     @Operation(summary = "PO订单刷新价格(联动保函/SO)")
-    @ResourcePermission(value="web:po:purchaseOrder:refreshPrice",desc="PO订单刷新价格")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:refreshPrice",desc="PO订单刷新价格")
     @PostMapping("/refreshPrice")
     public AjaxResult<Void> refreshPrice(@RequestBody @Validated ExportVehicleCbuPoRefreshPriceReq req) {
         purchaseOrderService.refreshPrice(req);
@@ -170,42 +170,42 @@ public class ExportVehicleCbuPoController {
     // ==================== 批量操作 ====================
 
     @Operation(summary = "批量提交")
-    @ResourcePermission(value="web:po:purchaseOrder:batchSubmit",desc="批量提交")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchSubmit",desc="批量提交")
     @PostMapping("/batchSubmit")
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchSubmit(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchSubmit(req));
     }
 
     @Operation(summary = "批量销售驳回")
-    @ResourcePermission(value="web:po:purchaseOrder:batchReject",desc="批量销售驳回")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchReject",desc="批量销售驳回")
     @PostMapping("/batchReject")
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchReject(req));
     }
 
     @Operation(summary = "批量供需审核通过")
-    @ResourcePermission(value="web:po:purchaseOrder:batchSupplyApprove",desc="批量供需审核通过")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchSupplyApprove",desc="批量供需审核通过")
     @PostMapping("/batchSupplyApprove")
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchSupplyApprove(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchSupplyApprove(req));
     }
 
     @Operation(summary = "批量供需审核驳回")
-    @ResourcePermission(value="web:po:purchaseOrder:batchSupplyReject",desc="批量供需审核驳回")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchSupplyReject",desc="批量供需审核驳回")
     @PostMapping("/batchSupplyReject")
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchSupplyReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchSupplyReject(req));
     }
 
     @Operation(summary = "批量产销平衡审核通过")
-    @ResourcePermission(value="web:po:purchaseOrder:batchBalanceApprove",desc="批量产销平衡审核通过")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchBalanceApprove",desc="批量产销平衡审核通过")
     @PostMapping("/batchBalanceApprove")
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchBalanceApprove(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchBalanceApprove(req));
     }
 
     @Operation(summary = "批量产销平衡审核驳回")
-    @ResourcePermission(value="web:po:purchaseOrder:batchBalanceReject",desc="批量产销平衡审核驳回")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchBalanceReject",desc="批量产销平衡审核驳回")
     @PostMapping("/batchBalanceReject")
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchBalanceReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchBalanceReject(req));

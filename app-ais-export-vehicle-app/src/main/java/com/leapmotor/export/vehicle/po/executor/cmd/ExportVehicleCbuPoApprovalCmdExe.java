@@ -28,7 +28,7 @@ import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoOperateResult;
 
-import com.leapmotor.export.vehicle.po.enums.OrderTypeEnum;
+import com.leapmotor.export.vehicle.po.enums.PoOrderTypeEnum;
 import com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum;
 import com.leapmotor.export.nexus.customer.api.CustomerApi;
 import com.leapmotor.export.nexus.customer.request.CustomerRequest;
@@ -197,7 +197,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         if (isGuarantee) {
             ExportVehicleLetterGuaranteeFreezeReq freezeReq = new ExportVehicleLetterGuaranteeFreezeReq();
             freezeReq.setCustomerId(customer.getId());
-            freezeReq.setOrderType(OrderTypeEnum.getName(order.getOrderType()));
+            freezeReq.setOrderType(PoOrderTypeEnum.getName(order.getOrderType()));
             freezeReq.setOrderId(order.getId());
             freezeReq.setOrderNo(order.getPoNo());
             freezeReq.setPoNo(order.getPoNo());
@@ -572,7 +572,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 }
                 ExportVehicleLetterGuaranteeAdjustFreezeReq freezeReq = new ExportVehicleLetterGuaranteeAdjustFreezeReq();
                 freezeReq.setCustomerId(refreshCustomer.getId());
-                freezeReq.setOrderType(OrderTypeEnum.getName(order.getOrderType()));
+                freezeReq.setOrderType(PoOrderTypeEnum.getName(order.getOrderType()));
                 freezeReq.setOrderId(order.getId());
                 freezeReq.setOrderNo(order.getPoNo());
                 freezeReq.setPoNo(order.getPoNo());

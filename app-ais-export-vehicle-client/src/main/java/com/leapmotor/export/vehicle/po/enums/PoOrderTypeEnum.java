@@ -1,10 +1,12 @@
 package com.leapmotor.export.vehicle.po.enums;
 
+import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
+
 /**
- * 订单类型枚举（order_type，tinyint）。
+ * PO 订单类型枚举（order_type，tinyint）。
  * PO 内部存 Integer(1/2/3)，调保函等外部（要 String "CBU"）时用 getName 转换。
  */
-public enum OrderTypeEnum {
+public enum PoOrderTypeEnum implements IBaseEnum<Integer> {
 
     CBU(1, "CBU"),
     SKD(2, "SKD"),
@@ -13,13 +15,19 @@ public enum OrderTypeEnum {
     private final Integer code;
     private final String name;
 
-    OrderTypeEnum(Integer code, String name) {
+    PoOrderTypeEnum(Integer code, String name) {
         this.code = code;
         this.name = name;
     }
 
+    @Override
     public Integer getCode() {
         return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return name;
     }
 
     public String getName() {
@@ -31,7 +39,7 @@ public enum OrderTypeEnum {
         if (code == null) {
             return null;
         }
-        for (OrderTypeEnum e : values()) {
+        for (PoOrderTypeEnum e : values()) {
             if (e.code.equals(code)) {
                 return e.name;
             }

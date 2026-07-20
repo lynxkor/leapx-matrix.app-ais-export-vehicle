@@ -26,10 +26,14 @@ public class ExportVehicleCbuPoResp extends LpBaseModel implements Serializable 
     private String poNo;
 
     @Schema(description = "订单状态,枚举见评审§2.1(草稿/销售已提交/销售已驳回/供需审核通过/供需审核驳回/产销平衡通过/产销平衡驳回)")
+    @DictEnumType(prefix = "ExportVehicleCbuPoStatusEnum")
     private String orderStatus;
 
     @Schema(description = "销售公司,下拉选,提交时必填")
     private String salesCompanyCode;
+
+    @Schema(description = "销售公司名称")
+    private String salesCompanyName;
 
     @Schema(description = "客户编码,按 external_customer_code 匹配客户主数据,匹配不到则空;提交时必填")
     private String customerCode;
@@ -72,6 +76,7 @@ public class ExportVehicleCbuPoResp extends LpBaseModel implements Serializable 
     private Integer dataSource;
 
     @Schema(description = "订单类型,红旗接口同步")
+    @DictEnumType(prefix = "PoOrderTypeEnum")
     private Integer orderType;
 
     @Schema(description = "计划版本号,取自红旗CBU接口")

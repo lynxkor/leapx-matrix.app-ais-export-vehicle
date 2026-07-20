@@ -6,7 +6,6 @@ import com.leapmotor.platform.ais.common.mybatis.support.entity.LpBaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -27,23 +26,6 @@ import java.time.LocalDateTime;
 public class VehicleCbuSoDetail extends LpBaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    /**
-     * 主键ID，1:1 复用主表 export_vehicle_cbu_so.id（手工写入，关闭自动生成）
-     */
-    @TableId(value = "id", type = IdType.INPUT)
-    private String id;
-
-    /**
-     * 显式重写 setId：父类 {@link LpBaseEntity#setId(String)} 返回 {@code LpBaseEntity}（链式），
-     * 而 Lombok @Data 默认生成 void 返回类型，签名冲突会编译失败。
-     * 此处返回 LpBaseEntity 保持与父类一致，调用方需要链式时可继续使用。
-     */
-    @Override
-    public LpBaseEntity setId(String id) {
-        super.setId(id);
-        return this;
-    }
 
     /**
      * 关联SO单号
@@ -210,13 +192,13 @@ public class VehicleCbuSoDetail extends LpBaseEntity implements Serializable {
     /**
      * 归属用户ID，当数据权限归属到用户时
      */
-    @TableField(value = "owner_user_id", insertStrategy = FieldStrategy.IGNORED)
-    private Long ownerUserId = 0L;
+    @TableField("owner_user_id")
+    private Long ownerUserId;
 
     /**
      * 归属门店ID（组织ID），当数据权限归属到本组织以及本下级
      */
-    @TableField(value = "owner_org_id", insertStrategy = FieldStrategy.IGNORED)
-    private Long ownerOrgId = 0L;
+    @TableField("owner_org_id")
+    private Long ownerOrgId;
 
 }

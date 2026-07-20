@@ -80,9 +80,9 @@ public interface VehicleCbuSoService {
      * 根据 PO 创建 CBU SO（一车一单）
      *
      * @param req
-     * @return 生成的 SO 列表
+     * @return 创建结果（PO 标识 + SO 列表）
      */
-    List<SoResult.SoItem> createSo(SoCreateReq req);
+    SoResult createSo(SoCreateReq req);
 
     /**
      * 按 PO 刷新 SO 车辆价/冻结金额（PO 刷新价格分支B 联动 SO）。

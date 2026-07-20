@@ -98,7 +98,7 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     }
 
     @Override
-    public List<SoResult.SoItem> createSo(SoCreateReq req) {
+    public SoResult createSo(SoCreateReq req) {
         return vehicleCbuSoCmdExe.createSo(req);
     }
 

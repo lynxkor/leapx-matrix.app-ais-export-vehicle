@@ -48,7 +48,15 @@ public class VehicleCbuSoDetailGatewayImpl implements VehicleCbuSoDetailGateway 
     public int addBatchVehicleCbuSoDetail(List<VehicleCbuSoDetailDo> vehicleCbuSoDetailDos) {
         List<VehicleCbuSoDetail> vehicleCbuSoDetails =
                 VehicleCbuSoDetailStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDetailDos);
-
+        // 显式填充 owner_user_id / owner_org_id 默认值，避免 NOT NULL 字段报错
+        for (VehicleCbuSoDetail entity : vehicleCbuSoDetails) {
+            if (entity.getOwnerUserId() == null) {
+                entity.setOwnerUserId(0L);
+            }
+            if (entity.getOwnerOrgId() == null) {
+                entity.setOwnerOrgId(0L);
+            }
+        }
         return vehicleCbuSoDetailDao.batchSaveSomeColumn(vehicleCbuSoDetails);
     }
 
@@ -56,11 +64,16 @@ public class VehicleCbuSoDetailGatewayImpl implements VehicleCbuSoDetailGateway 
     public int batchAddVehicleCbuSoDetail(List<VehicleCbuSoDetailDo> vehicleCbuSoDetailDos) {
         List<VehicleCbuSoDetail> vehicleCbuSoDetails =
                 VehicleCbuSoDetailStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDetailDos);
-        int result = vehicleCbuSoDetailDao.batchSaveSomeColumn(vehicleCbuSoDetails);
-        // 回写主键到领域对象
-        for (int i = 0; i < vehicleCbuSoDetails.size(); i++) {
-            vehicleCbuSoDetailDos.get(i).setId(vehicleCbuSoDetails.get(i).getId());
+        // 显式填充 owner_user_id / owner_org_id 默认值，避免 NOT NULL 字段报错
+        for (VehicleCbuSoDetail entity : vehicleCbuSoDetails) {
+            if (entity.getOwnerUserId() == null) {
+                entity.setOwnerUserId(0L);
+            }
+            if (entity.getOwnerOrgId() == null) {
+                entity.setOwnerOrgId(0L);
+            }
         }
+        int result = vehicleCbuSoDetailDao.batchSaveSomeColumn(vehicleCbuSoDetails);
         return result;
     }
 

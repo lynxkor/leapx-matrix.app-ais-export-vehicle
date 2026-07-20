@@ -288,8 +288,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
         SoCreateReq soReq = buildSoCreateReq(order, details);
-        List<SoResult.SoItem> soItems = vehicleCbuSoService.createSo(soReq);
-        if (CollectionUtils.isEmpty(soItems)) {
+        SoResult soResult = vehicleCbuSoService.createSo(soReq);
+        if (soResult == null || CollectionUtils.isEmpty(soResult.getData())) {
             throw new BizException("SO 单创建失败：未生成任何 SO");
         }
     }

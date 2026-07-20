@@ -57,6 +57,15 @@ public class VehicleCbuSoGatewayImpl implements VehicleCbuSoGateway {
     @Override
     public int batchAddVehicleCbuSo(List<VehicleCbuSoDo> vehicleCbuSoDos) {
         List<VehicleCbuSo> vehicleCbuSos = VehicleCbuSoStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDos);
+        // 显式填充 owner_user_id / owner_org_id 默认值，避免 NOT NULL 字段报错
+        for (VehicleCbuSo entity : vehicleCbuSos) {
+            if (entity.getOwnerUserId() == null) {
+                entity.setOwnerUserId(0L);
+            }
+            if (entity.getOwnerOrgId() == null) {
+                entity.setOwnerOrgId(0L);
+            }
+        }
         int result = vehicleCbuSoDao.batchSaveSomeColumn(vehicleCbuSos);
         // 回写主键与 SO 单号到领域对象
         for (int i = 0; i < vehicleCbuSos.size(); i++) {

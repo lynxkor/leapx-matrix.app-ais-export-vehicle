@@ -85,7 +85,15 @@ public class VehicleCbuSoInterfaceSyncGatewayImpl implements VehicleCbuSoInterfa
     @Override
     public int addBatchVehicleCbuSoInterfaceSync(List<VehicleCbuSoInterfaceSyncDo> vehicleCbuSoInterfaceSyncDos) {
         List<VehicleCbuSoInterfaceSync> vehicleCbuSoInterfaceSyncs = VehicleCbuSoInterfaceSyncStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoInterfaceSyncDos);
-
+        // 显式填充 owner_user_id / owner_org_id 默认值，避免 NOT NULL 字段报错
+        for (VehicleCbuSoInterfaceSync entity : vehicleCbuSoInterfaceSyncs) {
+            if (entity.getOwnerUserId() == null) {
+                entity.setOwnerUserId(0L);
+            }
+            if (entity.getOwnerOrgId() == null) {
+                entity.setOwnerOrgId(0L);
+            }
+        }
         return vehicleCbuSoInterfaceSyncDao.batchSaveSomeColumn(vehicleCbuSoInterfaceSyncs);
     }
 

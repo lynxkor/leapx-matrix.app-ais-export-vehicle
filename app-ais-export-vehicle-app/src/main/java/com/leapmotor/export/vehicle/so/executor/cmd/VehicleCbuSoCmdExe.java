@@ -37,6 +37,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
@@ -48,6 +49,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -95,10 +97,10 @@ public class VehicleCbuSoCmdExe {
      * 根据 PO 创建 CBU SO：一车一单拆分、生成单号/行号、主明细同事务保存。
      *
      * @param req PO 创建入参
-     * @return 生成的 SO 列表
+     * @return 创建结果（PO 标识 + SO 列表）
      */
     @Transactional(rollbackFor = Exception.class)
-    public List<SoResult.SoItem> createSo(SoCreateReq req) {
+    public SoResult createSo(SoCreateReq req) {
         if (req == null || StringUtils.isBlank(req.getPoNo())) {
             throw new BizException("PO单号不能为空");
         }
@@ -109,69 +111,78 @@ public class VehicleCbuSoCmdExe {
         // 幂等校验：同一 PO 不允许重复创建 SO
         VehicleCbuSoQo qo = new VehicleCbuSoQo();
         qo.setPoNo(req.getPoNo());
-        List<VehicleCbuSoDo> existing = vehicleCbuSoGateway.listVehicleCbuSo(qo);
-        if (CollectionUtils.isNotEmpty(existing)) {
+        if (CollectionUtils.isNotEmpty(vehicleCbuSoGateway.listVehicleCbuSo(qo))) {
             throw new BizException("PO单号[" + req.getPoNo() + "]已存在SO，不允许重复创建");
         }
 
-        List<VehicleCbuSoDo> soList = new ArrayList<>();
-        List<VehicleCbuSoDetailDo> detailList = new ArrayList<>();
-        List<SoResult.SoItem> result = new ArrayList<>();
-
+        // 1) build 阶段：Pair 锁住 1:1，类型层面保证主明细对齐
+        List<Pair<VehicleCbuSoDo, VehicleCbuSoDetailDo>> pairs = new ArrayList<>();
         int lineNo = 1;
         for (SoCreateReq.SoDetailReq detailReq : req.getDetails()) {
-            if (detailReq == null || detailReq.getDemandQuantity() == null
-                    || detailReq.getDemandQuantity().intValue() <= 0) {
+            if (detailReq == null || detailReq.getDemandQuantity() == null || detailReq.getDemandQuantity().intValue() <= 0) {
                 continue;
             }
             int quantity = detailReq.getDemandQuantity().intValue();
             for (int i = 0; i < quantity; i++) {
-                VehicleCbuSoDo so = buildSo(req, detailReq, lineNo);
-                VehicleCbuSoDetailDo soDetail = buildSoDetail(detailReq);
-
-                soList.add(so);
-                detailList.add(soDetail);
-
-                SoResult.SoItem item = new SoResult.SoItem();
-                item.setPoNo(req.getPoNo());
-                item.setLineNo(so.getLineNo());
-                item.setOrderStatus(so.getOrderStatus());
-                result.add(item);
-
+                pairs.add(Pair.of(buildSo(req, detailReq, lineNo), buildSoDetail(detailReq)));
                 lineNo++;
             }
         }
-
-        if (soList.isEmpty()) {
+        if (pairs.isEmpty()) {
             throw new BizException("未生成任何SO，请检查PO明细需求数量");
         }
 
-        // 批量保存主表：so_no 已在 buildSo 用 NoGenerator 显式生成
-        // 平台 LpBaseEntity 自动生成主键并回写到领域对象。明细表 1:1 复用主表 id 作为自身主键，并按 so_no 关联主表。
-        vehicleCbuSoGateway.batchAddVehicleCbuSo(soList);
-        for (int i = 0; i < soList.size(); i++) {
-            VehicleCbuSoDo so = soList.get(i);
-            VehicleCbuSoDetailDo detail = detailList.get(i);
-            detail.setId(so.getId());
-            detail.setSoNo(so.getSoNo());
-
-            SoResult.SoItem item = result.get(i);
-            item.setSoId(so.getId());
-            item.setSoNo(so.getSoNo());
+        // 2) 拆出 soList / detailList（与 pairs 共享对象引用，gateway 回写主表 id 时同步反映到 pairs.getLeft()）
+        List<VehicleCbuSoDo> soList = new ArrayList<>(pairs.size());
+        List<VehicleCbuSoDetailDo> detailList = new ArrayList<>(pairs.size());
+        for (Pair<VehicleCbuSoDo, VehicleCbuSoDetailDo> p : pairs) {
+            soList.add(p.getLeft());
+            detailList.add(p.getRight());
         }
 
-        // 批量保存车辆明细表
+        // 3) 批量保存主表：so_no 已在 buildSo 用 NoGenerator 显式生成；
+        // 平台 LpBaseEntity 自动生成主键并回写到 soList（即 pairs.getLeft()）。
+        vehicleCbuSoGateway.batchAddVehicleCbuSo(soList);
+
+        // 4) 回写主表 id/soNo 到明细：明细表 1:1 复用主表 id 作为自身主键，并按 so_no 关联主表
+        for (Pair<VehicleCbuSoDo, VehicleCbuSoDetailDo> p : pairs) {
+            p.getRight().setId(p.getLeft().getId());
+            p.getRight().setSoNo(p.getLeft().getSoNo());
+        }
+
+        // 5) 批量保存车辆明细表
         vehicleCbuSoDetailGateway.batchAddVehicleCbuSoDetail(detailList);
 
+        // 6) 拼装返回值：PO 标识放顶层，SO 列表放 data
+        SoResult result = new SoResult();
+        result.setPoId(req.getPoId());
+        result.setPoNo(req.getPoNo());
+        result.setData(soList.stream().map(this::toResultItem).collect(Collectors.toList()));
         return result;
     }
 
-    /** 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（同 po_detail_no） */
-    private String genSoNo() {
-        return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
-                + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
+    /**
+     * 从 soList 投影 SoItem（仅含 SO 维度字段，PO 标识由 SoResult.poId/poNo 统一承载）
+     */
+    private SoResult.SoItem toResultItem(VehicleCbuSoDo so) {
+        SoResult.SoItem item = new SoResult.SoItem();
+        item.setLineNo(so.getLineNo());
+        item.setOrderStatus(so.getOrderStatus());
+        item.setSoId(so.getId());
+        item.setSoNo(so.getSoNo());
+        return item;
     }
 
+    /**
+     * 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（同 po_detail_no）
+     */
+    private String genSoNo() {
+        return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm")) + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
+    }
+
+    /**
+     * 构建 SO
+     */
     private VehicleCbuSoDo buildSo(SoCreateReq req, SoCreateReq.SoDetailReq detailReq, int lineNo) {
         VehicleCbuSoDo so = new VehicleCbuSoDo();
         so.setSoNo(genSoNo());
@@ -198,6 +209,9 @@ public class VehicleCbuSoCmdExe {
         return so;
     }
 
+    /**
+     * 构建 SO 明细
+     */
     private VehicleCbuSoDetailDo buildSoDetail(SoCreateReq.SoDetailReq detailReq) {
         VehicleCbuSoDetailDo soDetail = new VehicleCbuSoDetailDo();
         soDetail.setMaterialCode(detailReq.getMaterialCode());

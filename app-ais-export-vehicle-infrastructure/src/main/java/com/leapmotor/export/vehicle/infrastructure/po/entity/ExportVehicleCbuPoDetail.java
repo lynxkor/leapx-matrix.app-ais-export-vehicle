@@ -141,5 +141,17 @@ public class ExportVehicleCbuPoDetail extends LpBaseEntity implements Serializab
     @TableField("owner_org_id")
     private Long ownerOrgId;
 
+    /** 客户编码（不存明细表，查询时从主表关联） */
+    @TableField(exist = false)
+    private String customerCode;
+
+    /** 客户名称（不存明细表，查询时从主表关联） */
+    @TableField(exist = false)
+    private String customerName;
+
+    /** 订单状态（不存明细表，查询时从主表关联） */
+    @TableField(exist = false)
+    private String orderStatus;
+
 
 }

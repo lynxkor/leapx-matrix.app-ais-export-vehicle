@@ -116,5 +116,14 @@ public class ExportVehicleCbuPoDetailDo extends LpBaseModel implements Serializa
      */
     private Long ownerOrgId;
 
+    /** 客户编码（不存明细表，查询时从主表关联） */
+    private String customerCode;
+
+    /** 客户名称（不存明细表，查询时从主表关联） */
+    private String customerName;
+
+    /** 订单状态（不存明细表，查询时从主表关联） */
+    private String orderStatus;
+
 
 }

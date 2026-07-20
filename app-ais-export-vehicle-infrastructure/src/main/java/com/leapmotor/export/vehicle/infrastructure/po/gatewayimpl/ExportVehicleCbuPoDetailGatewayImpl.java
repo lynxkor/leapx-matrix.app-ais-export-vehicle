@@ -100,8 +100,10 @@ public class ExportVehicleCbuPoDetailGatewayImpl implements ExportVehicleCbuPoDe
 
     @Override
     public PageResult<ExportVehicleCbuPoDetailDo> pageExportVehicleCbuPoDetail(ExportVehicleCbuPoDetailQo purchaseOrderDetailQo) {
-        Page<ExportVehicleCbuPoDetail> page = purchaseOrderDetailDao.findPage(purchaseOrderDetailQo);
-        return PageUtils.transferPage(ExportVehicleCbuPoDetailStructMapper.INSTANCE::dataObjectsToDomains,page);
+        // 走手写 xml:LEFT JOIN 主表一次取回客户/订单状态并支持跨表过滤,不再走 buildQueryWrapper 的 EXISTS
+        Page<ExportVehicleCbuPoDetail> page = new Page<>(purchaseOrderDetailQo.getPageNum(), purchaseOrderDetailQo.getPageSize());
+        purchaseOrderDetailMapper.pageDetailWithMain(page, purchaseOrderDetailQo);
+        return PageUtils.transferPage(ExportVehicleCbuPoDetailStructMapper.INSTANCE::dataObjectsToDomains, page);
     }
 
     @Override

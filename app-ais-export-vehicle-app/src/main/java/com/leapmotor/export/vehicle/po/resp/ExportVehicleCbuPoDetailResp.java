@@ -23,6 +23,16 @@ public class ExportVehicleCbuPoDetailResp extends LpBaseModel implements Seriali
 
     private static final long serialVersionUID = 1L;
 
+    @Schema(description = "客户编码（主表字段）")
+    private String customerCode;
+
+    @Schema(description = "客户名称（主表字段）")
+    private String customerName;
+
+    @Schema(description = "订单状态（主表字段）")
+    @DictEnumType(type = com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum.class)
+    private String orderStatus;
+
     @Schema(description = "PO单号,关联主表 export_vehicle_cbu_po.po_no")
     private String poNo;
 

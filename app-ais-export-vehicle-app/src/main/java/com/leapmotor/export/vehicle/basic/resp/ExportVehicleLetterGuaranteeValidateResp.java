@@ -30,10 +30,10 @@ public class ExportVehicleLetterGuaranteeValidateResp implements Serializable {
     private List<ExportVehicleLetterGuaranteeDo> candidates;
 
     @Schema(description = "本次申请所需金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal requiredAmount;
 
     @Schema(description = "候选保函可用总金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal totalAvailable;
 }

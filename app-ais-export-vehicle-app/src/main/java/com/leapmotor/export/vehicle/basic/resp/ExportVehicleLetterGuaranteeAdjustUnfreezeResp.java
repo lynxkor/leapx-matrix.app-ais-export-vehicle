@@ -43,7 +43,7 @@ public class ExportVehicleLetterGuaranteeAdjustUnfreezeResp implements Serializa
     public static class UnfreezeItem implements Serializable {
         private String lgId;
         private String lgCode;
-        @BigDecimalFormat(pattern = "#.########")
+        @BigDecimalFormat(pattern = "#.##")
         private BigDecimal unfrozenAmount;
         private String poNo;
     }

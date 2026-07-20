@@ -31,7 +31,7 @@ public class ExportVehicleLetterGuaranteeFreezeResp implements Serializable {
     private String poNo;
 
     @Schema(description = "实际冻结总金额(全成功时)")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal totalFrozenAmount;
 
     @Schema(description = "成功冻结的明细(lgId, code, frozenAmount, poNo)")
@@ -41,7 +41,7 @@ public class ExportVehicleLetterGuaranteeFreezeResp implements Serializable {
     public static class FrozenItem implements Serializable {
         private String lgId;
         private String lgCode;
-        @BigDecimalFormat(pattern = "#.########")
+        @BigDecimalFormat(pattern = "#.##")
         private BigDecimal frozenAmount;
         private String poNo;
     }

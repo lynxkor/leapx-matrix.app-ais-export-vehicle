@@ -7,12 +7,7 @@ import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGa
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
 import com.leapmotor.export.vehicle.basic.req.*;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeValidateResp;
+import com.leapmotor.export.vehicle.basic.resp.*;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
 import com.leapmotor.export.vehicle.cache.CustomerInfoCache;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
@@ -25,12 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * <p>
@@ -47,12 +37,40 @@ import java.util.Set;
 @Service
 public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLetterGuaranteeService {
 
+    /**
+     * 保函金额上限 10 亿
+     */
+    private static final BigDecimal MAX_TOTAL_AMOUNT = new BigDecimal("1000000000");
+    /**
+     * 保函编号最大长度
+     */
+    private static final int LG_CODE_MAX_LENGTH = 30;
+    /**
+     * 开户银行最大长度
+     */
+    private static final int BANK_NAME_MAX_LENGTH = 100;
+    /**
+     * 审核意见最大长度(通过/驳回通用)
+     */
+    private static final int APPROVE_REMARK_MAX_LENGTH = 200;
+
+    // ============== 基础 CRUD ==============
     private ExportVehicleLetterGuaranteeCmdExe exportVehicleLetterGuaranteeCmdExe;
     private ExportVehicleLetterGuaranteeQryExe exportVehicleLetterGuaranteeQryExe;
     private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
     private CustomerInfoCache customerInfoCache;
 
-    // ============== 基础 CRUD ==============
+    private static void requireNotBlank(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new BizException(fieldName + "不能为空");
+        }
+    }
+
+    private static void requireMaxLength(String value, int max, String fieldName) {
+        if (value != null && value.length() > max) {
+            throw new BizException(fieldName + "长度不能超过" + max);
+        }
+    }
 
     @Override
     public ExportVehicleLetterGuaranteeResp getExportVehicleLetterGuaranteeById(String id) {
@@ -114,7 +132,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
             String curApproval = cur.getApprovalStatus();
             if (!ApprovalStatusEnum.DRAFT.getCode().equals(curApproval)
                     && !ApprovalStatusEnum.REJECTED.getCode().equals(curApproval)) {
-                throw new BizException("保函当前审批状态(" + curApproval + ")不可编辑,仅草稿(10)/驳回(40)可编辑,请刷新页面");
+                throw new BizException("保函当前审批状态(" + ApprovalStatusEnum.getDesc(curApproval) + ")不可编辑,仅草稿/驳回可编辑,请刷新页面");
             }
         }
         // 保函编号唯一性(编辑时排除自身)
@@ -190,30 +208,6 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
         }
     }
 
-    /** 保函金额上限 10 亿 */
-    private static final BigDecimal MAX_TOTAL_AMOUNT = new BigDecimal("1000000000");
-
-    /** 保函编号最大长度 */
-    private static final int LG_CODE_MAX_LENGTH = 30;
-
-    /** 开户银行最大长度 */
-    private static final int BANK_NAME_MAX_LENGTH = 100;
-
-    /** 审核意见最大长度(通过/驳回通用) */
-    private static final int APPROVE_REMARK_MAX_LENGTH = 200;
-
-    private static void requireNotBlank(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new BizException(fieldName + "不能为空");
-        }
-    }
-
-    private static void requireMaxLength(String value, int max, String fieldName) {
-        if (value != null && value.length() > max) {
-            throw new BizException(fieldName + "长度不能超过" + max);
-        }
-    }
-
     @Override
     public boolean deleteExportVehicleLetterGuaranteeByIds(List<String> ids) {
         return exportVehicleLetterGuaranteeCmdExe.deleteExportVehicleLetterGuaranteeByIds(ids);
@@ -239,7 +233,7 @@ public class ExportVehicleLetterGuaranteeServiceImpl implements ExportVehicleLet
         if (approvedFlag == null) {
             throw new BizException("审核结论(approved)不能为空");
         }
-        boolean approved = Boolean.TRUE.equals(approvedFlag);
+        boolean approved = approvedFlag;
         if (!approved) {
             // 驳回时审核意见必填且 ≤ 200
             requireNotBlank(req.getApproveRemark(), "驳回原因");

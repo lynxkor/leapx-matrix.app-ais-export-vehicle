@@ -1,7 +1,7 @@
 package com.leapmotor.export.vehicle.so.service;
 
-import com.leapmotor.export.vehicle.acl.http.aps.gateway.ApsGateway;
-import com.leapmotor.export.vehicle.acl.http.aps.resp.ApsResult;
+import com.leapmotor.export.vehicle.acl.rpc.aps.gateway.ApsGateway;
+import com.leapmotor.export.vehicle.acl.rpc.aps.resp.ApsResult;
 import com.leapmotor.export.vehicle.base.BaseServiceTest;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoDetailGateway;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoInterfaceSyncGateway;
@@ -169,7 +169,9 @@ public class VehicleCbuSoQueryServiceTest extends BaseServiceTest<VehicleCbuSoSe
         details.add(d1);
         req.setDetails(details);
 
-        List<SoResult.SoItem> items = service.createSo(req);
+        SoResult result = service.createSo(req);
+        assertNotNull(result);
+        List<SoResult.SoItem> items = result.getData();
         assertNotNull(items);
         assertEquals(1, items.size());
         return items.get(0);

@@ -1,9 +1,9 @@
 package com.leapmotor.export.vehicle.base.event;
 
 import com.alibaba.fastjson2.JSON;
-import com.leapmotor.export.vehicle.acl.http.hongqi.gateway.HongqiGateway;
-import com.leapmotor.export.vehicle.acl.http.hongqi.request.CbuApprovalResultReq;
-import com.leapmotor.export.vehicle.acl.http.hongqi.response.HongqiResult;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;

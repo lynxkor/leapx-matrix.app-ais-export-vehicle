@@ -10,13 +10,13 @@ import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeSe
 import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
-import com.leapmotor.export.vehicle.acl.http.hongqi.request.CbuApprovalResultReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
 import com.leapmotor.export.vehicle.so.req.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.so.resp.SoResult;
-import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
+import com.leapmotor.export.vehicle.so.executor.cmd.VehicleCbuSoCmdExe;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoGuaranteeQo;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSupplyApproveReq;
@@ -112,9 +112,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     @Autowired
     private ApplicationContext applicationContext;
     /**
-     * SO 订单服务（供需审核通过生成 SO / 产销平衡驳回作废 SO，同服务内直接调用）
+     * SO 写操作执行器（供需审核通过生成 SO / 产销平衡驳回作废 SO，同服务内直接调用）
      */
-    private VehicleCbuSoService vehicleCbuSoService;
+    private VehicleCbuSoCmdExe vehicleCbuSoCmdExe;
 
     // ==================== 销售提交（4 步编排，任一步失败整体回滚） ====================
 
@@ -288,7 +288,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
         SoCreateReq soReq = buildSoCreateReq(order, details);
-        SoResult soResult = vehicleCbuSoService.createSo(soReq);
+        SoResult soResult = vehicleCbuSoCmdExe.createSo(soReq);
         if (soResult == null || CollectionUtils.isEmpty(soResult.getData())) {
             throw new BizException("SO 单创建失败：未生成任何 SO");
         }
@@ -412,7 +412,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         }
 
         // 查 PO 下所有 SO 状态（同服务内直接查询，不再走 Feign）
-        List<VehicleCbuSoDo> soItems = vehicleCbuSoService.listVehicleCbuSoByPoNo(order.getPoNo());
+        List<VehicleCbuSoDo> soItems = vehicleCbuSoCmdExe.listVehicleCbuSoByPoNo(order.getPoNo());
 
         // 校验 c：SO 状态只能是 作废/未下发生产/排产中（焊装上线及之后不可驳回）
         for (VehicleCbuSoDo so : soItems) {
@@ -456,7 +456,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         VehicleCbuSoCancelReq cancelReq = new VehicleCbuSoCancelReq();
         cancelReq.setPoNo(order.getPoNo());
         cancelReq.setReason("产销平衡驳回作废：" + req.getRejectReason());
-        VehicleCbuSoOperateResult cancelResult = vehicleCbuSoService.cancel(cancelReq);
+        VehicleCbuSoOperateResult cancelResult = vehicleCbuSoCmdExe.cancel(cancelReq);
         if (CollectionUtils.isNotEmpty(cancelResult.getFailItems())) {
             String failDetail = cancelResult.getFailItems().stream().map(i -> i.getSoNo() + ":" + i.getReason()).collect(Collectors.joining(";"));
             throw new BizException("PO作废失败，部分SO作废异常：" + failDetail);
@@ -496,7 +496,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
 
         // 分支B：SO 状态校验（步骤1）— 质检通过/已收款的车辆禁止刷新价格，避免 PO 新价与 SO 旧价脱钩
         if (isBranchB) {
-            List<VehicleCbuSoDo> soItems = vehicleCbuSoService.listVehicleCbuSoByPoNo(order.getPoNo());
+            List<VehicleCbuSoDo> soItems = vehicleCbuSoCmdExe.listVehicleCbuSoByPoNo(order.getPoNo());
             for (VehicleCbuSoDo so : soItems) {
                 Integer soStatus = so.getOrderStatus();
                 if (VehicleCbuSoStatusEnum.QC_PASSED.getCode().equals(soStatus)
@@ -632,7 +632,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                         dp.setUnitPrice(d.getUnitPrice());
                         return dp;
                     }).toList());
-            vehicleCbuSoService.updatePrice(soUpdateReq);
+            vehicleCbuSoCmdExe.updatePrice(soUpdateReq);
         }
 
         result.setNewTotal(newTotal);

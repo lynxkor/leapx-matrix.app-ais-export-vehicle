@@ -1,9 +1,9 @@
 package com.leapmotor.export.vehicle.base.event;
 
 import com.alibaba.fastjson2.JSON;
-import com.leapmotor.export.vehicle.acl.http.sap.gateway.SapGateway;
-import com.leapmotor.export.vehicle.acl.http.sap.req.SapOrderSyncReq;
-import com.leapmotor.export.vehicle.acl.http.sap.resp.SapResult;
+import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
+import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
+import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import com.leapmotor.export.vehicle.base.event.enums.SapEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;

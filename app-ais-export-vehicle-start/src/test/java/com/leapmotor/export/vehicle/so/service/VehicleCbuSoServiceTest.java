@@ -37,9 +37,11 @@ public class VehicleCbuSoServiceTest extends BaseServiceTest<VehicleCbuSoService
         testPoNo = "PO-UT-" + UUID.randomUUID().toString().substring(0, 8);
 
         SoCreateReq req = buildSoCreateReq(testPoNo);
-        List<SoResult.SoItem> items = service.createSo(req);
+        SoResult result = service.createSo(req);
 
-        printJson(items);
+        printJson(result);
+        assertNotNull(result);
+        List<SoResult.SoItem> items = result.getData();
         assertNotNull(items);
         assertEquals(3, items.size(), "明细1需求2 + 明细2需求1 应生成 3 个 SO");
 
@@ -50,7 +52,7 @@ public class VehicleCbuSoServiceTest extends BaseServiceTest<VehicleCbuSoService
             assertTrue(item.getSoNo().startsWith("SO"), "SO 单号应以 SO 开头");
             assertEquals(i + 1, item.getLineNo(), "行号应从 1 开始连续递增");
             assertEquals(1001, item.getOrderStatus(), "初始状态应为 1001 未下发生产");
-            assertEquals(testPoNo, item.getPoNo());
+            assertEquals(testPoNo, result.getPoNo());
         }
     }
 
@@ -67,7 +69,9 @@ public class VehicleCbuSoServiceTest extends BaseServiceTest<VehicleCbuSoService
     public void testCreateSo_ownerFieldsDefaultZero() {
         String poNo = "PO-OWNER-" + UUID.randomUUID().toString().substring(0, 8);
         SoCreateReq req = buildSoCreateReq(poNo);
-        List<SoResult.SoItem> items = service.createSo(req);
+        SoResult result = service.createSo(req);
+        assertNotNull(result);
+        List<SoResult.SoItem> items = result.getData();
         assertNotNull(items);
         assertFalse(items.isEmpty());
 

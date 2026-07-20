@@ -196,7 +196,9 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         details.add(d1);
         req.setDetails(details);
 
-        List<SoResult.SoItem> items = service.createSo(req);
+        SoResult result = service.createSo(req);
+        assertNotNull(result);
+        List<SoResult.SoItem> items = result.getData();
         assertNotNull(items);
         assertEquals(1, items.size());
         SoResult.SoItem item = items.get(0);

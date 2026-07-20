@@ -24,6 +24,7 @@ import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoRefreshPriceResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
@@ -39,6 +40,8 @@ import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoDetailGateway;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGuaranteeGateway;
+import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
+import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
 import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.stereotype.Service;
@@ -67,6 +70,7 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     private ExportVehicleCbuPoGateway purchaseOrderGateway;
     private ExportVehicleCbuPoDetailGateway purchaseOrderDetailGateway;
     private ExportVehicleCbuPoGuaranteeGateway purchaseOrderGuaranteeGateway;
+    private ExportVehicleLetterGuaranteeGateway letterGuaranteeGateway;
     private CompanyApi companyApi;
 
     @Override
@@ -91,6 +95,30 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
         ExportVehicleCbuPoGuaranteeQo guaranteeQo = new ExportVehicleCbuPoGuaranteeQo();
         guaranteeQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoGuaranteeDo> guaranteeDos = purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(guaranteeQo);
+
+        // 回填保函主表字段（保函状态 / 生效日期 / 失效日期）
+        if (CollectionUtils.isNotEmpty(guaranteeDos)) {
+            List<String> guaranteeIds = guaranteeDos.stream()
+                    .map(ExportVehicleCbuPoGuaranteeDo::getGuaranteeId)
+                    .filter(StringUtils::isNotBlank)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(guaranteeIds)) {
+                List<ExportVehicleLetterGuaranteeDo> lgDos = letterGuaranteeGateway.listExportVehicleLetterGuaranteeByIds(guaranteeIds);
+                if (CollectionUtils.isNotEmpty(lgDos)) {
+                    Map<String, ExportVehicleLetterGuaranteeDo> lgMap = lgDos.stream()
+                            .collect(Collectors.toMap(ExportVehicleLetterGuaranteeDo::getId, lg -> lg, (a, b) -> a));
+                    guaranteeDos.forEach(g -> {
+                        ExportVehicleLetterGuaranteeDo lg = lgMap.get(g.getGuaranteeId());
+                        if (lg != null) {
+                            g.setGuaranteeStatus(lg.getLgStatus());
+                            g.setEffectiveDate(lg.getEffectiveDate());
+                            g.setExpirationDate(lg.getExpiryDate());
+                        }
+                    });
+                }
+            }
+        }
 
         ExportVehicleCbuPoDetailFullResp resp = new ExportVehicleCbuPoDetailFullResp();
         resp.setOrder(ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(order));
@@ -165,8 +193,8 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
     }
 
     @Override
-    public void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
-        purchaseOrderApprovalCmdExe.refreshPrice(req);
+    public ExportVehicleCbuPoRefreshPriceResp refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
+        return purchaseOrderApprovalCmdExe.refreshPrice(req);
     }
 
     @Override

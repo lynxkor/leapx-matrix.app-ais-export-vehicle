@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.po.model;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
 import lombok.Data;
@@ -44,6 +45,21 @@ public class ExportVehicleCbuPoGuaranteeDo extends LpBaseModel implements Serial
      * PO当前应收金额,= 0
      */
     private BigDecimal poCurrentReceivableAmount;
+
+    /**
+     * 保函状态(字典 letter_guarantee_lg_status,不落关联表,通过保函接口关联)
+     */
+    private String guaranteeStatus;
+
+    /**
+     * 生效日期(不落关联表,通过保函接口关联)
+     */
+    private LocalDate effectiveDate;
+
+    /**
+     * 失效日期(不落关联表,通过保函接口关联)
+     */
+    private LocalDate expirationDate;
 
     /**
      * 状态(1:启用,0:停用),平台规范

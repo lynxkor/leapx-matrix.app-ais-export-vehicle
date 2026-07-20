@@ -5,6 +5,7 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoParam;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoDetailFullResp;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoRefreshPriceResp;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
@@ -67,8 +68,8 @@ public interface ExportVehicleCbuPoService {
     /** 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） */
     void balanceReject(ExportVehicleCbuPoBalanceRejectReq req);
 
-    /** 刷新订单价格（联动保函 / SO） */
-    void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req);
+    /** 刷新订单价格（联动保函 / SO），返回变更摘要供前端弹窗 */
+    ExportVehicleCbuPoRefreshPriceResp refreshPrice(ExportVehicleCbuPoRefreshPriceReq req);
 
     /** 批量提交 */
     ExportVehicleCbuPoBatchResp batchSubmit(ExportVehicleCbuPoBatchReq req);

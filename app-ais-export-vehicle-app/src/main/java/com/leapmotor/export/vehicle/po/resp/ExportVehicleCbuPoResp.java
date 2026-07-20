@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
 import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
+import com.leapmotor.export.vehicle.po.enums.DataSourceEnum;
+import com.leapmotor.export.vehicle.po.enums.ExportVehicleCbuPoStatusEnum;
+import com.leapmotor.export.vehicle.po.enums.PoOrderTypeEnum;
 import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
@@ -26,7 +29,7 @@ public class ExportVehicleCbuPoResp extends LpBaseModel implements Serializable 
     private String poNo;
 
     @Schema(description = "订单状态,枚举见评审§2.1(草稿/销售已提交/销售已驳回/供需审核通过/供需审核驳回/产销平衡通过/产销平衡驳回)")
-    @DictEnumType(prefix = "ExportVehicleCbuPoStatusEnum")
+    @DictEnumType(type = ExportVehicleCbuPoStatusEnum.class)
     private String orderStatus;
 
     @Schema(description = "销售公司,下拉选,提交时必填")
@@ -72,11 +75,11 @@ public class ExportVehicleCbuPoResp extends LpBaseModel implements Serializable 
     private String rejectReason;
 
     @Schema(description = "数据来源,枚举:1销服/2红旗")
-    @DictEnumType(prefix = "DataSourceEnum")
+    @DictEnumType(type = DataSourceEnum.class)
     private Integer dataSource;
 
     @Schema(description = "订单类型,红旗接口同步")
-    @DictEnumType(prefix = "PoOrderTypeEnum")
+    @DictEnumType(type = PoOrderTypeEnum.class)
     private Integer orderType;
 
     @Schema(description = "计划版本号,取自红旗CBU接口")

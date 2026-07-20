@@ -23,6 +23,7 @@ import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBalanceRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoBatchReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
 import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoBatchResp;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoRefreshPriceResp;
 import com.leapmotor.export.vehicle.po.convertor.ExportVehicleCbuPoDTOStructMapper;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.web.bind.annotation.*;
@@ -162,9 +163,8 @@ public class ExportVehicleCbuPoController {
     @Operation(summary = "PO订单刷新价格(联动保函/SO)")
     @ResourcePermission(value="web:po:exportVehicleCbuPo:refreshPrice",desc="PO订单刷新价格")
     @PostMapping("/refreshPrice")
-    public AjaxResult<Void> refreshPrice(@RequestBody @Validated ExportVehicleCbuPoRefreshPriceReq req) {
-        purchaseOrderService.refreshPrice(req);
-        return AjaxResult.success();
+    public AjaxResult<ExportVehicleCbuPoRefreshPriceResp> refreshPrice(@RequestBody @Validated ExportVehicleCbuPoRefreshPriceReq req) {
+        return AjaxResult.success(purchaseOrderService.refreshPrice(req));
     }
 
     // ==================== 批量操作 ====================

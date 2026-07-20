@@ -46,6 +46,7 @@ import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDetailDo;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoDetailQo;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRefreshPriceReq;
+import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoRefreshPriceResp;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoRejectReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSubmitReq;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -291,7 +292,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         if (CollectionUtils.isEmpty(soItems)) {
             throw new BizException("SO 单创建失败：未生成任何 SO");
         }
-        // TODO SO 单号是否回写 PO（评审未提，PO 不存 SO 单号）；SO 契约到后确认
     }
 
     private SoCreateReq buildSoCreateReq(ExportVehicleCbuPoDo order, List<ExportVehicleCbuPoDetailDo> details) {
@@ -475,20 +475,19 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     // ==================== 刷新订单价格（联动保函 / SO） ====================
 
     @Transactional(rollbackFor = Exception.class)
-    public void refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
+    public ExportVehicleCbuPoRefreshPriceResp refreshPrice(ExportVehicleCbuPoRefreshPriceReq req) {
+        ExportVehicleCbuPoRefreshPriceResp result = new ExportVehicleCbuPoRefreshPriceResp();
         ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(req.getPoId());
         if (order == null) {
             throw new BizException("PO订单不存在");
         }
 
         String status = order.getOrderStatus();
-        // 终态（各类驳回）不允许刷新价格
-        if (ExportVehicleCbuPoStatusEnum.SALES_REJECTED.getCode().equals(status)
-                || ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_REJECTED.getCode().equals(status)
-                || ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_REJECTED.getCode().equals(status)) {
-            throw new BizException("终态订单不允许刷新价格");
-        }
-        boolean isBranchB = ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED.getCode().equals(status) || ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED.getCode().equals(status) || ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(status);
+        // 分支B（已审非终态）= 20 销售已提交 / 40 供需通过 / 60 产销通过（需 SO 状态校验 + 保函联动）
+        // 分支A（草稿/各类驳回终态）= 10 / 30 / 50 / 70（仅重算价格，不调保函不调SO）
+        boolean isBranchB = ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED.getCode().equals(status)
+                || ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED.getCode().equals(status)
+                || ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(status);
 
         // 查明细
         ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
@@ -508,7 +507,10 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         }
 
         // ===== 重算价格（步骤2，同 提交的匹配规则；批量一次 Feign） =====
-        BigDecimal oldTotal = order.getTotalAmount();
+        BigDecimal oldTotal = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+        result.setOldTotal(oldTotal);
+        int updatedCount = 0;
+        int unmatchedCount = 0;
         Map<String, BigDecimal> priceMap = queryLatestApprovedPrices(
                 details.stream().map(ExportVehicleCbuPoDetailDo::getMaterialCode).filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList()),
                 order.getOrderType(), order.getCreateTime());
@@ -518,6 +520,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             }
             BigDecimal newPrice = priceMap.get(d.getMaterialCode());
             if (newPrice != null) {
+                updatedCount++;
                 d.setUnitPrice(newPrice);
                 if (d.getDemandQuantity() == null) {
                     throw new BizException("明细" + d.getOrderDetailNumber() + "需求数量为空，不允许刷新价格");
@@ -525,6 +528,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 d.setTotalAmount(newPrice.multiply(d.getDemandQuantity()));
                 purchaseOrderDetailGateway.updateExportVehicleCbuPoDetail(d);
             } else {
+                unmatchedCount++;
                 // 已审态（分支B）不允许把价格置空，否则破坏已审价格不变量并按缩水总额误触发保函调减；仅草稿态（分支A）留空
                 if (isBranchB) {
                     throw new BizException("物料 " + d.getMaterialCode() + " 刷新后匹配不到有效价格，不允许刷新");
@@ -541,6 +545,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         purchaseOrderGateway.updateExportVehicleCbuPo(order);
 
         // ===== 分支B: 联动保函 + SO =====
+        String guaranteeAction = "无调整";
         if (isBranchB) {
             BigDecimal diff = newTotal.subtract(oldTotal);
             int cmp = diff.compareTo(BigDecimal.ZERO);
@@ -548,6 +553,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             if (cmp < 0) {
                 // (2) 新总金额 < 原：调减保函
                 BigDecimal amountDiff = oldTotal.subtract(newTotal);
+                guaranteeAction = "解冻 " + amountDiff.stripTrailingZeros().toPlainString();
                 ExportVehicleLetterGuaranteeAdjustUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeAdjustUnfreezeReq();
                 unfreezeReq.setPoNo(order.getPoNo());
                 unfreezeReq.setOrderId(order.getId());
@@ -565,7 +571,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 }
             } else if (cmp > 0) {
                 // (3) 新总金额 > 原：补冻保函（保函侧自动判断可用金额是否充足）
-                // 调增补冻用客户主键ID（与提交一致），不能用业务编码 customerCode；查不到客户则强校验失败
+                guaranteeAction = "补冻 " + diff.stripTrailingZeros().toPlainString();
                 CustomerResponse refreshCustomer = queryCustomerByExternalCode(order.getExternalCustomerCode());
                 if (refreshCustomer == null) {
                     throw new BizException("客户主数据查询失败，无法刷新价格，请稍后重试");
@@ -628,6 +634,18 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                     }).toList());
             vehicleCbuSoService.updatePrice(soUpdateReq);
         }
+
+        result.setNewTotal(newTotal);
+        result.setUpdatedDetailCount(updatedCount);
+        result.setUnmatchedDetailCount(unmatchedCount);
+        result.setGuaranteeAction(guaranteeAction);
+        if (newTotal.compareTo(oldTotal) != 0) {
+            result.setMessage("总金额由 " + oldTotal.stripTrailingZeros().toPlainString()
+                    + " 变更为 " + newTotal.stripTrailingZeros().toPlainString());
+        } else {
+            result.setMessage("金额未发生变更");
+        }
+        return result;
     }
 
     // ==================== 批量操作（每条独立事务，部分成功部分失败，汇总返回） ====================

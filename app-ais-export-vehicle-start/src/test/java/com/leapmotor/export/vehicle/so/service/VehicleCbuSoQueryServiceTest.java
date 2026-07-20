@@ -179,7 +179,7 @@ public class VehicleCbuSoQueryServiceTest extends BaseServiceTest<VehicleCbuSoSe
      * 直接写明细车辆字段（VIN/产销识别码/内部车辆号），供查询返回校验。
      */
     private void populateDetailVehicle(String soId, String vin) {
-        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailBySoId(soId);
+        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId);
         assertNotNull(detail, "车辆明细不存在");
         detail.setVin(vin);
         detail.setInternalVehicleNo("IVN" + vin);

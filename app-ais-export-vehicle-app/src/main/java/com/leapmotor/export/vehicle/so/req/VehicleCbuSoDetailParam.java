@@ -23,8 +23,8 @@ public class VehicleCbuSoDetailParam extends LpBaseParam implements Serializable
 
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "关联SO主表ID")
-    private String soId;
+    @Schema(description = "关联SO单号")
+    private String soNo;
 
     @Schema(description = "内部车辆号，从APS获取")
     private String internalVehicleNo;

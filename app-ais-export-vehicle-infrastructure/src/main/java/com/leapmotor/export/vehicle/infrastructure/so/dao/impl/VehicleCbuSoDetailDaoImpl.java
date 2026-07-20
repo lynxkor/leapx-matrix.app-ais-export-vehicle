@@ -26,7 +26,7 @@ public class VehicleCbuSoDetailDaoImpl extends ServiceImpl<VehicleCbuSoDetailMap
     public QueryWrapper<VehicleCbuSoDetail> buildQueryWrapper(VehicleCbuSoDetailQo query) {
         QueryWrapper<VehicleCbuSoDetail> queryWrapper = VehicleCbuSoDetailDao.super.buildBasicQueryWrapper(query);
         queryWrapper.lambda()
-                .eq(StringUtils.isNotBlank(query.getSoId()), VehicleCbuSoDetail::getSoId, query.getSoId())
+                .eq(StringUtils.isNotBlank(query.getSoNo()), VehicleCbuSoDetail::getSoNo, query.getSoNo())
                 .eq(StringUtils.isNotBlank(query.getInternalVehicleNo()), VehicleCbuSoDetail::getInternalVehicleNo, query.getInternalVehicleNo())
                 .eq(StringUtils.isNotBlank(query.getProductionIdentifyCode()), VehicleCbuSoDetail::getProductionIdentifyCode, query.getProductionIdentifyCode())
                 .eq(StringUtils.isNotBlank(query.getVin()), VehicleCbuSoDetail::getVin, query.getVin())

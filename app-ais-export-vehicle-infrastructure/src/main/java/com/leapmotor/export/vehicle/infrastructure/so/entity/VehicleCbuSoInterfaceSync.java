@@ -6,7 +6,6 @@ import com.leapmotor.platform.ais.common.mybatis.support.entity.LpBaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.time.LocalDateTime;
@@ -26,12 +25,6 @@ import java.time.LocalDateTime;
 public class VehicleCbuSoInterfaceSync extends LpBaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    /**
-     * 状态(1:启用,0=停用)
-     */
-    @TableField("status")
-    private Integer status;
 
     /**
      * 关联SO主表ID
@@ -81,5 +74,28 @@ public class VehicleCbuSoInterfaceSync extends LpBaseEntity implements Serializa
     @TableField("remark")
     private String remark;
 
+    /**
+     * 状态(1:启用,0:停用)
+     */
+    @TableField("status")
+    private Integer status;
+
+    /**
+     * 状态变更描述
+     */
+    @TableField("status_desc")
+    private String statusDesc;
+
+    /**
+     * 归属用户ID，当数据权限归属到用户时
+     */
+    @TableField("owner_user_id")
+    private Long ownerUserId;
+
+    /**
+     * 归属门店ID（组织ID），当数据权限归属到本组织以及本下级
+     */
+    @TableField("owner_org_id")
+    private Long ownerOrgId;
 
 }

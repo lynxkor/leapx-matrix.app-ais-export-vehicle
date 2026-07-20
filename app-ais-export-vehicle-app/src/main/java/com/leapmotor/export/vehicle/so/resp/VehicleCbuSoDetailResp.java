@@ -26,8 +26,8 @@ public class VehicleCbuSoDetailResp extends LpBaseModel implements Serializable 
     @Schema(description = "状态(1:启用,0=停用)")
     private Integer status;
 
-    @Schema(description = "关联SO主表ID")
-    private String soId;
+    @Schema(description = "关联SO单号")
+    private String soNo;
 
     @Schema(description = "内部车辆号，从APS获取")
     private String internalVehicleNo;

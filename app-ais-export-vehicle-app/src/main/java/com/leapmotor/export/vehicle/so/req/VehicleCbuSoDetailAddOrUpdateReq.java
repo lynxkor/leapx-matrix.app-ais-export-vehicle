@@ -22,8 +22,8 @@ public class VehicleCbuSoDetailAddOrUpdateReq extends LpBaseModel implements Ser
 
     private static final long serialVersionUID = 1L;
 
-    @Schema(description = "关联SO主表ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String soId;
+    @Schema(description = "关联SO单号", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String soNo;
 
     @Schema(description = "内部车辆号，从APS获取", requiredMode = Schema.RequiredMode.REQUIRED)
     private String internalVehicleNo;

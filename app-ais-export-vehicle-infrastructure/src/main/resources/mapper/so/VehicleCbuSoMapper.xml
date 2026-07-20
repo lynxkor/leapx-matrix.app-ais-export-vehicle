@@ -243,7 +243,7 @@
         SELECT
         <include refid="SoDetail_Column_List"/>
         FROM export_vehicle_cbu_so m
-        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.so_id AND d.delete_status = 0
+        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.id AND d.delete_status = 0
         <include refid="SoDetail_Where_Clause"/>
         ORDER BY m.create_time DESC
     </select>
@@ -252,7 +252,7 @@
         SELECT
         <include refid="SoDetail_Column_List"/>
         FROM export_vehicle_cbu_so m
-        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.so_id AND d.delete_status = 0
+        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.id AND d.delete_status = 0
         <include refid="SoDetail_Where_Clause"/>
         ORDER BY m.create_time DESC
     </select>
@@ -261,7 +261,7 @@
         SELECT
         <include refid="SoDetail_Column_List"/>
         FROM export_vehicle_cbu_so m
-        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.so_id AND d.delete_status = 0
+        LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.id AND d.delete_status = 0
         WHERE m.id = #{id} AND m.delete_status = 0
     </select>
 

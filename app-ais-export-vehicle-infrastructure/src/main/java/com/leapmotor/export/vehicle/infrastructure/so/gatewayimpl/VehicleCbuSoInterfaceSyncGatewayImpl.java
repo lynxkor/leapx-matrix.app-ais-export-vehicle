@@ -53,7 +53,8 @@ public class VehicleCbuSoInterfaceSyncGatewayImpl implements VehicleCbuSoInterfa
     }
 
     /**
-     * 根据接口同步记录刷新明细表同步快照
+     * 根据接口同步记录刷新明细表同步快照。
+     * 同步表 so_id 实际存的是主表 id，明细表 1:1 复用主表 id 作为自身主键，故匹配明细表 id。
      */
     private void refreshDetailSyncSnapshot(VehicleCbuSoInterfaceSyncDo syncDo) {
         if (StringUtils.isBlank(syncDo.getSoId()) || Objects.isNull(syncDo.getInterfaceType())) {
@@ -61,7 +62,7 @@ public class VehicleCbuSoInterfaceSyncGatewayImpl implements VehicleCbuSoInterfa
         }
         Integer interfaceType = syncDo.getInterfaceType();
         UpdateWrapper<VehicleCbuSoDetail> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("so_id", syncDo.getSoId());
+        updateWrapper.eq("id", syncDo.getSoId());
 
         if (interfaceType == 1 || interfaceType == 2) {
             updateWrapper.set("sync_aps_result", syncDo.getResultStatus())

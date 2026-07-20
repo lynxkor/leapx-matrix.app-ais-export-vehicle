@@ -146,12 +146,14 @@ public class VehicleCbuSoCmdExe {
             throw new BizException("未生成任何SO，请检查PO明细需求数量");
         }
 
-        // 批量保存主表；so_no 已在 buildSo 用 NoGenerator 显式生成（@AutoCode 注解本环境未生效，光靠注解生成不了），
-        // 平台 LpBaseEntity 自动生成主键并回写到领域对象，供下面明细 soId 关联使用。
+        // 批量保存主表：so_no 已在 buildSo 用 NoGenerator 显式生成
+        // 平台 LpBaseEntity 自动生成主键并回写到领域对象。明细表 1:1 复用主表 id 作为自身主键，并按 so_no 关联主表。
         vehicleCbuSoGateway.batchAddVehicleCbuSo(soList);
         for (int i = 0; i < soList.size(); i++) {
             VehicleCbuSoDo so = soList.get(i);
-            detailList.get(i).setSoId(so.getId());
+            VehicleCbuSoDetailDo detail = detailList.get(i);
+            detail.setId(so.getId());
+            detail.setSoNo(so.getSoNo());
 
             SoResult.SoItem item = result.get(i);
             item.setSoId(so.getId());
@@ -164,7 +166,7 @@ public class VehicleCbuSoCmdExe {
         return result;
     }
 
-    /** 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（@AutoCode 本环境未生效，用 NoGenerator，同 po_detail_no） */
+    /** 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（同 po_detail_no） */
     private String genSoNo() {
         return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
                 + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
@@ -559,7 +561,7 @@ public class VehicleCbuSoCmdExe {
         vehicleCbuSoGateway.updateVehicleCbuSo(so);
 
         // 更新车辆明细
-        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailBySoId(so.getId());
+        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(so.getId());
         if (detail != null) {
             updateDetailNodeInfo(detail, req);
             vehicleCbuSoDetailGateway.updateVehicleCbuSoDetail(detail);
@@ -592,7 +594,7 @@ public class VehicleCbuSoCmdExe {
         if (detail == null) {
             throw new BizException("VIN[" + req.getVin() + "]未找到车辆明细");
         }
-        VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getSoId());
+        VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getId());
         if (so == null) {
             throw new BizException("VIN[" + req.getVin() + "]关联SO不存在");
         }
@@ -676,7 +678,7 @@ public class VehicleCbuSoCmdExe {
         if (!VehicleCbuSoStatusEnum.QC_PASSED.getCode().equals(so.getOrderStatus())) {
             throw new BizException("仅质检通过态允许补推SAP");
         }
-        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailBySoId(so.getId());
+        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(so.getId());
         SapOrderSyncReq sapReq = buildSapOrderSyncReq(so, detail);
         VehicleCbuSoInterfaceSyncDo sapSync = buildInterfaceSyncDo(so, 4, "订单同步SAP(手动补推)",
                 so.getSoNo(), 1, null);

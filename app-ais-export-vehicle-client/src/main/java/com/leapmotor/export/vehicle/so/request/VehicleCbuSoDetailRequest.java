@@ -24,9 +24,9 @@ public class VehicleCbuSoDetailRequest implements Serializable {
     private Integer status;
 
     /**
-     * 关联SO主表ID
+     * 关联SO单号
      */
-    private String soId;
+    private String soNo;
 
     /**
      * 内部车辆号，从APS获取

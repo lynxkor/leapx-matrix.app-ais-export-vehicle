@@ -40,7 +40,7 @@ public class VehicleCbuSoDetailServiceTest extends BaseServiceTest<VehicleCbuSoD
     // ============== 测试夹具（@Order 控制执行顺序） ==============
 
     private static String detailId;            // 新增的明细 ID
-    private static final String FIXED_SOID = "SO-UT-" + UUID.randomUUID().toString().substring(0, 8);
+    private static final String FIXED_SONO = "SO-UT-" + UUID.randomUUID().toString().substring(0, 8);
 
     // ============== CRUD ==============
 
@@ -68,10 +68,10 @@ public class VehicleCbuSoDetailServiceTest extends BaseServiceTest<VehicleCbuSoD
 
     @Test
     @Order(3)
-    @DisplayName("page — 按 soId 精确筛选")
-    public void testPage_filtersBySoId() {
+    @DisplayName("page — 按 soNo 精确筛选")
+    public void testPage_filtersBySoNo() {
         VehicleCbuSoDetailParam param = new VehicleCbuSoDetailParam();
-        param.setSoId(FIXED_SOID);
+        param.setSoNo(FIXED_SONO);
         param.setPageNum(1L);
         param.setPageSize(10L);
         PageResult<VehicleCbuSoDetailResp> page = service.pageVehicleCbuSoDetail(param);
@@ -103,9 +103,11 @@ public class VehicleCbuSoDetailServiceTest extends BaseServiceTest<VehicleCbuSoD
         VehicleCbuSoDetailResp resp = service.getVehicleCbuSoDetailById(id);
         assertNotNull(resp);
         assertEquals(id, resp.getId());
-        assertEquals(FIXED_SOID, resp.getSoId());
+        assertEquals(FIXED_SONO, resp.getSoNo());
         assertEquals(req.getVin(), resp.getVin());
         assertEquals(req.getMaterialCode(), resp.getMaterialCode());
+        // 注：owner_user_id/owner_org_id 字段在 SQL 中已加默认值 0（数据权限字段，未暴露到 App 层 Req/Resp），
+        // 可通过 Entity 或 Mapper XML 验证。此处仅验证业务字段。
         detailId = id;
     }
 
@@ -163,7 +165,7 @@ public class VehicleCbuSoDetailServiceTest extends BaseServiceTest<VehicleCbuSoD
 
     private VehicleCbuSoDetailAddOrUpdateReq baseAddReq() {
         VehicleCbuSoDetailAddOrUpdateReq req = new VehicleCbuSoDetailAddOrUpdateReq();
-        req.setSoId(FIXED_SOID);
+        req.setSoNo(FIXED_SONO);
         req.setInternalVehicleNo("IVN" + UUID.randomUUID().toString().substring(0, 8));
         req.setProductionIdentifyCode("PIC" + UUID.randomUUID().toString().substring(0, 8));
         req.setVin("VIN" + UUID.randomUUID().toString().substring(0, 8));

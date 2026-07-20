@@ -222,7 +222,7 @@ public class VehicleCbuSoIssueCancelServiceTest extends BaseServiceTest<VehicleC
     }
 
     private VehicleCbuSoDetailDo getDetail(String soId) {
-        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailBySoId(soId);
+        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId);
         assertNotNull(detail, "车辆明细不应为空: " + soId);
         return detail;
     }

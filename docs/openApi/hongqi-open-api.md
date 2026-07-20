@@ -42,13 +42,13 @@
 | 接口名称 | 红旗 CBU 订单采购申请 |
 | 功能描述 | 红旗系统将 CBU 采购申请同步给我方，创建草稿 PO 订单（主表 + 明细联合保存） |
 | 请求方式 | POST |
-| 请求路径 | `/openApi/hongqi/purchaseOrder/sync` |
+| 请求路径 | `/vehicle/openApi/hongqi/purchaseOrder/sync` |
 
 ### 请求地址
 
 ```text
-测试环境：https://mdmapitest-external.leapmotor.com/aisapi/openApi/hongqi/purchaseOrder/sync
-正式环境：https://mdmapi-external.leapmotor.com/aisapi/openApi/hongqi/purchaseOrder/sync
+测试环境：https://mdmapitest-external.leapmotor.com/aisapi/vehicle/openApi/hongqi/purchaseOrder/sync
+正式环境：https://mdmapi-external.leapmotor.com/aisapi/vehicle/openApi/hongqi/purchaseOrder/sync
 ```
 
 ### 请求参数
@@ -139,13 +139,13 @@
 | 接口名称 | 接收红旗质检结果回传 |
 | 功能描述 | 红旗系统将 CBU 车辆的质检结果回传给我方，我方根据 VIN 码更新 SO 质检状态 |
 | 请求方式 | POST |
-| 请求路径 | `/openApi/hongqi/vehicleCbuSo/receiveQcResult` |
+| 请求路径 | `/vehicle/openApi/hongqi/vehicleCbuSo/receiveQcResult` |
 
 ### 请求地址
 
 ```text
-测试环境：https://mdmapitest-external.leapmotor.com/aisapi/openApi/hongqi/vehicleCbuSo/receiveQcResult
-正式环境：https://mdmapi-external.leapmotor.com/aisapi/openApi/hongqi/vehicleCbuSo/receiveQcResult
+测试环境：https://mdmapitest-external.leapmotor.com/aisapi/vehicle/openApi/hongqi/vehicleCbuSo/receiveQcResult
+正式环境：https://mdmapi-external.leapmotor.com/aisapi/vehicle/openApi/hongqi/vehicleCbuSo/receiveQcResult
 ```
 
 ### 请求参数

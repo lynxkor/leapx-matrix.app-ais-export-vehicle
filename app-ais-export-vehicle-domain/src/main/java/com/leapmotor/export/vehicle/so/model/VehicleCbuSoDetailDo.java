@@ -22,14 +22,9 @@ public class VehicleCbuSoDetailDo extends LpBaseModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 状态(1:启用,0=停用)
+     * 关联SO单号（冗余字段，业务关联走 m.id = d.id）
      */
-    private Integer status;
-
-    /**
-     * 关联SO主表ID
-     */
-    private String soId;
+    private String soNo;
 
     /**
      * 内部车辆号，从APS获取
@@ -151,5 +146,24 @@ public class VehicleCbuSoDetailDo extends LpBaseModel implements Serializable {
      */
     private String remark;
 
+    /**
+     * 状态(1:启用,0:停用)
+     */
+    private Integer status;
+
+    /**
+     * 状态变更描述
+     */
+    private String statusDesc;
+
+    /**
+     * 归属用户ID，当数据权限归属到用户时
+     */
+    private Long ownerUserId;
+
+    /**
+     * 归属门店ID（组织ID），当数据权限归属到本组织以及本下级
+     */
+    private Long ownerOrgId;
 
 }

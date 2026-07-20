@@ -57,14 +57,6 @@ public interface VehicleCbuSoDetailGateway {
     VehicleCbuSoDetailDo getVehicleCbuSoDetailById(String id);
 
     /**
-     * 按 SO 主表 ID 查询车辆明细
-     *
-     * @param soId SO 主表 ID
-     * @return 车辆明细领域对象
-     */
-    VehicleCbuSoDetailDo getVehicleCbuSoDetailBySoId(String soId);
-
-    /**
      * 按 VIN 查询车辆明细
      *
      * @param vin VIN 码

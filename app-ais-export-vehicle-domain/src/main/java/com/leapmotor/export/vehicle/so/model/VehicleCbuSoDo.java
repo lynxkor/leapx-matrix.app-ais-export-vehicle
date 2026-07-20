@@ -15,7 +15,7 @@ import java.io.Serializable;
 
 /**
  *
- * CBU整车销售订单主表领域对象
+ * CBU整车销售订单主表领域对象（聚合明细+同步快照的扩展字段）
  *
  * @author lijianuo
  * @since 2026-07-13
@@ -27,17 +27,7 @@ public class VehicleCbuSoDo extends LpBaseModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 状态(1:启用,0:停用)
-     */
-    private Integer status;
-
-    /**
-     * 状态变更描述
-     */
-    private String statusDesc;
-
-    /**
-     * SO单号，后台自动生成
+     * SO单号，业务要求格式 SO + yyyyMMddHHmm + 5位流水
      */
     private String soNo;
 
@@ -186,6 +176,26 @@ public class VehicleCbuSoDo extends LpBaseModel implements Serializable {
      * 备注
      */
     private String remark;
+
+    /**
+     * 状态(1:启用,0:停用)
+     */
+    private Integer status;
+
+    /**
+     * 状态变更描述
+     */
+    private String statusDesc;
+
+    /**
+     * 归属用户ID，当数据权限归属到用户时
+     */
+    private Long ownerUserId;
+
+    /**
+     * 归属门店ID（组织ID），当数据权限归属到本组织以及本下级
+     */
+    private Long ownerOrgId;
 
     /**
      * 销售公司名称（JOIN 或外部装配）

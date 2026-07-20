@@ -22,12 +22,7 @@ public class VehicleCbuSoInterfaceSyncDo extends LpBaseModel implements Serializ
     private static final long serialVersionUID = 1L;
 
     /**
-     * 状态(1:启用,0=停用)
-     */
-    private Integer status;
-
-    /**
-     * 关联SO主表ID
+     * 关联SO主表ID（实际存主表 id 字符串）
      */
     private String soId;
 
@@ -66,5 +61,24 @@ public class VehicleCbuSoInterfaceSyncDo extends LpBaseModel implements Serializ
      */
     private String remark;
 
+    /**
+     * 状态(1:启用,0:停用)
+     */
+    private Integer status;
+
+    /**
+     * 状态变更描述
+     */
+    private String statusDesc;
+
+    /**
+     * 归属用户ID，当数据权限归属到用户时
+     */
+    private Long ownerUserId;
+
+    /**
+     * 归属门店ID（组织ID），当数据权限归属到本组织以及本下级
+     */
+    private Long ownerOrgId;
 
 }

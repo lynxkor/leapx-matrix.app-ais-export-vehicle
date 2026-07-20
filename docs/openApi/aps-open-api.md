@@ -49,14 +49,14 @@
 | 接口名称 | 接收 APS 生产状态回传 |
 | 功能描述 | APS 产销平台将车辆生产状态推送给销服，我方按 SO 单号 + 状态码更新 SO 进度与车辆关键时间 |
 | 请求方式 | POST |
-| 请求路径 | `/openApi/aps/vehicleCbuSo/receiveProductionStatus` |
+| 请求路径 | `/vehicle/openApi/aps/vehicleCbuSo/receiveProductionStatus` |
 | 鉴权方式 | 上层网关统一签名校验 |
 
 #### 请求地址
 
 ```text
-测试环境：https://mdmapitest.leapmotor.com/openApi/aps/vehicleCbuSo/receiveProductionStatus
-正式环境：https://mdmapi.leapmotor.com/openApi/aps/vehicleCbuSo/receiveProductionStatus
+测试环境：https://mdmapitest.leapmotor.com/vehicle/openApi/aps/vehicleCbuSo/receiveProductionStatus
+正式环境：https://mdmapi.leapmotor.com/vehicle/openApi/aps/vehicleCbuSo/receiveProductionStatus
 ```
 
 #### 请求参数

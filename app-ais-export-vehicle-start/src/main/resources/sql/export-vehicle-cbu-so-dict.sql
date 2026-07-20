@@ -9,12 +9,13 @@
 
 
 -- ============================================================
--- 1) 字典类型注册 (3 类 CBU SO 相关字典,写入 common_dict)
+-- 1) 字典类型注册 (4 类 CBU SO 相关字典,写入 common_dict)
 -- ============================================================
 INSERT INTO `common_dict` (`dict_type`, `dict_name`, `creator`, `creator_name`, `create_time`)
-VALUES ('vehicle_cbu_so_order_status', 'CBU整车销售订单状态', NULL, 'system', CURRENT_TIMESTAMP),
-       ('vehicle_cbu_so_qc_result',  'CBU整车销售订单质检结果', NULL, 'system', CURRENT_TIMESTAMP),
-       ('vehicle_cbu_so_sync_result', 'CBU整车销售订单同步结果', NULL, 'system', CURRENT_TIMESTAMP);
+VALUES ('vehicle_cbu_so_order_status',    'CBU整车销售订单状态',   NULL, 'system', CURRENT_TIMESTAMP),
+       ('vehicle_cbu_so_qc_result',       'CBU整车销售订单质检结果', NULL, 'system', CURRENT_TIMESTAMP),
+       ('vehicle_cbu_so_sync_result',     'CBU整车销售订单同步结果', NULL, 'system', CURRENT_TIMESTAMP),
+       ('vehicle_cbu_so_interface_type',  'CBU整车销售订单接口类型', NULL, 'system', CURRENT_TIMESTAMP);
 
 
 -- ============================================================
@@ -49,3 +50,11 @@ VALUES ('vehicle_cbu_so_qc_result', '10', '通过',     1, NULL, 'system', CURRE
 INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`, `creator`, `creator_name`, `create_time`)
 VALUES ('vehicle_cbu_so_sync_result', '0', '失败', 1, NULL, 'system', CURRENT_TIMESTAMP),
        ('vehicle_cbu_so_sync_result', '1', '成功', 2, NULL, 'system', CURRENT_TIMESTAMP);
+
+-- ---------- 接口类型 vehicle_cbu_so_interface_type ----------
+-- 对应字段 interface_type,枚举 VehicleCbuSoInterfaceTypeEnum
+INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`, `creator`, `creator_name`, `create_time`)
+VALUES ('vehicle_cbu_so_interface_type', '1', '下发排产同步APS',   1, NULL, 'system', CURRENT_TIMESTAMP),
+       ('vehicle_cbu_so_interface_type', '2', '作废同步APS',       2, NULL, 'system', CURRENT_TIMESTAMP),
+       ('vehicle_cbu_so_interface_type', '3', '生产状态同步客户',  3, NULL, 'system', CURRENT_TIMESTAMP),
+       ('vehicle_cbu_so_interface_type', '4', '订单同步SAP',       4, NULL, 'system', CURRENT_TIMESTAMP);

@@ -82,14 +82,6 @@ public class VehicleCbuSoDetailGatewayImpl implements VehicleCbuSoDetailGateway 
     }
 
     @Override
-    public VehicleCbuSoDetailDo getVehicleCbuSoDetailBySoId(String soId) {
-        VehicleCbuSoDetailQo qo = new VehicleCbuSoDetailQo();
-        qo.setSoId(soId);
-        VehicleCbuSoDetail vehicleCbuSoDetail = vehicleCbuSoDetailDao.getOneForceLimit(qo);
-        return VehicleCbuSoDetailStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSoDetail);
-    }
-
-    @Override
     public VehicleCbuSoDetailDo getVehicleCbuSoDetailByVin(String vin) {
         VehicleCbuSoDetailQo qo = new VehicleCbuSoDetailQo();
         qo.setVin(vin);

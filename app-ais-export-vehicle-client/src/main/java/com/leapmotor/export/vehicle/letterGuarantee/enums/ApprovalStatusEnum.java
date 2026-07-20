@@ -35,4 +35,12 @@ public enum ApprovalStatusEnum implements IBaseEnum<String> {
         for (ApprovalStatusEnum e : values()) if (e.code.equals(code)) return e;
         return null;
     }
+
+    /**
+     * 编码→中文描述。供错误消息展示使用;未知编码回退原值。
+     */
+    public static String getDesc(String code) {
+        ApprovalStatusEnum e = of(code);
+        return e != null ? e.message : code;
+    }
 }

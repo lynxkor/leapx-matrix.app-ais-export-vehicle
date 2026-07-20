@@ -5,6 +5,7 @@ import java.io.Serializable;
 import com.leapmotor.platform.ais.common.mybatis.support.entity.LpBaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -89,13 +90,13 @@ public class VehicleCbuSoInterfaceSync extends LpBaseEntity implements Serializa
     /**
      * 归属用户ID，当数据权限归属到用户时
      */
-    @TableField("owner_user_id")
-    private Long ownerUserId;
+    @TableField(value = "owner_user_id", insertStrategy = FieldStrategy.IGNORED)
+    private Long ownerUserId = 0L;
 
     /**
      * 归属门店ID（组织ID），当数据权限归属到本组织以及本下级
      */
-    @TableField("owner_org_id")
-    private Long ownerOrgId;
+    @TableField(value = "owner_org_id", insertStrategy = FieldStrategy.IGNORED)
+    private Long ownerOrgId = 0L;
 
 }

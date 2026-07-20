@@ -165,7 +165,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         boolean isDraft = ApprovalStatusEnum.DRAFT.getCode().equals(cur);
         boolean isRejected = ApprovalStatusEnum.REJECTED.getCode().equals(cur);
         if (!isDraft && !isRejected) {
-            throw new BizException("仅草稿(10)/驳回(40)可提交,当前状态: " + cur);
+            throw new BizException("仅草稿/驳回可提交,当前状态: " + ApprovalStatusEnum.getDesc(cur));
         }
         LoginUser user = LoginUserUtils.getCurrentUserOrSysDefault();
         lg.setApprovalStatus(ApprovalStatusEnum.SUBMITTED.getCode());
@@ -186,7 +186,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     public boolean approve(String id, boolean approved, String approveRemark) {
         ExportVehicleLetterGuaranteeDo lg = mustGet(id);
         if (!ApprovalStatusEnum.SUBMITTED.getCode().equals(lg.getApprovalStatus())) {
-            throw new BizException("仅已提交可审核,当前状态: " + lg.getApprovalStatus());
+            throw new BizException("仅已提交可审核,当前状态: " + ApprovalStatusEnum.getDesc(lg.getApprovalStatus()));
         }
         if (approved) {
             lg.setApprovalStatus(ApprovalStatusEnum.APPROVED.getCode());
@@ -223,7 +223,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         boolean isDraft = ApprovalStatusEnum.DRAFT.getCode().equals(cur);
         boolean isRejected = ApprovalStatusEnum.REJECTED.getCode().equals(cur);
         if (!isDraft && !isRejected) {
-            throw new BizException("仅草稿/驳回可作废,当前状态: " + cur);
+            throw new BizException("仅草稿/驳回可作废,当前状态: " + ApprovalStatusEnum.getDesc(cur));
         }
         lg.setApprovalStatus(ApprovalStatusEnum.CANCELLED.getCode());
         // lg_status 保持 10
@@ -238,10 +238,10 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     public boolean expireEarly(String id, String reason) {
         ExportVehicleLetterGuaranteeDo lg = mustGet(id);
         if (!ApprovalStatusEnum.APPROVED.getCode().equals(lg.getApprovalStatus())) {
-            throw new BizException("仅审核通过的保函可手动失效,当前审批状态: " + lg.getApprovalStatus());
+            throw new BizException("仅审核通过的保函可手动失效,当前审批状态: " + ApprovalStatusEnum.getDesc(lg.getApprovalStatus()));
         }
         if (!LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
-            throw new BizException("仅有效保函可手动失效,当前保函状态: " + lg.getLgStatus());
+            throw new BizException("仅有效保函可手动失效,当前保函状态: " + LgStatusEnum.getDesc(lg.getLgStatus()));
         }
         // 先捕获变化前金额(主表随后被 update 改写,直接读 lg 会得到 after)
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
@@ -295,7 +295,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
         if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
-            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + lg.getLgStatus());
+            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + LgStatusEnum.getDesc(lg.getLgStatus()));
         }
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
         BigDecimal beforeOccupied = lg.getOccupiedAmount() == null ? BigDecimal.ZERO : lg.getOccupiedAmount();
@@ -333,7 +333,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
         if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
-            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + lg.getLgStatus());
+            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + LgStatusEnum.getDesc(lg.getLgStatus()));
         }
         BigDecimal beforeOccupied = lg.getOccupiedAmount() == null ? BigDecimal.ZERO : lg.getOccupiedAmount();
         BigDecimal beforeReceivable = lg.getReceivableAmount() == null ? BigDecimal.ZERO : lg.getReceivableAmount();
@@ -360,7 +360,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
         }
         ExportVehicleLetterGuaranteeDo lg = mustGet(lgId);
         if (LgStatusEnum.INACTIVE.getCode().equals(lg.getLgStatus())) {
-            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + lg.getLgStatus());
+            throw new BizException("未生效不可保函可资金操作,当前保函状态: " + LgStatusEnum.getDesc(lg.getLgStatus()));
         }
         BigDecimal beforeAvailable = lg.getAvailableAmount() == null ? BigDecimal.ZERO : lg.getAvailableAmount();
         BigDecimal beforeReceivable = lg.getReceivableAmount() == null ? BigDecimal.ZERO : lg.getReceivableAmount();
@@ -450,10 +450,10 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
 
     private void ensureEffective(ExportVehicleLetterGuaranteeDo lg) {
         if (!ApprovalStatusEnum.APPROVED.getCode().equals(lg.getApprovalStatus())) {
-            throw new BizException("仅审核通过的保函可资金操作,当前审批状态: " + lg.getApprovalStatus());
+            throw new BizException("仅审核通过的保函可资金操作,当前审批状态: " + ApprovalStatusEnum.getDesc(lg.getApprovalStatus()));
         }
         if (!LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
-            throw new BizException("仅有效保函可资金操作,当前保函状态: " + lg.getLgStatus());
+            throw new BizException("仅有效保函可资金操作,当前保函状态: " + LgStatusEnum.getDesc(lg.getLgStatus()));
         }
     }
 

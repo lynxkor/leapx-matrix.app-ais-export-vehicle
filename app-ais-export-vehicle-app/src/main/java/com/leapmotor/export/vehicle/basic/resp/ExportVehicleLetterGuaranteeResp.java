@@ -52,7 +52,7 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     private String bankName;
 
     @Schema(description = "保函金额(人民币CNY)")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal totalAmount;
 
     @Schema(description = "换算订单额度比例 0~1,保留 6 位小数")
@@ -60,15 +60,15 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     private BigDecimal conversionRatio;
 
     @Schema(description = "可用订单金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal availableAmount;
 
     @Schema(description = "占用订单金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal occupiedAmount;
 
     @Schema(description = "应收订单金额")
-    @BigDecimalFormat(pattern = "#.########")
+    @BigDecimalFormat(pattern = "#.##")
     private BigDecimal receivableAmount;
 
     @Schema(description = "生效日期")

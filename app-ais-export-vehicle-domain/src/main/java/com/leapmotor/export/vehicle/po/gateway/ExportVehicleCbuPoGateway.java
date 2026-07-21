@@ -4,6 +4,8 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoQo;
+
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -94,4 +96,16 @@ public interface ExportVehicleCbuPoGateway  {
      * @return 结果
      */
     boolean enableOrDisableExportVehicleCbuPoByIds(LpBaseParam param);
+
+    /**
+     * 更新审批结果同步信息(推红旗审批结果后回写:同步时间/结果/对方返回).
+     * 独立事务,推送失败重试时该记录不被外层回滚带走.
+     *
+     * @param poId       PO主键ID(event bizNo)
+     * @param syncTime   同步时间
+     * @param syncResult 同步结果(成功/失败)
+     * @param returnInfo 客户系统返回信息(红旗返回 JSON)
+     * @return 影响行数
+     */
+    int updateApprovalSyncResult(String poId, LocalDateTime syncTime, String syncResult, String returnInfo);
 }

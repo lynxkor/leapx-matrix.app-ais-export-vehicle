@@ -36,6 +36,7 @@ public interface VehicleCbuSoStructMapper {
             @Mapping(target = "salesMarket", ignore = true),
             @Mapping(target = "modelYear", ignore = true),
             @Mapping(target = "optionalPackage", ignore = true),
+            @Mapping(target = "planOfflineDate", ignore = true),
             @Mapping(target = "scheduleTime", ignore = true),
             @Mapping(target = "barcodePrintTime", ignore = true),
             @Mapping(target = "bodyInTime", ignore = true),

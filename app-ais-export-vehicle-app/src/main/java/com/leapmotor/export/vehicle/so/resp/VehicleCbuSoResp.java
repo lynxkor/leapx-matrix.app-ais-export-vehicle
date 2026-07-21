@@ -62,6 +62,7 @@ public class VehicleCbuSoResp extends LpBaseModel implements Serializable {
     private String externalCustomerCode;
 
     @Schema(description = "订单类型：1 CBU")
+    @DictEnumType(prefix = "PoOrderTypeEnum")
     private Integer orderType;
 
     @Schema(description = "计划版本号")

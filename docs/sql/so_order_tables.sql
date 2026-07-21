@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS `export_vehicle_cbu_so_detail` (
     `sales_market`                VARCHAR(50)      DEFAULT NULL                      COMMENT '销售市场',
     `model_year`                  VARCHAR(10)      DEFAULT NULL                      COMMENT '年款',
     `optional_package`            VARCHAR(100)     DEFAULT NULL                      COMMENT '选装包',
+    `plan_offline_date`           DATE             DEFAULT NULL                      COMMENT '计划总装下线日期，从APS获取',
     `schedule_time`               DATETIME         DEFAULT NULL                      COMMENT '排产时间，从APS获取',
     `barcode_print_time`          DATETIME         DEFAULT NULL                      COMMENT '打印条码时间，从APS获取',
     `body_in_time`                DATETIME         DEFAULT NULL                      COMMENT '焊装上线时间，从APS获取',

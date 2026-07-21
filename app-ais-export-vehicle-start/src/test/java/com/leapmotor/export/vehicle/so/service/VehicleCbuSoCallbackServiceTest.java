@@ -2,7 +2,9 @@ package com.leapmotor.export.vehicle.so.service;
 
 import com.leapmotor.export.vehicle.base.BaseServiceTest;
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
+import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoDetailGateway;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoInterfaceSyncGateway;
+import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDetailDo;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoInterfaceSyncDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoInterfaceSyncQo;
@@ -42,16 +44,32 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
     @Resource
     private VehicleCbuSoInterfaceSyncGateway vehicleCbuSoInterfaceSyncGateway;
 
+    @Resource
+    private VehicleCbuSoDetailGateway vehicleCbuSoDetailGateway;
+
     @Test
     @DisplayName("receiveProductionStatus - APS 状态回传状态机正常流转")
     public void testReceiveProductionStatus_stateTransition() {
         String poNo = "PO-CB-" + UUID.randomUUID().toString().substring(0, 8);
         SoResult.SoItem soItem = createSingleSo(poNo);
         String soNo = soItem.getSoNo();
+        String soId = soItem.getSoId();
 
-        // 状态 1：未下发(1001) -> 排产中(1003)
-        service.receiveProductionStatus(buildStatusReq(soNo, 1, null));
+        // 状态 1：未下发(1001) -> 排产中(1003)，回传计划总装下线日期
+        LocalDate planOfflineDate = LocalDate.now().plusMonths(2);
+        VehicleCbuSoReceiveStatusReq status1Req = buildStatusReq(soNo, 1, null);
+        status1Req.setPlanOfflineDate(planOfflineDate);
+        service.receiveProductionStatus(status1Req);
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.SCHEDULING.getCode());
+
+        // planOfflineDate 应写入车辆明细，且主表 expectedOfflineDate 保持 PO 创建时的值
+        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId);
+        assertNotNull(detail);
+        assertEquals(planOfflineDate, detail.getPlanOfflineDate(),
+                "APS 回传的计划总装下线日期应写入车辆明细");
+        VehicleCbuSoDo soAfterStatus1 = getSoBySoNo(poNo, soNo);
+        assertEquals(LocalDate.now().plusMonths(1), soAfterStatus1.getExpectedOfflineDate(),
+                "主表 expectedOfflineDate 不应被 APS 覆盖");
 
         // 状态 5：排产中(1003) -> 总装下线(1007)
         VehicleCbuSoReceiveStatusReq status5Req = buildStatusReq(soNo, 5, "VIN" + poNo);
@@ -61,6 +79,12 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         VehicleCbuSoDo so = getSoBySoNo(poNo, soNo);
         assertEquals(VehicleCbuSoStatusEnum.ASSEMBLY_OUT.getCode(), so.getOrderStatus());
         assertEquals("VIN" + poNo, so.getVin());
+
+        // 后续状态不回传 planOfflineDate 时，明细值保持状态 1 回传的值
+        VehicleCbuSoDetailDo detailAfterStatus5 = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId);
+        assertNotNull(detailAfterStatus5);
+        assertEquals(planOfflineDate, detailAfterStatus5.getPlanOfflineDate(),
+                "后续状态未回传 planOfflineDate 时，明细值应保持状态 1 回传值");
     }
 
     @Test

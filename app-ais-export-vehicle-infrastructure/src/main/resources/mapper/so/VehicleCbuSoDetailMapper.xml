@@ -22,6 +22,7 @@
         <result column="sales_market" property="salesMarket"/>
         <result column="model_year" property="modelYear"/>
         <result column="optional_package" property="optionalPackage"/>
+        <result column="plan_offline_date" property="planOfflineDate"/>
         <result column="schedule_time" property="scheduleTime"/>
         <result column="barcode_print_time" property="barcodePrintTime"/>
         <result column="body_in_time" property="bodyInTime"/>
@@ -33,7 +34,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, so_no, internal_vehicle_no, production_identify_code, vin, material_code, material_description, sales_market, model_year, optional_package, schedule_time, barcode_print_time, body_in_time, paint_in_time, assembly_in_time, assembly_out_time, remark
+        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, so_no, internal_vehicle_no, production_identify_code, vin, material_code, material_description, sales_market, model_year, optional_package, plan_offline_date, schedule_time, barcode_print_time, body_in_time, paint_in_time, assembly_in_time, assembly_out_time, remark
     </sql>
 
 </mapper>

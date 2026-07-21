@@ -558,9 +558,6 @@ public class VehicleCbuSoCmdExe {
         }
 
         // 向前流转：updateProductionStatus 仅更新状态，节点时间由 overrideNodeTimes 按 APS 请求写入
-        if (req.getPlanOfflineDate() != null) {
-            so.setExpectedOfflineDate(req.getPlanOfflineDate());
-        }
         so.updateProductionStatus(req.getStatus());
         overrideNodeTimes(so, req);
         if (StringUtils.isNotBlank(req.getInternalVehicleNo())) {
@@ -756,6 +753,9 @@ public class VehicleCbuSoCmdExe {
         if (StringUtils.isNotBlank(req.getVin())) {
             detail.setVin(req.getVin());
         }
+        if (req.getPlanOfflineDate() != null) {
+            detail.setPlanOfflineDate(req.getPlanOfflineDate());
+        }
         if (req.getScheduleTime() != null) {
             detail.setScheduleTime(req.getScheduleTime());
         }
@@ -786,8 +786,8 @@ public class VehicleCbuSoCmdExe {
 
         if (detail != null) {
             req.setVin(detail.getVin());
-            if (so.getExpectedOfflineDate() != null) {
-                req.setPlanOfflineDate(so.getExpectedOfflineDate().format(HONGQI_DATE_FORMAT));
+            if (detail.getPlanOfflineDate() != null) {
+                req.setPlanOfflineDate(detail.getPlanOfflineDate().format(HONGQI_DATE_FORMAT));
             }
             if (detail.getAssemblyInTime() != null) {
                 req.setActOnlineTime(detail.getAssemblyInTime().format(HONGQI_DATETIME_FORMAT));

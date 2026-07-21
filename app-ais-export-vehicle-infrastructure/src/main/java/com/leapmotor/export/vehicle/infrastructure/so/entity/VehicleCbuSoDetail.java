@@ -5,11 +5,10 @@ import java.io.Serializable;
 import com.leapmotor.platform.ais.common.mybatis.support.entity.LpBaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -80,6 +79,12 @@ public class VehicleCbuSoDetail extends LpBaseEntity implements Serializable {
      */
     @TableField("optional_package")
     private String optionalPackage;
+
+    /**
+     * 计划总装下线日期，从APS获取
+     */
+    @TableField("plan_offline_date")
+    private LocalDate planOfflineDate;
 
     /**
      * 排产时间，从APS获取

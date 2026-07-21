@@ -243,6 +243,11 @@ public class VehicleCbuSoDo extends LpBaseModel implements Serializable {
     private String optionalPackage;
 
     /**
+     * 计划总装下线日期，从APS获取
+     */
+    private LocalDate planOfflineDate;
+
+    /**
      * 排产时间，从APS获取
      */
     private LocalDateTime scheduleTime;

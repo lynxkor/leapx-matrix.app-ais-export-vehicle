@@ -317,6 +317,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             sd.setProductionRemark(d.getProductionRemark());
             sd.setMaterialCode(d.getMaterialCode());
             sd.setMaterialDescription(d.getMaterialDescription());
+            sd.setSalesMarket(d.getSalesMarket());
+            sd.setModelYear(d.getModelYear());
+            sd.setOptionalPackage(d.getOptionalPackage());
             return sd;
         }).toList());
         return req;

@@ -82,7 +82,9 @@ public class VehicleCbuSoCmdExe {
     private final TransactionTemplate transactionTemplate;
 
     public String addOrUpdateVehicleCbuSo(VehicleCbuSoDo vehicleCbuSoDo) {
-        return vehicleCbuSoDo.getId() == null ? vehicleCbuSoGateway.addVehicleCbuSo(vehicleCbuSoDo) : vehicleCbuSoGateway.updateVehicleCbuSo(vehicleCbuSoDo);
+        return vehicleCbuSoDo.getId() == null
+                ? vehicleCbuSoGateway.addVehicleCbuSo(vehicleCbuSoDo)
+                : vehicleCbuSoGateway.updateVehicleCbuSo(vehicleCbuSoDo);
     }
 
     public boolean deleteVehicleCbuSoByIds(List<String> ids) {
@@ -216,6 +218,9 @@ public class VehicleCbuSoCmdExe {
         VehicleCbuSoDetailDo soDetail = new VehicleCbuSoDetailDo();
         soDetail.setMaterialCode(detailReq.getMaterialCode());
         soDetail.setMaterialDescription(detailReq.getMaterialDescription());
+        soDetail.setSalesMarket(detailReq.getSalesMarket());
+        soDetail.setModelYear(detailReq.getModelYear());
+        soDetail.setOptionalPackage(detailReq.getOptionalPackage());
         soDetail.setStatus(1);
         return soDetail;
     }

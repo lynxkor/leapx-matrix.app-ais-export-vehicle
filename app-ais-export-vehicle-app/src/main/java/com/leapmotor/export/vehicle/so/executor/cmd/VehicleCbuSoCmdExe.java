@@ -939,15 +939,15 @@ public class VehicleCbuSoCmdExe {
                 req.getVin(), 1, String.valueOf(req.getResult()));
         vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(hongqiSync);
 
-        // 质检通过时同步 SAP
-        if (VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum)) {
+        // TODO 质检通过时同步 SAP
+        /*if (VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum)) {
             SapOrderSyncReq sapReq = buildSapOrderSyncReq(so, detail);
             VehicleCbuSoInterfaceSyncDo sapSync = buildInterfaceSyncDo(so, 4, "订单同步SAP",
                     so.getSoNo(), 1, null);
             vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(sapSync);
             eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.SAP,
                     SapEventTypeEnum.SYNC_SAP, so.getSoNo(), sapReq);
-        }
+        }*/
     }
 
     /**
@@ -978,7 +978,10 @@ public class VehicleCbuSoCmdExe {
      */
     @Transactional(rollbackFor = Exception.class)
     public void reissueSap(String soNo) {
-        if (StringUtils.isBlank(soNo)) {
+        // TODO 质检通过时同步 SAP
+        throw new BizException("暂不支持SAP补推");
+
+        /*if (StringUtils.isBlank(soNo)) {
             throw new BizException("SO单号不能为空");
         }
         VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoBySoNo(soNo);
@@ -994,7 +997,7 @@ public class VehicleCbuSoCmdExe {
                 so.getSoNo(), 1, null);
         vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(sapSync);
         eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.SAP,
-                SapEventTypeEnum.SYNC_SAP, so.getSoNo(), sapReq);
+                SapEventTypeEnum.SYNC_SAP, so.getSoNo(), sapReq);*/
     }
 
     // ==================== 回调辅助方法 ====================

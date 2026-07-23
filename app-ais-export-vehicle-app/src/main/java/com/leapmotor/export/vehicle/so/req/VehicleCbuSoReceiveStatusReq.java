@@ -1,5 +1,8 @@
 package com.leapmotor.export.vehicle.so.req;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -31,16 +34,19 @@ public class VehicleCbuSoReceiveStatusReq implements Serializable {
     /**
      * SO 单号
      */
+    @NotBlank(message = "SO单号不能为空")
     private String soNo;
 
     /**
      * APS 外部状态码：1/2/3/4/5
      */
+    @NotNull(message = "状态不能为空")
     private Integer status;
 
     /**
      * 产销识别码，状态 1 时从 APS 获取
      */
+    @NotBlank(message = "产销识别码不能为空")
     private String productionIdentifyCode;
 
     /**
@@ -56,35 +62,42 @@ public class VehicleCbuSoReceiveStatusReq implements Serializable {
     /**
      * 计划总装下线日期，状态 1 时从 APS 获取
      */
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate planOfflineDate;
 
     /**
      * 排产时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime scheduleTime;
 
     /**
      * 打印条码时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime barcodePrintTime;
 
     /**
      * 焊装上线时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime bodyInTime;
 
     /**
      * 涂装上线时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime paintInTime;
 
     /**
      * 总装上线时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime assemblyInTime;
 
     /**
      * 总装下线时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime assemblyOutTime;
 }

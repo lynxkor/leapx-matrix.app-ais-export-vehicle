@@ -424,6 +424,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             if (status != null
                     && (VehicleCbuSoStatusEnum.CANCELLED.getCode().equals(status)
                     || VehicleCbuSoStatusEnum.NOT_ISSUED.getCode().equals(status)
+                    || VehicleCbuSoStatusEnum.ISSUED.getCode().equals(status)
                     || VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(status))) {
                 continue;
             }

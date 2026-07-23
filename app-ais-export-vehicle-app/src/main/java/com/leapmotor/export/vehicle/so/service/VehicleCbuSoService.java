@@ -125,11 +125,12 @@ public interface VehicleCbuSoService {
     VehicleCbuSoDetailAggregateResp detail(String id);
 
     /**
-     * 接收 APS 生产状态回传
+     * 接收 APS 生产状态回传（批量，单次不超过配置上限 aps.receive.batch-size-limit）
      *
-     * @param req APS 状态回传请求
+     * @param reqs APS 状态回传请求列表
+     * @return 批量处理结果（总数/成功/失败/失败明细）
      */
-    void receiveProductionStatus(VehicleCbuSoReceiveStatusReq req);
+    VehicleCbuSoOperateResult receiveProductionStatus(List<VehicleCbuSoReceiveStatusReq> reqs);
 
     /**
      * 接收红旗质检结果回传

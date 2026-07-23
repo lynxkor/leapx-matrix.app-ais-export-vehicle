@@ -1,11 +1,16 @@
 package com.leapmotor.export.vehicle.so.executor.cmd;
 
+import com.leapmotor.export.nexus.company.api.CompanyApi;
+import com.leapmotor.export.nexus.company.request.CompanyRequest;
+import com.leapmotor.export.nexus.company.response.CompanyResponse;
 import com.leapmotor.export.vehicle.acl.rpc.aps.gateway.ApsGateway;
 import com.leapmotor.export.vehicle.acl.rpc.aps.req.ApsCancelReq;
 import com.leapmotor.export.vehicle.acl.rpc.aps.req.ApsIssueReq;
 import com.leapmotor.export.vehicle.acl.rpc.aps.resp.ApsResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotifyReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
+import com.leapmotor.export.vehicle.base.config.ApsReceiveProperties;
+import com.leapmotor.export.vehicle.base.config.SoIssueProperties;
 import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.SapEventTypeEnum;
@@ -18,6 +23,7 @@ import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoInterfaceSyncGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDetailDo;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoInterfaceSyncDo;
+import com.leapmotor.export.vehicle.so.query.VehicleCbuSoDetailQo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
 import com.leapmotor.export.vehicle.so.req.SoUpdatePriceReq;
@@ -29,10 +35,13 @@ import com.leapmotor.export.vehicle.so.resp.SoResult;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoOperateResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
+import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.user.LoginUser;
 import com.leapmotor.paltform.ais.common.util.LoginUserUtils;
-import com.leapmotor.platform.ais.common.redis.annotation.DistributeLock;
+import com.leapmotor.platform.ais.common.redis.BlockLock;
+import com.leapmotor.platform.ais.common.redis.DistributedLockTemplate;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
+import com.leapmotor.platform.ais.common.web.thread.AisRunnable;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -48,7 +57,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -72,6 +88,11 @@ public class VehicleCbuSoCmdExe {
      */
     private static final DateTimeFormatter HONGQI_DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
+    /**
+     * APS 接口日期时间格式：yyyy-MM-dd HH:mm:ss
+     */
+    private static final DateTimeFormatter APS_DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final VehicleCbuSoGateway vehicleCbuSoGateway;
     private final VehicleCbuSoDetailGateway vehicleCbuSoDetailGateway;
     private final ApsGateway apsGateway;
@@ -80,6 +101,12 @@ public class VehicleCbuSoCmdExe {
     @Qualifier("taskExecutor")
     private final TaskExecutor taskExecutor;
     private final TransactionTemplate transactionTemplate;
+    private final ApsReceiveProperties apsReceiveProperties;
+    private final SoIssueProperties soIssueProperties;
+    private final CompanyApi companyApi;
+    private final DistributedLockTemplate distributedLockTemplate;
+    @Qualifier("soIssueExecutor")
+    private final TaskExecutor soIssueExecutor;
 
     public String addOrUpdateVehicleCbuSo(VehicleCbuSoDo vehicleCbuSoDo) {
         return vehicleCbuSoDo.getId() == null
@@ -121,7 +148,9 @@ public class VehicleCbuSoCmdExe {
         List<Pair<VehicleCbuSoDo, VehicleCbuSoDetailDo>> pairs = new ArrayList<>();
         int lineNo = 1;
         for (SoCreateReq.SoDetailReq detailReq : req.getDetails()) {
-            if (detailReq == null || detailReq.getDemandQuantity() == null || detailReq.getDemandQuantity().intValue() <= 0) {
+            if (detailReq == null
+                    || detailReq.getDemandQuantity() == null
+                    || detailReq.getDemandQuantity().intValue() <= 0) {
                 continue;
             }
             int quantity = detailReq.getDemandQuantity().intValue();
@@ -179,7 +208,8 @@ public class VehicleCbuSoCmdExe {
      * 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（同 po_detail_no）
      */
     private String genSoNo() {
-        return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm")) + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
+        return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
+                + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
     }
 
     /**
@@ -200,6 +230,7 @@ public class VehicleCbuSoCmdExe {
         so.setOrderType(req.getOrderType());
         so.setPlanVersion(req.getPlanVersion());
         so.setExpectedOfflineDate(detailReq.getExpectedOfflineDate());
+        so.setReceiveOrderTime(req.getReceiveOrderTime());
         so.setVinYear(detailReq.getVinYear());
         so.setProductionRemark(detailReq.getProductionRemark());
         so.setVehiclePrice(detailReq.getUnitPrice());
@@ -274,26 +305,90 @@ public class VehicleCbuSoCmdExe {
      * @param req 下发请求
      * @return 操作结果（成功数量 + 失败明细）
      */
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "so:issue",
-            value = "#req.id != null ? #req.id : (#req.allFlag ? 'all' : 'batch')",
-            tryLockTimeout = 3000, expireAfter = 60000,
-            failedCode = 600, failedMsg = "下发生产处理中，请稍后重试")
     public VehicleCbuSoOperateResult issueToProduction(VehicleCbuSoIssueReq req) {
         List<VehicleCbuSoDo> soList = resolveIssueTargets(req);
         VehicleCbuSoOperateResult result = new VehicleCbuSoOperateResult();
-        for (VehicleCbuSoDo so : soList) {
-            VehicleCbuSoInterfaceSyncDo syncDo = null;
-            try {
-                syncDo = transactionTemplate.execute(status -> doIssueOne(so));
-                result.setSuccessCount(result.getSuccessCount() + 1);
-            } catch (Exception e) {
-                result.addFail(so.getSoNo(), e.getMessage());
+        if (soList.isEmpty()) {
+            return result;
+        }
+        int batchSize = soIssueProperties.getBatchSize();
+        // 分批并行下发：避免 soIssueExecutor queue 溢出触发 AbortPolicy + detailMap IN 过大
+        for (int i = 0; i < soList.size(); i += batchSize) {
+            List<VehicleCbuSoDo> batch = soList.subList(i, Math.min(i + batchSize, soList.size()));
+            // 预查本批：销售公司名称（按编码去重查主数据）、车辆明细（按 soId 批量）
+            Map<String, String> companyNameMap = batchQuerySalesCompanyNames(batch);
+            Map<String, VehicleCbuSoDetailDo> detailMap = batchQueryDetails(batch);
+            // 内层并行：每条 SO 独立锁 + 独立子事务，AisRunnable 透传 LoginUser/MDC
+            List<CompletableFuture<IssueItemResult>> futures = new ArrayList<>(batch.size());
+            for (VehicleCbuSoDo so : batch) {
+                String salesCompanyName = companyNameMap.get(so.getSalesCompanyCode());
+                VehicleCbuSoDetailDo detail = detailMap.get(so.getId());
+                CompletableFuture<IssueItemResult> future = new CompletableFuture<>();
+                try {
+                    soIssueExecutor.execute(new AisRunnable(() -> {
+                        try {
+                            future.complete(issueOneWithLock(so, salesCompanyName, detail));
+                        } catch (Exception e) {
+                            String reason = e instanceof BizException ? e.getMessage()
+                                    : e.getClass().getSimpleName()
+                                    + (e.getMessage() != null ? ": " + e.getMessage() : "");
+                            future.complete(IssueItemResult.fail(so.getSoNo(), reason));
+                        }
+                    }));
+                } catch (RejectedExecutionException e) {
+                    result.addFail(so.getSoNo(), "线程池满，提交失败");
+                }
+                futures.add(future);
             }
-            if (syncDo != null) {
-                asyncWriteInterfaceSync(syncDo);
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            for (CompletableFuture<IssueItemResult> f : futures) {
+                IssueItemResult r = f.join();
+                switch (r.getStatus()) {
+                    case SUCCESS -> result.setSuccessCount(result.getSuccessCount() + 1);
+                    case SKIP -> result.addSkip(r.getSoNo(), r.getReason());
+                    case FAIL -> result.addFail(r.getSoNo(), r.getReason());
+                    default -> {
+                    }
+                }
             }
         }
+        result.setTotalCount(soList.size());
+        result.setFailCount(result.getFailItems().size());
+        result.setSkipCount(result.getSkipItems().size());
         return result;
+    }
+
+    /**
+     * 单条 SO 下发：SO 维度锁 -> 锁内重读 + 二次校验 -> 事务内 doIssueOne -> 释放锁（晚于事务提交）。
+     */
+    private IssueItemResult issueOneWithLock(VehicleCbuSoDo so, String salesCompanyName,
+                                             VehicleCbuSoDetailDo detail) {
+        BlockLock lock;
+        try {
+            lock = distributedLockTemplate.blockLock("so:issue:" + so.getId(), 60000, 3000);
+        } catch (Exception e) {
+            return IssueItemResult.fail(so.getSoNo(), "获取锁失败:" + e.getMessage());
+        }
+        try {
+            VehicleCbuSoDo latest = vehicleCbuSoGateway.getVehicleCbuSoById(so.getId());
+            if (latest == null) {
+                return IssueItemResult.fail(so.getSoNo(), "SO 不存在");
+            }
+            if (!latest.canIssue()) {
+                return IssueItemResult.skip(so.getSoNo(), "状态非未下发生产，跳过");
+            }
+            VehicleCbuSoInterfaceSyncDo syncDo = transactionTemplate.execute(
+                    status -> doIssueOne(latest, salesCompanyName, detail));
+            asyncWriteInterfaceSync(syncDo);
+            return IssueItemResult.success(so.getSoNo());
+        } catch (Exception e) {
+            String reason = e instanceof BizException ? e.getMessage()
+                    : e.getClass().getSimpleName()
+                    + (e.getMessage() != null ? ": " + e.getMessage() : "");
+            return IssueItemResult.fail(so.getSoNo(), reason);
+        } finally {
+            lock.close();
+        }
     }
 
     /**
@@ -324,7 +419,8 @@ public class VehicleCbuSoCmdExe {
      * 单条下发（事务内执行）：
      * 先更新本地 SO 状态 -> 调 APS 下发排产同步 -> APS 失败抛异常回滚本地更新 -> 返回同步记录对象（由上层异步写入）。
      */
-    private VehicleCbuSoInterfaceSyncDo doIssueOne(VehicleCbuSoDo so) {
+    private VehicleCbuSoInterfaceSyncDo doIssueOne(VehicleCbuSoDo so, String salesCompanyName,
+                                                   VehicleCbuSoDetailDo detail) {
         if (!so.canIssue()) {
             throw new BizException("SO[" + so.getSoNo() + "]状态非未下发生产，不可下发");
         }
@@ -332,18 +428,123 @@ public class VehicleCbuSoCmdExe {
         so.issueToProduction();
         vehicleCbuSoGateway.updateVehicleCbuSo(so);
         // 2. 调用 APS 下发排产同步
-        ApsIssueReq apsReq = new ApsIssueReq();
-        apsReq.setSoId(so.getId());
-        apsReq.setSoNo(so.getSoNo());
-        apsReq.setPoNo(so.getPoNo());
-        ApsResult apsResult = apsGateway.issueSync(apsReq);
+        ApsIssueReq apsReq = buildApsIssueReq(so, salesCompanyName, detail);
+        ApsResult apsResult;
+        try {
+            apsResult = apsGateway.issueSync(apsReq);
+        } catch (Exception e) {
+            log.error("SO下发APS异常 soNo={}", so.getSoNo(), e);
+            asyncWriteInterfaceSync(buildSyncDo(so, 1, "下发排产同步APS", so.getSoNo(),
+                    buildFailApsResult("异常:" + e.getMessage()), null));
+            throw e;
+        }
         // 3. APS 失败 -> 抛异常回滚本地 SO 更新
         if (apsResult == null || apsResult.getCode() != 200) {
+            log.error("SO下发APS失败 soNo={} code={} msg={}", so.getSoNo(),
+                    apsResult == null ? null : apsResult.getCode(),
+                    apsResult == null ? null : apsResult.getMessage());
+            ApsResult recordResult = apsResult != null ? apsResult : buildFailApsResult("null");
+            asyncWriteInterfaceSync(buildSyncDo(so, 1, "下发排产同步APS", so.getSoNo(), recordResult, null));
             throw new BizException("SO[" + so.getSoNo() + "]APS下发同步失败: "
                     + (apsResult == null ? "null" : apsResult.getMessage()));
         }
         // 4. 返回同步记录对象（上层在子事务提交后异步写入，避免写同步记录失败影响主业务）
-        return buildSyncDo(so, 1, "下发排产同步APS", apsReq.getSoNo(), apsResult, null);
+        return buildSyncDo(so, 1, "下发排产同步APS", so.getSoNo(), apsResult, null);
+    }
+
+    /**
+     * 构造失败的 ApsResult，用于 APS 异常/返回 null 场景记录接口同步记录（resultStatus=0，responseInfo 记原因）。
+     */
+    private ApsResult buildFailApsResult(String message) {
+        ApsResult result = new ApsResult();
+        result.setCode(500);
+        result.setMessage(message);
+        return result;
+    }
+
+    /**
+     * 构造 APS 下发请求，字段对齐《海外销售订单接口文档》POST /api/abroad/batchOrder。
+     */
+    private ApsIssueReq buildApsIssueReq(VehicleCbuSoDo so, String salesCompanyName,
+                                         VehicleCbuSoDetailDo detail) {
+        ApsIssueReq req = new ApsIssueReq();
+        req.setVehPoId(so.getPoId());
+        req.setVehPoName(so.getPoNo());
+        req.setVehCbuSoId(so.getId());
+        req.setVehCbuSoName(so.getSoNo());
+        if (so.getReceiveOrderTime() != null) {
+            req.setIssueOn(so.getReceiveOrderTime().format(APS_DATETIME_FORMAT));
+        }
+        req.setSalesCompanyCode(so.getSalesCompanyCode());
+        req.setSalesCompanyName(salesCompanyName);
+        req.setCustomerCode(so.getCustomerCode());
+        req.setCustomerName(so.getCustomerName());
+        req.setOrderType(10);
+        if (so.getExpectedOfflineDate() != null) {
+            req.setExpectProducedOn(so.getExpectedOfflineDate().atStartOfDay().format(APS_DATETIME_FORMAT));
+        }
+        req.setVinYear(so.getVinYear());
+        req.setLineNo(so.getLineNo());
+        req.setOrderCategory(100);
+        req.setVehOrderSource(200);
+        req.setQuantity(1);
+        // 物料取自车辆明细（明细 id = 主表 id，由 issueToProduction 预查传入）
+        if (detail != null) {
+            req.setVehicleMaterialName(detail.getMaterialCode());
+            req.setVehicleMaterialDesc(detail.getMaterialDescription());
+        }
+        return req;
+    }
+
+    /**
+     * 按销售公司编码查主数据获取销售公司名称。
+     */
+    private String querySalesCompanyName(String companyCode) {
+        if (StringUtils.isBlank(companyCode)) {
+            return null;
+        }
+        try {
+            CompanyRequest request = new CompanyRequest();
+            request.setCompanyCode(companyCode);
+            AjaxResult<List<CompanyResponse>> ret = companyApi.list(request);
+            List<CompanyResponse> list = ret != null ? ret.getData() : null;
+            return (list != null && !list.isEmpty()) ? list.get(0).getCompanyName() : null;
+        } catch (Exception e) {
+            log.warn("销售公司主数据查询失败 companyCode={}", companyCode, e);
+            return null;
+        }
+    }
+
+    /**
+     * 批量按销售公司编码去重查主数据，返回 code -> name。
+     */
+    private Map<String, String> batchQuerySalesCompanyNames(List<VehicleCbuSoDo> soList) {
+        Set<String> codes = soList.stream()
+                .map(VehicleCbuSoDo::getSalesCompanyCode)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+        Map<String, String> map = new HashMap<>();
+        for (String code : codes) {
+            map.put(code, querySalesCompanyName(code));
+        }
+        return map;
+    }
+
+    /**
+     * 按 soId 批量查车辆明细，返回 soId -> detail。
+     */
+    private Map<String, VehicleCbuSoDetailDo> batchQueryDetails(List<VehicleCbuSoDo> soList) {
+        List<String> soIds = soList.stream().map(VehicleCbuSoDo::getId).collect(Collectors.toList());
+        if (soIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        VehicleCbuSoDetailQo qo = new VehicleCbuSoDetailQo();
+        qo.setIds(soIds);
+        List<VehicleCbuSoDetailDo> details = vehicleCbuSoDetailGateway.listVehicleCbuSoDetail(qo);
+        if (details == null || details.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return details.stream().collect(Collectors.toMap(VehicleCbuSoDetailDo::getId, d -> d, (a, b) -> a));
     }
 
     // ==================== 作废 ====================
@@ -356,38 +557,67 @@ public class VehicleCbuSoCmdExe {
      * @param req 作废请求（reason 写入同步记录 remark）
      * @return 操作结果（成功数量 + 失败明细）
      */
-    @DistributeLock(nameSpace = "export-vehicle", prefix = "so:cancel",
-            value = "#req.id != null ? #req.id : (#req.poNo != null ? #req.poNo : 'batch')",
-            tryLockTimeout = 3000, expireAfter = 60000,
-            failedCode = 600, failedMsg = "作废处理中，请稍后重试")
     public VehicleCbuSoOperateResult cancel(VehicleCbuSoCancelReq req) {
         List<VehicleCbuSoDo> soList = resolveCancelTargets(req);
         String reason = req.getReason();
         VehicleCbuSoOperateResult result = new VehicleCbuSoOperateResult();
 
-        if (StringUtils.isNotBlank(req.getPoNo())) {
-            // PO 维度：同一 PO 下可作废 SO 一个子事务，含 1003 时调一次 APS
-            processCancelByPo(req.getPoNo(), soList, reason, result);
-        } else {
-            // id/ids 维度：逐条独立子事务
-            for (VehicleCbuSoDo so : soList) {
-                if (so.isCancelled()) {
-                    result.setSuccessCount(result.getSuccessCount() + 1);
-                    continue;
-                }
-                VehicleCbuSoInterfaceSyncDo syncDo = null;
-                try {
-                    syncDo = transactionTemplate.execute(status -> doCancelOne(so, reason));
-                    result.setSuccessCount(result.getSuccessCount() + 1);
-                } catch (Exception e) {
-                    result.addFail(so.getSoNo(), e.getMessage());
-                }
-                if (syncDo != null) {
-                    asyncWriteInterfaceSync(syncDo);
+        // 按 PO 维度加锁（不同 PO 不互斥，同 PO 串行）
+        List<BlockLock> locks = acquireCancelLocks(req, soList);
+        try {
+            if (StringUtils.isNotBlank(req.getPoNo())) {
+                // PO 维度：同一 PO 下可作废 SO 一个子事务，含 1003 时调一次 APS
+                processCancelByPo(req.getPoNo(), soList, reason, result);
+            } else {
+                // id/ids 维度：逐条独立子事务
+                for (VehicleCbuSoDo so : soList) {
+                    if (so.isCancelled()) {
+                        result.setSuccessCount(result.getSuccessCount() + 1);
+                        continue;
+                    }
+                    VehicleCbuSoInterfaceSyncDo syncDo = null;
+                    try {
+                        syncDo = transactionTemplate.execute(status -> doCancelOne(so, reason));
+                        result.setSuccessCount(result.getSuccessCount() + 1);
+                    } catch (Exception e) {
+                        result.addFail(so.getSoNo(), e.getMessage());
+                    }
+                    if (syncDo != null) {
+                        asyncWriteInterfaceSync(syncDo);
+                    }
                 }
             }
+        } finally {
+            locks.forEach(BlockLock::close);
         }
+        result.setTotalCount(soList.size());
+        result.setFailCount(result.getFailItems().size());
         return result;
+    }
+
+    /**
+     * 按 PO 维度获取作废锁：poNo 路径锁单个 PO；id/ids 路径按 soList 的 poNo 去重批量加锁。
+     */
+    private List<BlockLock> acquireCancelLocks(VehicleCbuSoCancelReq req, List<VehicleCbuSoDo> soList) {
+        Set<String> poNos = new LinkedHashSet<>();
+        if (StringUtils.isNotBlank(req.getPoNo())) {
+            poNos.add(req.getPoNo());
+        } else {
+            soList.stream()
+                    .map(VehicleCbuSoDo::getPoNo)
+                    .filter(StringUtils::isNotBlank)
+                    .forEach(poNos::add);
+        }
+        List<BlockLock> locks = new ArrayList<>();
+        for (String poNo : poNos) {
+            try {
+                locks.add(distributedLockTemplate.blockLock("so:cancel:po:" + poNo, 60000, 3000));
+            } catch (Exception e) {
+                locks.forEach(BlockLock::close);
+                throw new BizException("作废获取锁失败，请稍后重试");
+            }
+        }
+        return locks;
     }
 
     /**
@@ -439,7 +669,8 @@ public class VehicleCbuSoCmdExe {
         }
 
         boolean needApsSync = toCancel.stream()
-                .anyMatch(so -> VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(so.getOrderStatus()));
+                .anyMatch(so -> VehicleCbuSoStatusEnum.ISSUED.getCode().equals(so.getOrderStatus())
+                        || VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(so.getOrderStatus()));
 
         try {
             List<VehicleCbuSoInterfaceSyncDo> syncDos = transactionTemplate.execute(status -> {
@@ -447,9 +678,27 @@ public class VehicleCbuSoCmdExe {
                 String requestInfo;
                 if (needApsSync) {
                     ApsCancelReq apsReq = new ApsCancelReq();
-                    apsReq.setPoNo(poNo);
-                    apsResult = apsGateway.cancelSync(apsReq);
+                    apsReq.setVehPoName(poNo);
+                    try {
+                        apsResult = apsGateway.cancelSync(apsReq);
+                    } catch (Exception e) {
+                        log.error("PO作废APS异常 poNo={}", poNo, e);
+                        ApsResult failResult = buildFailApsResult("异常:" + e.getMessage());
+                        for (VehicleCbuSoDo so : toCancel) {
+                            asyncWriteInterfaceSync(
+                                    buildSyncDo(so, 2, "作废同步APS", poNo, failResult, reason));
+                        }
+                        throw e;
+                    }
                     if (apsResult == null || apsResult.getCode() != 200) {
+                        log.error("PO作废APS失败 poNo={} code={} msg={}", poNo,
+                                apsResult == null ? null : apsResult.getCode(),
+                                apsResult == null ? null : apsResult.getMessage());
+                        ApsResult recordResult = apsResult != null ? apsResult : buildFailApsResult("null");
+                        for (VehicleCbuSoDo so : toCancel) {
+                            asyncWriteInterfaceSync(
+                                    buildSyncDo(so, 2, "作废同步APS", poNo, recordResult, reason));
+                        }
                         throw new BizException("PO[" + poNo + "]APS作废同步失败: "
                                 + (apsResult == null ? "null" : apsResult.getMessage()));
                     }
@@ -483,6 +732,7 @@ public class VehicleCbuSoCmdExe {
 
     /**
      * 单条作废（事务内执行）：
+     * <p>
      * 先更新本地 SO 状态 -> 仅排产中(SCHEDULING)调 APS 作废（未下发生产未进入 APS 直接改状态）
      * -> APS 失败抛异常回滚本地更新 -> 返回同步记录对象（由上层异步写入）。
      */
@@ -491,7 +741,8 @@ public class VehicleCbuSoCmdExe {
             throw new BizException("SO[" + so.getSoNo() + "]状态不可作废");
         }
         // 仅排产中已进入 APS，需调 APS 作废；未下发生产直接改状态
-        boolean needApsSync = VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(so.getOrderStatus());
+        boolean needApsSync = VehicleCbuSoStatusEnum.ISSUED.getCode().equals(so.getOrderStatus())
+                || VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(so.getOrderStatus());
         // 1. 先更新本地 SO 状态（事务内未提交）
         so.cancel();
         vehicleCbuSoGateway.updateVehicleCbuSo(so);
@@ -500,15 +751,28 @@ public class VehicleCbuSoCmdExe {
         String requestInfo;
         if (needApsSync) {
             ApsCancelReq apsReq = new ApsCancelReq();
-            apsReq.setPoNo(so.getPoNo());
-            apsReq.setSoNo(so.getSoNo());
-            apsResult = apsGateway.cancelSync(apsReq);
+            apsReq.setVehPoName(so.getPoNo());
+            apsReq.setVehCbuSoName(so.getSoNo());
+            try {
+                apsResult = apsGateway.cancelSync(apsReq);
+            } catch (Exception e) {
+                log.error("SO作废APS异常 soNo={}", so.getSoNo(), e);
+                asyncWriteInterfaceSync(buildSyncDo(so, 2, "作废同步APS", so.getSoNo(),
+                        buildFailApsResult("异常:" + e.getMessage()), reason));
+                throw e;
+            }
             // APS 失败 -> 抛异常回滚本地 SO 更新
             if (apsResult == null || apsResult.getCode() != 200) {
+                log.error("SO作废APS失败 soNo={} code={} msg={}", so.getSoNo(),
+                        apsResult == null ? null : apsResult.getCode(),
+                        apsResult == null ? null : apsResult.getMessage());
+                ApsResult recordResult = apsResult != null ? apsResult : buildFailApsResult("null");
+                asyncWriteInterfaceSync(
+                        buildSyncDo(so, 2, "作废同步APS", so.getSoNo(), recordResult, reason));
                 throw new BizException("SO[" + so.getSoNo() + "]APS作废同步失败: "
                         + (apsResult == null ? "null" : apsResult.getMessage()));
             }
-            requestInfo = apsReq.getSoNo();
+            requestInfo = apsReq.getVehCbuSoName();
         } else {
             // 未下发生产，未进入 APS，无需同步
             apsResult = new ApsResult();
@@ -532,10 +796,40 @@ public class VehicleCbuSoCmdExe {
      *   <li>目标状态 > 当前状态（向前流转）：更新状态、节点时间、车辆信息，写同步记录，按需发事件。</li>
      * </ul>
      *
-     * @param req APS 状态回传请求
+     * @param reqs APS 状态回传请求
      */
-    @Transactional(rollbackFor = Exception.class)
-    public void receiveProductionStatus(VehicleCbuSoReceiveStatusReq req) {
+    public VehicleCbuSoOperateResult receiveProductionStatusBatch(List<VehicleCbuSoReceiveStatusReq> reqs) {
+        VehicleCbuSoOperateResult result = new VehicleCbuSoOperateResult();
+        if (CollectionUtils.isEmpty(reqs)) {
+            return result;
+        }
+        int limit = apsReceiveProperties.getBatchSizeLimit();
+        if (reqs.size() > limit) {
+            throw new BizException("单次最多" + limit + "条，请分批调用");
+        }
+        for (VehicleCbuSoReceiveStatusReq req : reqs) {
+            try {
+                transactionTemplate.execute(status -> {
+                    doReceiveOne(req);
+                    return null;
+                });
+                result.setSuccessCount(result.getSuccessCount() + 1);
+            } catch (Exception e) {
+                String reason = e instanceof BizException ? e.getMessage()
+                        : e.getClass().getSimpleName()
+                        + (e.getMessage() != null ? ": " + e.getMessage() : "");
+                result.addFail(req.getSoNo(), reason);
+            }
+        }
+        result.setTotalCount(reqs.size());
+        result.setFailCount(result.getFailItems().size());
+        return result;
+    }
+
+    /**
+     * 单条 APS 生产状态回传处理（幂等/回退跳过；向前流转更新状态/明细/同步记录/事件）。
+     */
+    private void doReceiveOne(VehicleCbuSoReceiveStatusReq req) {
         if (req == null || StringUtils.isBlank(req.getSoNo()) || req.getStatus() == null) {
             throw new BizException("SO单号与状态码不能为空");
         }
@@ -841,7 +1135,7 @@ public class VehicleCbuSoCmdExe {
         syncDo.setInterfaceType(interfaceType);
         syncDo.setInterfaceDesc(interfaceDesc);
         syncDo.setCallTime(LocalDateTime.now());
-        syncDo.setRequestInfo(requestInfo);
+        syncDo.setRequestInfo(StringUtils.left(requestInfo, 2000));
         syncDo.setResultStatus(resultStatus);
         syncDo.setResponseInfo(null);
         syncDo.setRemark(remark);
@@ -864,14 +1158,14 @@ public class VehicleCbuSoCmdExe {
             syncDo.setModifier(user.getUserId());
             syncDo.setModifierName(user.getUserName());
         }
-        taskExecutor.execute(() -> {
+        taskExecutor.execute(new AisRunnable(() -> {
             try {
                 vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(syncDo);
             } catch (Exception e) {
                 log.error("异步写接口同步记录失败, soId={}, interfaceType={}, interfaceDesc={}",
                         syncDo.getSoId(), syncDo.getInterfaceType(), syncDo.getInterfaceDesc(), e);
             }
-        });
+        }));
     }
 
     /**
@@ -885,9 +1179,10 @@ public class VehicleCbuSoCmdExe {
         syncDo.setInterfaceType(interfaceType);
         syncDo.setInterfaceDesc(interfaceDesc);
         syncDo.setCallTime(LocalDateTime.now());
-        syncDo.setRequestInfo(requestInfo);
+        syncDo.setRequestInfo(StringUtils.left(requestInfo, 2000));
         syncDo.setResultStatus(apsResult != null && apsResult.getCode() == 200 ? 1 : 0);
-        syncDo.setResponseInfo(apsResult == null ? null : apsResult.getMessage());
+        syncDo.setResponseInfo(StringUtils.left(
+                apsResult == null ? null : apsResult.getMessage(), 2000));
         syncDo.setRemark(reason);
         syncDo.setStatus(1);
         return syncDo;

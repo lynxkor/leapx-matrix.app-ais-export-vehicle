@@ -123,8 +123,8 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     }
 
     @Override
-    public void receiveProductionStatus(VehicleCbuSoReceiveStatusReq req) {
-        vehicleCbuSoCmdExe.receiveProductionStatus(req);
+    public VehicleCbuSoOperateResult receiveProductionStatus(List<VehicleCbuSoReceiveStatusReq> reqs) {
+        return vehicleCbuSoCmdExe.receiveProductionStatusBatch(reqs);
     }
 
     @Override

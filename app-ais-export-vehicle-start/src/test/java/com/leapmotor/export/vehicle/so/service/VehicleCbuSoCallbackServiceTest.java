@@ -1,5 +1,7 @@
 package com.leapmotor.export.vehicle.so.service;
 
+import com.leapmotor.export.nexus.company.api.CompanyApi;
+import com.leapmotor.export.vehicle.acl.rpc.aps.gateway.ApsGateway;
 import com.leapmotor.export.vehicle.base.BaseServiceTest;
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoDetailGateway;
@@ -12,10 +14,12 @@ import com.leapmotor.export.vehicle.so.req.SoCreateReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveStatusReq;
 import com.leapmotor.export.vehicle.so.resp.SoResult;
+import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoOperateResult;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -34,12 +38,18 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 2026-07-16
  */
 @DisplayName("CBU SO 外部回调 Service 集成测试")
-@ActiveProfiles({"dev", "test"})
+@ActiveProfiles("dev")
 public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuSoService> {
 
     private static final String TEST_SALES_COMPANY = "1000";
     private static final String TEST_CUSTOMER_CODE = "CUST001";
     private static final String TEST_CUSTOMER_NAME = "测试客户";
+
+    @MockBean
+    private ApsGateway apsGateway;
+
+    @MockBean
+    private CompanyApi companyApi;
 
     @Resource
     private VehicleCbuSoInterfaceSyncGateway vehicleCbuSoInterfaceSyncGateway;
@@ -59,7 +69,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         LocalDate planOfflineDate = LocalDate.now().plusMonths(2);
         VehicleCbuSoReceiveStatusReq status1Req = buildStatusReq(soNo, 1, null);
         status1Req.setPlanOfflineDate(planOfflineDate);
-        service.receiveProductionStatus(status1Req);
+        service.receiveProductionStatus(List.of(status1Req));
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.SCHEDULING.getCode());
 
         // planOfflineDate 应写入车辆明细，且主表 expectedOfflineDate 保持 PO 创建时的值
@@ -75,10 +85,10 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         VehicleCbuSoReceiveStatusReq status5Req = buildStatusReq(soNo, 5, "VIN" + poNo);
         status5Req.setAssemblyInTime(LocalDateTime.now().minusHours(2));
         status5Req.setAssemblyOutTime(LocalDateTime.now());
-        service.receiveProductionStatus(status5Req);
+        service.receiveProductionStatus(List.of(status5Req));
         VehicleCbuSoDo so = getSoBySoNo(poNo, soNo);
         assertEquals(VehicleCbuSoStatusEnum.ASSEMBLY_OUT.getCode(), so.getOrderStatus());
-        assertEquals("VIN" + poNo, so.getVin());
+        assertEquals("VIN" + poNo, vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId).getVin());
 
         // 后续状态不回传 planOfflineDate 时，明细值保持状态 1 回传的值
         VehicleCbuSoDetailDo detailAfterStatus5 = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId);
@@ -99,16 +109,17 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         LocalDateTime firstScheduleTime = LocalDateTime.of(2026, 1, 1, 10, 0, 0);
         VehicleCbuSoReceiveStatusReq firstReq = buildStatusReq(soNo, 1, null);
         firstReq.setScheduleTime(firstScheduleTime);
-        service.receiveProductionStatus(firstReq);
+        service.receiveProductionStatus(List.of(firstReq));
         assertEquals(1, countSyncRecords(soId), "向前流转应写 1 条同步记录");
 
         // 同状态重复回传（时间更晚）：跳过全部处理，同步记录不新增、节点时间不变、状态不变
         VehicleCbuSoReceiveStatusReq dupReq = buildStatusReq(soNo, 1, null);
         dupReq.setScheduleTime(firstScheduleTime.plusHours(1));
-        service.receiveProductionStatus(dupReq);
+        service.receiveProductionStatus(List.of(dupReq));
         assertEquals(1, countSyncRecords(soId), "同状态重复回传不应新增同步记录");
         VehicleCbuSoDo so = getSoBySoNo(poNo, soNo);
-        assertEquals(firstScheduleTime, so.getScheduleTime(), "同状态重复回传不应覆盖节点时间");
+        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(soId);
+        assertEquals(firstScheduleTime, detail.getScheduleTime(), "同状态重复回传不应覆盖节点时间");
         assertEquals(VehicleCbuSoStatusEnum.SCHEDULING.getCode(), so.getOrderStatus());
     }
 
@@ -122,14 +133,77 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         String vin = "VIN" + poNo;
 
         // 推到总装下线
-        service.receiveProductionStatus(buildStatusReq(soNo, 5, vin));
+        service.receiveProductionStatus(List.of(buildStatusReq(soNo, 5, vin)));
         long countAfterForward = countSyncRecords(soId);
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.ASSEMBLY_OUT.getCode());
 
         // 回退到涂装上线（状态 3）：状态不变、同步记录不新增
-        service.receiveProductionStatus(buildStatusReq(soNo, 3, null));
+        service.receiveProductionStatus(List.of(buildStatusReq(soNo, 3, null)));
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.ASSEMBLY_OUT.getCode());
         assertEquals(countAfterForward, countSyncRecords(soId), "状态回退不应新增同步记录");
+    }
+
+    @Test
+    @DisplayName("receiveProductionStatus - 批量回传：单条失败不中断，超 100 拒")
+    public void testReceiveProductionStatus_batch() {
+        String poNo = "PO-CB-" + UUID.randomUUID().toString().substring(0, 8);
+        SoResult.SoItem soItem = createSingleSo(poNo);
+        String soNo = soItem.getSoNo();
+
+        // 批量 2 条：1 条正常(状态1->1003)，1 条无效状态码(失败)
+        VehicleCbuSoReceiveStatusReq okReq = buildStatusReq(soNo, 1, null);
+        VehicleCbuSoReceiveStatusReq badReq = buildStatusReq(soNo, 99, null);
+        VehicleCbuSoOperateResult result = service.receiveProductionStatus(List.of(okReq, badReq));
+
+        assertEquals(2, result.getTotalCount(), "总数应为 2");
+        assertEquals(1, result.getSuccessCount(), "正常 1 条成功");
+        assertEquals(1, result.getFailCount(), "无效状态码 1 条失败");
+        assertEquals(1, result.getFailItems().size());
+        assertEquals(soNo, result.getFailItems().get(0).getSoNo());
+        assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.SCHEDULING.getCode());
+
+        // 超 100 条被拒
+        List<VehicleCbuSoReceiveStatusReq> overLimit = new ArrayList<>();
+        for (int i = 0; i < 101; i++) {
+            overLimit.add(buildStatusReq(soNo, 1, null));
+        }
+        assertThrows(BizException.class, () -> service.receiveProductionStatus(overLimit),
+                "超过批量上限应抛 BizException");
+    }
+
+    @Test
+    @DisplayName("createSo - 落库 receive_order_time = PO 创建时间")
+    public void testCreateSo_receiveOrderTime() {
+        String poNo = "PO-CB-" + UUID.randomUUID().toString().substring(0, 8);
+        LocalDateTime receiveOrderTime = LocalDateTime.of(2026, 7, 1, 9, 30, 0);
+
+        SoCreateReq req = new SoCreateReq();
+        req.setPoNo(poNo);
+        req.setPoId(UUID.randomUUID().toString());
+        req.setSalesCompanyCode(TEST_SALES_COMPANY);
+        req.setCustomerCode(TEST_CUSTOMER_CODE);
+        req.setCustomerName(TEST_CUSTOMER_NAME);
+        req.setOrderType(1);
+        req.setPlanVersion("V1");
+        req.setReceiveOrderTime(receiveOrderTime);
+
+        List<SoCreateReq.SoDetailReq> details = new ArrayList<>();
+        SoCreateReq.SoDetailReq d1 = new SoCreateReq.SoDetailReq();
+        d1.setPoDetailNo("D001");
+        d1.setDemandQuantity(new BigDecimal("1"));
+        d1.setUnitPrice(new BigDecimal("150000.00"));
+        d1.setMaterialCode("MAT001");
+        d1.setMaterialDescription("测试物料1");
+        details.add(d1);
+        req.setDetails(details);
+
+        SoResult result = service.createSo(req);
+        assertNotNull(result);
+        SoResult.SoItem item = result.getData().get(0);
+
+        VehicleCbuSoDo so = getSoBySoNo(poNo, item.getSoNo());
+        assertEquals(receiveOrderTime, so.getReceiveOrderTime(),
+                "SO 落库 receiveOrderTime 应等于传入的 PO 创建时间");
     }
 
     @Test
@@ -141,7 +215,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         String vin = "VIN" + poNo;
 
         // 先推到总装下线，使 QC 合法
-        service.receiveProductionStatus(buildStatusReq(soNo, 5, vin));
+        service.receiveProductionStatus(List.of(buildStatusReq(soNo, 5, vin)));
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.ASSEMBLY_OUT.getCode());
 
         // N -> 1009
@@ -171,7 +245,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         String soNo = soItem.getSoNo();
         String vin = "VIN" + poNo;
 
-        service.receiveProductionStatus(buildStatusReq(soNo, 5, vin));
+        service.receiveProductionStatus(List.of(buildStatusReq(soNo, 5, vin)));
         service.receiveQcResult(buildQcReq(vin, 10, "通过"));
         assertOrderStatus(poNo, soNo, VehicleCbuSoStatusEnum.QC_PASSED.getCode());
 
@@ -194,7 +268,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
 
         // 推到 1008 后补推应成功（事件异步发布，不抛异常即视为成功）
         String vin = "VIN" + poNo;
-        service.receiveProductionStatus(buildStatusReq(soNo, 5, vin));
+        service.receiveProductionStatus(List.of(buildStatusReq(soNo, 5, vin)));
         service.receiveQcResult(buildQcReq(vin, 10, "通过"));
         assertDoesNotThrow(() -> service.reissueSap(soNo));
     }
@@ -202,6 +276,7 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
     private SoResult.SoItem createSingleSo(String poNo) {
         SoCreateReq req = new SoCreateReq();
         req.setPoNo(poNo);
+        req.setPoId(UUID.randomUUID().toString());
         req.setSalesCompanyCode(TEST_SALES_COMPANY);
         req.setCustomerCode(TEST_CUSTOMER_CODE);
         req.setCustomerName(TEST_CUSTOMER_NAME);

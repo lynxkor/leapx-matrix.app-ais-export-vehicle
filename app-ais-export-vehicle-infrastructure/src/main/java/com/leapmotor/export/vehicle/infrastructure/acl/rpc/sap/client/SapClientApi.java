@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @since 2026-07-16
  */
 @Component
-@FeignClient(name = "app-ais-xuanniao", contextId = "SapClientApi", path = "/external/sap")
+@FeignClient(name = "app-ais-xuanniao", contextId = "SapClientApi", path = "/external/mdmapi")
 public interface SapClientApi {
 
     /**
      * SO 订单同步 SAP
      */
-    @PostMapping("/orderSync")
+    @PostMapping("/rest/sap/v4/orderSync")
     SapResult orderSync(@RequestBody SapOrderSyncReq req);
 }

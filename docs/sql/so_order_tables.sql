@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS `export_vehicle_cbu_so` (
     `order_type`                  TINYINT          DEFAULT NULL                      COMMENT '订单类型 字典: export_vehicle_cbu_po_order_type',
     `plan_version`                VARCHAR(50)      DEFAULT NULL                      COMMENT '计划版本号',
     `expected_offline_date`       DATE             DEFAULT NULL                      COMMENT '期望下线日期',
+    `receive_order_time`          DATETIME         DEFAULT NULL                      COMMENT '接收订单时间，取 PO 创建时间，用于 APS 同步',
     `vin_year`                    VARCHAR(10)      DEFAULT NULL                      COMMENT 'VIN码年份',
     `production_remark`           VARCHAR(1000)    DEFAULT NULL                      COMMENT '生产备注',
     `vehicle_price`               DECIMAL(18,4)    DEFAULT NULL                      COMMENT '车辆价格，取自PO单',

@@ -107,6 +107,12 @@ public class VehicleCbuSo extends LpBaseEntity implements Serializable {
     private LocalDate expectedOfflineDate;
 
     /**
+     * 接收订单时间，取 PO 创建时间，用于 APS 同步
+     */
+    @TableField("receive_order_time")
+    private LocalDateTime receiveOrderTime;
+
+    /**
      * VIN码年份
      */
     @TableField("vin_year")

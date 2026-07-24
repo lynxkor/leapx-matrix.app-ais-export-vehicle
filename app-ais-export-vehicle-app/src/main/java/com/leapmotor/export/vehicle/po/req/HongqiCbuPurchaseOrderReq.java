@@ -1,11 +1,6 @@
 package com.leapmotor.export.vehicle.po.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -18,6 +13,9 @@ import java.util.List;
  *   <li>客户编码：HQ01=红旗股份 / HQ02=红旗进出口公司</li>
  * </ul>
  *
+ * <p>字段校验由 {@link com.leapmotor.export.vehicle.po.validator.HongqiCbuPurchaseOrderValidator}
+ * 统一手写收集，不再依赖 jakarta validation 注解。
+ *
  * @author leapmotor
  * @since 2026-07-08
  */
@@ -26,26 +24,14 @@ import java.util.List;
 public class HongqiCbuPurchaseOrderReq {
 
     @Schema(description = "PO单号，规则 HQ+YYYYMMDD+6位流水号，全局唯一", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "PO单号不能为空")
-    @Size(max = 30, message = "PO单号长度不能超过30")
-    @Pattern(regexp = "^HQ\\d{8}\\d{6}$", message = "PO单号格式错误，规则 HQ+YYYYMMDD+6位流水号")
     private String poNo;
 
     @Schema(description = "客户编码：HQ01=红旗股份 / HQ02=红旗进出口公司", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "客户编码不能为空")
-    @Size(max = 30)
-    @Pattern(regexp = "^HQ0[12]$", message = "客户编码仅支持 HQ01(红旗股份) 或 HQ02(红旗进出口公司)")
     private String customerCode;
 
     @Schema(description = "计划版本号，例 20260305V1", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "计划版本号不能为空")
-    @Size(max = 30)
-    @Pattern(regexp = "^\\d{8}V\\d+$", message = "计划版本号格式错误，例 20260305V1")
     private String planVersion;
 
     @Schema(description = "订单明细列表")
-    @NotEmpty(message = "订单明细不能为空")
-    @Size(max = 200, message = "单次订单明细不能超过200条")
-    @Valid
     private List<HongqiCbuOrderDetailReq> orderDetailList;
 }

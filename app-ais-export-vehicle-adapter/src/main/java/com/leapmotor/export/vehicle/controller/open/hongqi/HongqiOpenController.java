@@ -7,7 +7,6 @@ import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,7 +35,7 @@ public class HongqiOpenController {
      */
     @Operation(summary = "红旗CBU订单采购申请-创建草稿订单")
     @PostMapping("/purchaseOrder/sync")
-    public AjaxResult<String> createFromHongqi(@RequestBody @Valid HongqiCbuPurchaseOrderReq req) {
+    public AjaxResult<String> createFromHongqi(@RequestBody HongqiCbuPurchaseOrderReq req) {
         return AjaxResult.success(purchaseOrderService.createFromHongqi(req));
     }
 

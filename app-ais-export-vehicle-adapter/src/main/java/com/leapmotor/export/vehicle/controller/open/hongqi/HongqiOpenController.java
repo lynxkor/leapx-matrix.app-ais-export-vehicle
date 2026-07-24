@@ -7,6 +7,7 @@ import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

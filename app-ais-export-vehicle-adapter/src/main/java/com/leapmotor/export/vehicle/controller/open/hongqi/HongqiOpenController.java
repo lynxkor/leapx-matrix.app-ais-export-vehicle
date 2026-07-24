@@ -44,7 +44,7 @@ public class HongqiOpenController {
      */
     @Operation(summary = "接收红旗质检结果回传")
     @PostMapping("/vehicleCbuSo/receiveQcResult")
-    public AjaxResult<Void> receiveQcResult(@RequestBody VehicleCbuSoReceiveQcReq req) {
+    public AjaxResult<Void> receiveQcResult(@RequestBody @Valid VehicleCbuSoReceiveQcReq req) {
         vehicleCbuSoService.receiveQcResult(req);
         return AjaxResult.success();
     }

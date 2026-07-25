@@ -32,6 +32,7 @@ INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`
 VALUES ('letter_guarantee_lg_type', 'PREPAYMENT', '预付款保函', 1, NULL, 'system', CURRENT_TIMESTAMP);
 
 -- ---------- 订单类型 letter_guarantee_order_type ----------
+-- 当前仅启用 CBU(G117 红旗项目),其它类型预留扩展位,业务侧不展示。
 INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`, `creator`, `creator_name`, `create_time`)
 VALUES ('letter_guarantee_order_type', 'CBU', 'CBU', 1, NULL, 'system', CURRENT_TIMESTAMP);
 

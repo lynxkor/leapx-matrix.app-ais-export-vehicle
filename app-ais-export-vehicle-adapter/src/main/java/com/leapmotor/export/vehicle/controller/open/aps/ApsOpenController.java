@@ -6,7 +6,6 @@ import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,7 +36,7 @@ public class ApsOpenController {
     @Operation(summary = "接收APS生产状态回传")
     @PostMapping("/vehicleCbuSo/receiveProductionStatus")
     public AjaxResult<VehicleCbuSoOperateResult> receiveProductionStatus(
-            @RequestBody @Valid List<VehicleCbuSoReceiveStatusReq> reqs) {
+            @RequestBody List<VehicleCbuSoReceiveStatusReq> reqs) {
         return AjaxResult.success(vehicleCbuSoService.receiveProductionStatus(reqs));
     }
 }

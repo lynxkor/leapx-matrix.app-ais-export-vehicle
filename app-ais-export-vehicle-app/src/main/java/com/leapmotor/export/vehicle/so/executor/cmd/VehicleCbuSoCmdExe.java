@@ -877,12 +877,8 @@ public class VehicleCbuSoCmdExe {
             vehicleCbuSoDetailGateway.updateVehicleCbuSoDetail(detail);
         }
 
-        // 写客户系统同步记录（类型 3）
-        VehicleCbuSoInterfaceSyncDo syncDo = buildInterfaceSyncDo(so, 3, "车辆生产信息同步红旗",
-                req.getSoNo(), 1, "状态" + req.getStatus());
-        vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(syncDo);
-
         // 发布红旗生产信息同步事件（仅 1003/1006/1007 触发）
+        // 客户系统同步记录（类型3）由事件 handler 在红旗返回后写入（成功/失败按 isSign）
         if (isHongqiSyncNode(targetStatus)) {
             HongqiProductionNodeNotifyReq notifyReq = buildHongqiProductionNodeNotifyReq(so, detail, targetStatus);
             eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI,

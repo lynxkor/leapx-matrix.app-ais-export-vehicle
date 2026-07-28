@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.po.gateway.ExportVehicleCbuPoGateway;
@@ -44,12 +45,13 @@ public class CbuApprovalResultToHongqi extends AbstractEventHandler {
         log.info("红旗CBU审批结果推送-开始, bizNo={}", task.getBizNo());
         CbuApprovalResultReq req = JSON.parseObject(task.getDataParam(), CbuApprovalResultReq.class);
         String poId = task.getBizNo();
-        HongqiResult result;
+        HongqiResult<HongqiResultData> result;
         try {
             result = hongqiGateway.pushCbuApprovalResult(req);
         } catch (Exception e) {
             // 推送本身异常(网络/超时),先回写失败再抛异常走框架重试
-            purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), "失败", "推送异常:" + e.getMessage());
+            purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), "失败",
+                    "推送异常:" + e.getMessage());
             throw new BizException("红旗CBU审批结果推送异常: " + e.getMessage());
         }
         log.info("红旗CBU审批结果推送结果: {}", result);

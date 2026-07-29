@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoParam;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReissueSapReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoDetailAggregateResp;
@@ -92,9 +93,8 @@ public class VehicleCbuSoController {
     @ResourcePermission(value = "web:so:vehicleCbuSo:reissueSap", desc = "CBU整车销售订单SAP手动补推")
     @RepeatSubmit
     @PostMapping("/reissueSap")
-    public AjaxResult<Void> reissueSap(@RequestBody String soNo) {
-        vehicleCbuSoService.reissueSap(soNo);
-        return AjaxResult.success();
+    public AjaxResult<VehicleCbuSoOperateResult> reissueSap(@RequestBody @Validated VehicleCbuSoReissueSapReq req) {
+        return AjaxResult.success(vehicleCbuSoService.reissueSap(req));
     }
 
     @Operation(summary = "CBU整车销售订单主表新增/编辑")
@@ -115,7 +115,8 @@ public class VehicleCbuSoController {
 
 
     @Operation(summary = "CBU整车销售订单主表启用/禁用")
-    @ResourcePermission(value = "web:so:vehicleCbuSo:enableOrDisable", desc = "CBU整车销售订单主表启用/禁用")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:enableOrDisable",
+            desc = "CBU整车销售订单主表启用/禁用")
     @PostMapping("/enableOrDisable")
     public AjaxResult<Void> enableOrDisable(@RequestBody LpBaseParam param) {
         if (CollectionUtils.isEmpty(param.getIdSet())) {

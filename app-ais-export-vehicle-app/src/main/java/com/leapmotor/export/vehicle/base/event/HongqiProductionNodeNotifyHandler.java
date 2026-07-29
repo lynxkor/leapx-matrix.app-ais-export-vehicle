@@ -8,6 +8,7 @@ import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNode
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
+import com.leapmotor.export.vehicle.so.enums.InterfaceSyncTypeEnum;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoInterfaceSyncGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
@@ -80,7 +81,7 @@ public class HongqiProductionNodeNotifyHandler extends AbstractEventHandler {
             VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoBySoNo(data.getSoNo());
             VehicleCbuSoInterfaceSyncDo syncDo = new VehicleCbuSoInterfaceSyncDo();
             syncDo.setSoId(so != null ? so.getId() : null);
-            syncDo.setInterfaceType(3);
+            syncDo.setInterfaceType(InterfaceSyncTypeEnum.CUSTOMER_HONGQI_SYNC.getCode());
             syncDo.setInterfaceDesc("车辆生产信息同步红旗");
             syncDo.setCallTime(LocalDateTime.now());
             syncDo.setRequestInfo(StringUtils.left(data.getSoNo(), 2000));

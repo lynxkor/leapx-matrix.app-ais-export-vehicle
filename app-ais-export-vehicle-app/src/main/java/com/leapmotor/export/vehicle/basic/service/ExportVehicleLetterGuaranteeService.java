@@ -4,6 +4,7 @@ package com.leapmotor.export.vehicle.basic.service;
 import com.leapmotor.export.vehicle.basic.req.*;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeTransferItem;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeBatchStateMachineResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeResp;
@@ -31,17 +32,20 @@ public interface ExportVehicleLetterGuaranteeService {
     /**
      * 列表
      */
-    List<ExportVehicleLetterGuaranteeResp> listExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam exportVehicleLetterGuaranteeParam);
+    List<ExportVehicleLetterGuaranteeResp> listExportVehicleLetterGuarantee(
+            ExportVehicleLetterGuaranteeParam exportVehicleLetterGuaranteeParam);
 
     /**
      * 分页
      */
-    PageResult<ExportVehicleLetterGuaranteeResp> pageExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeParam exportVehicleLetterGuaranteeParam);
+    PageResult<ExportVehicleLetterGuaranteeResp> pageExportVehicleLetterGuarantee(
+            ExportVehicleLetterGuaranteeParam exportVehicleLetterGuaranteeParam);
 
     /**
      * 新增/编辑
      */
-    String addOrUpdateExportVehicleLetterGuarantee(ExportVehicleLetterGuaranteeAddOrUpdateReq exportVehicleLetterGuaranteeAddOrUpdateReq);
+    String addOrUpdateExportVehicleLetterGuarantee(
+            ExportVehicleLetterGuaranteeAddOrUpdateReq exportVehicleLetterGuaranteeAddOrUpdateReq);
 
     /**
      * 删除
@@ -110,7 +114,8 @@ public interface ExportVehicleLetterGuaranteeService {
     /**
      * 转应收(质检通过)
      */
-    boolean transferToReceivable(ExportVehicleLetterGuaranteeTransferReq req);
+    List<ExportVehicleLetterGuaranteeTransferItem> transferToReceivable(
+            ExportVehicleLetterGuaranteeTransferReq req);
 
     /**
      * 应收释放(SAP 清账)

@@ -25,7 +25,7 @@ public interface HongqiClientApi {
     /**
      * 推送 CBU 审批结果到红旗
      */
-    @PostMapping("/cbu/approval/result")
+    @PostMapping("/JT/MA/MA-0203/VDO/IVDO/receiveRevApproval")
     HongqiResult<HongqiResultData> pushCbuApprovalResult(@RequestBody CbuApprovalResultReq request);
 
     /**

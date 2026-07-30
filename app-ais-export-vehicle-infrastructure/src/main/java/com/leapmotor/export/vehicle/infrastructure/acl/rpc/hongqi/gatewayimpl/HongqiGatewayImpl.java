@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.acl.rpc.hongqi.gatewayimpl;
 
+import com.alibaba.fastjson.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotifyReq;
@@ -30,9 +31,9 @@ public class HongqiGatewayImpl implements HongqiGateway {
     @Override
     public HongqiResult<HongqiResultData> pushCbuApprovalResult(CbuApprovalResultReq req) {
         try {
-            log.info("红旗CBU审批结果推送, request:{}", req);
+            log.info("红旗CBU审批结果推送-请求: {}", JSON.toJSONString(req));
             HongqiResult<HongqiResultData> result = hongqiClientApi.pushCbuApprovalResult(req);
-            log.info("红旗CBU审批结果推送, request:{}, response:{}", req, result);
+            log.info("红旗CBU审批结果推送-返回: {}", JSON.toJSONString(result));
             return result;
         } catch (BizException e) {
             throw e;
@@ -46,9 +47,9 @@ public class HongqiGatewayImpl implements HongqiGateway {
     public HongqiResult<List<HongqiProductionNodeResultData>> pushProductionNodeSync(
             List<HongqiProductionNodeNotifyReq> req) {
         try {
-            log.info("红旗车辆生产信息同步, request:{}", req);
+            log.info("红旗车辆生产信息同步-请求: {}", JSON.toJSONString(req));
             HongqiResult<List<HongqiProductionNodeResultData>> result = hongqiClientApi.pushProductionNodeSync(req);
-            log.info("红旗车辆生产信息同步, request:{}, response:{}", req, result);
+            log.info("红旗车辆生产信息同步-返回: {}", JSON.toJSONString(result));
             return result;
         } catch (BizException e) {
             throw e;

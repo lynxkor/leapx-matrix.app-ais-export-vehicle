@@ -60,7 +60,7 @@ CREATE TABLE `export_vehicle_cbu_po_detail` (
     `optional_package`      VARCHAR(100)    DEFAULT NULL                    COMMENT '选装包,关联整编主数据',
     `demand_quantity`       DECIMAL(20,2)   NOT NULL                        COMMENT '需求数量,取自红旗CBU接口',
     `expected_offline_date` DATE            NOT NULL                        COMMENT '期望下线日期,取自红旗CBU接口',
-    `vin_year`              VARCHAR(10)     NOT NULL                        COMMENT 'VIN码年份,取自红旗CBU接口',
+    `vin_year`              VARCHAR(10)     DEFAULT NULL                        COMMENT 'VIN码年份,取自红旗CBU接口',
     `production_remark`     VARCHAR(1000)   DEFAULT NULL                    COMMENT '生产备注,可编辑,非必填,最多1000字',
     `unit_price`            DECIMAL(20,2)   DEFAULT NULL                    COMMENT '单价,按 物料编码+创建时间+订单类型 匹配价格主数据(取最后审核通过价);提交时必填',
     `total_amount`          DECIMAL(20,2)   DEFAULT NULL                    COMMENT '金额合计,= 单价 × 需求数量',

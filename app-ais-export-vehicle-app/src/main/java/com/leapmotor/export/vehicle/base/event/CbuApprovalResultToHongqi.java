@@ -19,8 +19,8 @@ import java.time.LocalDateTime;
 
 /**
  * CBU 审批结果推送红旗（单事件执行器）：
- * 反序列化 dataParam → 调 HongqiGateway → success=false 或 data.receiveflag!=Y 抛异常触发框架重试。
- * 推送结果(同步时间/成功失败/红旗返回)回写 PO 主表 audit_result_sync_* + customer_system_return_info。
+ * 核心推送+回写逻辑在 {@link #pushAndWriteBack(String, CbuApprovalResultReq)}，
+ * 事件机制 {@link #handle} 和直接调用方共用同一入口，避免代码重复。
  */
 @AllArgsConstructor
 @Slf4j
@@ -40,29 +40,40 @@ public class CbuApprovalResultToHongqi extends AbstractEventHandler {
         return ThirdTargetPlatformEnum.HONGQI;
     }
 
-    @Override
-    protected void handle(EventNotifyTask task) {
-        log.info("红旗CBU审批结果推送-开始, bizNo={}", task.getBizNo());
-        CbuApprovalResultReq req = JSON.parseObject(task.getDataParam(), CbuApprovalResultReq.class);
-        String poId = task.getBizNo();
+    /**
+     * 推送 CBU 审批结果到红旗并回写 PO 同步结果。
+     * 推送成功/失败/异常均不回滚主流程，仅回写 PO + 返回 ok 标识。
+     *
+     * @param poId PO 订单 ID
+     * @param req  推送请求体
+     * @return true 推送成功（receiveflag=Y），false 推送失败或异常
+     */
+    public boolean pushAndWriteBack(String poId, CbuApprovalResultReq req) {
         HongqiResult<HongqiResultData> result;
         try {
             result = hongqiGateway.pushCbuApprovalResult(req);
         } catch (Exception e) {
-            // 推送本身异常(网络/超时),先回写失败再抛异常走框架重试
-            purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), "失败",
-                    "推送异常:" + e.getMessage());
-            throw new BizException("红旗CBU审批结果推送异常: " + e.getMessage());
+            log.error("红旗CBU审批结果推送异常, poId: {}", poId, e);
+            purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), "失败", "推送异常:" + e.getMessage());
+            return false;
         }
-        log.info("红旗CBU审批结果推送结果: {}", result);
-        // 成功需 success=true 且 data.receiveflag=Y（code=200 但 receiveflag=N 表示红旗业务层拒绝）
         boolean ok = result != null && result.isSuccess()
                 && result.getData() != null && "Y".equals(result.getData().getReceiveFlag());
         String returnInfo = JSON.toJSONString(result);
-        // 回写 PO 同步信息(独立事务,重试不被外层回滚带走;每次推送覆盖,以最后一次为准)
         purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), ok ? "成功" : "失败", returnInfo);
         if (!ok) {
-            throw new BizException("红旗CBU审批结果推送失败: " + returnInfo);
+            log.error("红旗CBU审批结果推送失败, poId: {}, returnInfo: {}", poId, returnInfo);
+        }
+        return ok;
+    }
+
+    @Override
+    protected void handle(EventNotifyTask task) {
+        log.info("红旗CBU审批结果推送-开始, bizNo={}", task.getBizNo());
+        CbuApprovalResultReq req = JSON.parseObject(task.getDataParam(), CbuApprovalResultReq.class);
+        boolean ok = pushAndWriteBack(task.getBizNo(), req);
+        if (!ok) {
+            throw new BizException("红旗CBU审批结果推送失败, bizNo=" + task.getBizNo());
         }
     }
 

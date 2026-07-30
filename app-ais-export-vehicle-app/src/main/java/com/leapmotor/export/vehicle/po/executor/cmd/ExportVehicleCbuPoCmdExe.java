@@ -116,7 +116,7 @@ public class ExportVehicleCbuPoCmdExe {
             order.setCustomerName(customer.getCustomerName());
         }
         order.setDataSource(DataSourceEnum.HONGQI.getCode());
-        order.setSalesCompanyCode("1000");
+        // 销售公司留空，由草稿编辑保存时从下拉选填写
         order.setOrderType(PoOrderTypeEnum.CBU.getCode());
         order.setPlanVersion(req.getPlanVersion());
 

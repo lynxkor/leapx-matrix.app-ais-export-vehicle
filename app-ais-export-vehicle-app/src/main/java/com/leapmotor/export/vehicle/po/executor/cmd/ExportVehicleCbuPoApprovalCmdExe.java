@@ -7,9 +7,7 @@ import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfree
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
-import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
-import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
-import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
+import com.leapmotor.export.vehicle.base.event.CbuApprovalResultToHongqi;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
@@ -103,9 +101,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
      */
     private ExportVehicleLetterGuaranteeService letterGuaranteeService;
     /**
-     * 事件发布（推红旗，T03 事件机制）
+     * 红旗 CBU 审批结果推送（共用 CbuApprovalResultToHongqi 的 pushAndWriteBack，避免重复逻辑）
      */
-    private EventHandlerHelper eventHandlerHelper;
+    private CbuApprovalResultToHongqi cbuApprovalResultToHongqi;
     /**
      * 用于批量操作中 self 代理调用（保证 @Transactional 生效）
      */
@@ -259,9 +257,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("R");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 供需审核通过（生成 SO 单） ====================
@@ -369,9 +367,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("R");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 产销平衡审核通过（终态 + 推红旗） ====================
@@ -398,8 +396,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("A");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） ====================
@@ -471,9 +469,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("R");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 刷新订单价格（联动保函 / SO） ====================

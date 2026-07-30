@@ -112,7 +112,6 @@ public class ExportVehicleCbuPoGatewayImpl implements ExportVehicleCbuPoGateway 
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int updateApprovalSyncResult(String poId, LocalDateTime syncTime, String syncResult, String returnInfo) {
         return purchaseOrderMapper.update(null,
                 new LambdaUpdateWrapper<ExportVehicleCbuPo>()

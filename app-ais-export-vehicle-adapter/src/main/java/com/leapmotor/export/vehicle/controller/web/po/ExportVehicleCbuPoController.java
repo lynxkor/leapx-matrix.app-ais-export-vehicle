@@ -210,4 +210,18 @@ public class ExportVehicleCbuPoController {
     public AjaxResult<ExportVehicleCbuPoBatchResp> batchBalanceReject(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
         return AjaxResult.success(purchaseOrderService.batchBalanceReject(req));
     }
+
+    @Operation(summary = "单条补推红旗审批结果")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:resend",desc="单条补推红旗审批结果")
+    @PostMapping("/resend")
+    public AjaxResult<Boolean> resend(@RequestBody String poId) {
+        return AjaxResult.success(purchaseOrderService.resend(poId));
+    }
+
+    @Operation(summary = "批量补推红旗审批结果")
+    @ResourcePermission(value="web:po:exportVehicleCbuPo:batchResend",desc="批量补推红旗审批结果")
+    @PostMapping("/batchResend")
+    public AjaxResult<ExportVehicleCbuPoBatchResp> batchResend(@RequestBody @Validated ExportVehicleCbuPoBatchReq req) {
+        return AjaxResult.success(purchaseOrderService.batchResend(req));
+    }
 }

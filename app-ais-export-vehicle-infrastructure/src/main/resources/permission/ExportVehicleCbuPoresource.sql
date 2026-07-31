@@ -41,7 +41,9 @@ VALUES
 ('PO订单批量供需通过', 'AISEV-exportVehicleCbuPo-batchSupplyApprove', 'AISEV-exportVehicleCbuPo-batchSupplyApprove', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:batchSupplyApprove'),
 ('PO订单批量供需驳回', 'AISEV-exportVehicleCbuPo-batchSupplyReject', 'AISEV-exportVehicleCbuPo-batchSupplyReject', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:batchSupplyReject'),
 ('PO订单批量产销通过', 'AISEV-exportVehicleCbuPo-batchBalanceApprove', 'AISEV-exportVehicleCbuPo-batchBalanceApprove', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:batchBalanceApprove'),
-('PO订单批量产销驳回', 'AISEV-exportVehicleCbuPo-batchBalanceReject', 'AISEV-exportVehicleCbuPo-batchBalanceReject', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:batchBalanceReject');
+('PO订单批量产销驳回', 'AISEV-exportVehicleCbuPo-batchBalanceReject', 'AISEV-exportVehicleCbuPo-batchBalanceReject', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:batchBalanceReject'),
+('PO订单单条补推', 'AISEV-exportVehicleCbuPo-resend', 'AISEV-exportVehicleCbuPo-resend', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:resend'),
+('PO订单批量补推', 'AISEV-exportVehicleCbuPo-batchResend', 'AISEV-exportVehicleCbuPo-batchResend', '0', '1', '2', '0', @newPath, @pid, 5, 'web:po:exportVehicleCbuPo:batchResend');
 
 
 select * from app_portal_sit.resource_info where resourceTag like 'AISEV-exportVehicleCbuPo%';

@@ -169,7 +169,7 @@ public class ExportVehicleCbuPoCmdExe {
         // 价格批量匹配：用物料匹配到的 code 一次 batchMatch
         Map<String, BigDecimal> priceMap = queryLatestApprovedPrices(
                 new ArrayList<>(materialMap.values().stream().map(VehicleMaterialDto::getCode).collect(Collectors.toSet())),
-                1, orderCreateTime);
+                PoOrderTypeEnum.CBU.getCode(), orderCreateTime);
         List<ExportVehicleCbuPoDetailDo> list = new ArrayList<>();
         for (HongqiCbuOrderDetailReq d : req.getOrderDetailList()) {
             ExportVehicleCbuPoDetailDo detail = new ExportVehicleCbuPoDetailDo();

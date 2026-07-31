@@ -67,6 +67,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -124,23 +125,21 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             throw new BizException("PO订单不存在");
         }
         if (!ExportVehicleCbuPoStatusEnum.DRAFT.getCode().equals(order.getOrderStatus())) {
-            throw new BizException("仅草稿态订单可提交");
+            throw new BizException("订单状态不是草稿，无法提交");
         }
 
-        // ===== 步骤1 检查订单数据 + 兜底匹配 =====
+        // ===== 步骤1 检查订单数据 + 兜底匹配（一次性收集所有错误） =====
+        List<String> errors = new ArrayList<>();
         if (StringUtils.isBlank(order.getSalesCompanyCode())) {
-            throw new BizException("销售公司不能为空");
+            errors.add("销售公司不能为空");
         }
         CustomerResponse customer = queryCustomerByExternalCode(order.getExternalCustomerCode());
-        // 提交为强校验节点：客户主数据必须能查到（查不到说明 nexus 异常或数据缺失），不能静默跳过保函数资金校验
         if (customer == null) {
-            throw new BizException("客户主数据查询失败，无法提交，请稍后重试");
-        }
-        if (StringUtils.isBlank(order.getCustomerCode())) {
+            errors.add("客户编码为空且外部客户编码匹配失败，提交失败");
+        } else if (StringUtils.isBlank(order.getCustomerCode())) {
             order.setCustomerCode(customer.getCustomerCode());
             order.setCustomerName(customer.getCustomerName());
         }
-        // 明细物料兜底（批量匹配：一次 Feign 替代循环内逐条）
         ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
@@ -154,7 +153,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             if (StringUtils.isBlank(d.getMaterialCode())) {
                 VehicleMaterialDto m = materialMap.get(d.getSyncMaterialCode());
                 if (m == null) {
-                    throw new BizException("明细" + d.getOrderDetailNumber() + "物料编码无法匹配，不允许提交");
+                    errors.add("明细" + d.getOrderDetailNumber() + "物料编码无法匹配，不允许提交");
+                    continue;
                 }
                 d.setMaterialCode(m.getCode());
                 d.setMaterialDescription(m.getMaterialDesc());
@@ -162,6 +162,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 d.setModelYear(m.getYearType());
                 d.setOptionalPackage(m.getOptionPackage());
             }
+        }
+        if (!errors.isEmpty()) {
+            throw new BizException(String.join("；", errors));
         }
 
         // ===== 步骤2 价格匹配（单价空的明细按 物料+订单类型+创建时间 取审批最新价） =====
@@ -240,7 +243,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             throw new BizException("PO订单不存在");
         }
         if (!ExportVehicleCbuPoStatusEnum.DRAFT.getCode().equals(order.getOrderStatus())) {
-            throw new BizException("仅草稿态订单可驳回");
+            throw new BizException("订单状态不是草稿，无法驳回");
         }
 
         // 状态→销售已驳回（终态）+ 驳回时间/人/说明（只 set 这些，updateById 防篡改）
@@ -684,6 +687,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchSubmit(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.DRAFT, "订单状态不是草稿，无法提交");
+        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoSubmitReq single = new ExportVehicleCbuPoSubmitReq();
@@ -693,6 +698,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchReject(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.DRAFT, "订单状态不是草稿，无法驳回");
+        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoRejectReq single = new ExportVehicleCbuPoRejectReq();
@@ -703,6 +710,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchSupplyApprove(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED, "订单状态不是销售已提交，无法供需审核通过");
+        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoSupplyApproveReq single = new ExportVehicleCbuPoSupplyApproveReq();
@@ -712,6 +721,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchSupplyReject(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED, "订单状态不是销售已提交，无法供需审核驳回");
+        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoSupplyRejectReq single = new ExportVehicleCbuPoSupplyRejectReq();
@@ -722,6 +733,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchBalanceApprove(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED, "订单状态不是供需审核通过，无法产销平衡审核通过");
+        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoBalanceApproveReq single = new ExportVehicleCbuPoBalanceApproveReq();
@@ -731,6 +744,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchBalanceReject(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED, "订单状态不是供需审核通过，无法产销平衡审核驳回");
+        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoBalanceRejectReq single = new ExportVehicleCbuPoBalanceRejectReq();
@@ -738,6 +753,95 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             single.setRejectReason(req.getRejectReason());
             self.balanceReject(single);
         });
+    }
+
+    /** 批量操作状态前置校验：不符合条件的返回 BatchResp（前端弹窗展示），全部通过返回 null */
+    private ExportVehicleCbuPoBatchResp checkBatchStatus(List<String> poIds, ExportVehicleCbuPoStatusEnum expected, String reason) {
+        List<ExportVehicleCbuPoBatchResp.FailItem> failItems = new ArrayList<>();
+        for (String poId : poIds) {
+            ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(poId);
+            if (order == null || !expected.getCode().equals(order.getOrderStatus())) {
+                ExportVehicleCbuPoBatchResp.FailItem item = new ExportVehicleCbuPoBatchResp.FailItem();
+                item.setPoId(poId);
+                item.setReason(reason);
+                failItems.add(item);
+            }
+        }
+        if (failItems.isEmpty()) {
+            return null;
+        }
+        ExportVehicleCbuPoBatchResp resp = new ExportVehicleCbuPoBatchResp();
+        resp.setBlocked(true);
+        resp.setTotal(poIds.size());
+        resp.setSuccessCount(0);
+        resp.setFailCount(failItems.size());
+        resp.setFailItems(failItems);
+        return resp;
+    }
+
+    // ==================== 补推红旗审批结果 ====================
+
+    /** 终态集合：销售已驳回/供需审核驳回/产销平衡通过/产销平衡驳回 */
+    private static final Set<String> RESENDABLE_STATUSES = Set.of(
+            ExportVehicleCbuPoStatusEnum.SALES_REJECTED.getCode(),
+            ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_REJECTED.getCode(),
+            ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode(),
+            ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_REJECTED.getCode()
+    );
+
+    /** 根据订单终态推导推送红旗的 status 值：驳回类=R，通过类=A */
+    private String pushStatusFromOrder(ExportVehicleCbuPoDo order) {
+        if (ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(order.getOrderStatus())) {
+            return "A";
+        }
+        return "R";
+    }
+
+    /** 单条补推：加载订单 → 构造 pushReq → pushAndWriteBack */
+    public boolean resend(String poId) {
+        ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(poId);
+        if (order == null) {
+            throw new BizException("PO订单不存在");
+        }
+        if (!RESENDABLE_STATUSES.contains(order.getOrderStatus())) {
+            throw new BizException("订单状态无需补推红旗");
+        }
+        if ("成功".equals(order.getAuditResultSyncResult())) {
+            throw new BizException("订单已推送成功，无需补推");
+        }
+        CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
+        pushReq.setPoNo(order.getPoNo());
+        pushReq.setPlanVersion(order.getPlanVersion());
+        pushReq.setStatus(pushStatusFromOrder(order));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setRemark(order.getRejectReason());
+        return cbuApprovalResultToHongqi.pushAndWriteBack(poId, pushReq);
+    }
+
+    /** 批量补推：前置校验（终态 + 同步非成功），不合格走弹窗 */
+    public ExportVehicleCbuPoBatchResp batchResend(ExportVehicleCbuPoBatchReq req) {
+        List<ExportVehicleCbuPoBatchResp.FailItem> failItems = new ArrayList<>();
+        for (String poId : req.getPoIds()) {
+            ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(poId);
+            if (order == null || !RESENDABLE_STATUSES.contains(order.getOrderStatus())
+                    || "成功".equals(order.getAuditResultSyncResult())) {
+                ExportVehicleCbuPoBatchResp.FailItem item = new ExportVehicleCbuPoBatchResp.FailItem();
+                item.setPoId(poId);
+                item.setReason("不需要补推红旗");
+                failItems.add(item);
+            }
+        }
+        if (!failItems.isEmpty()) {
+            ExportVehicleCbuPoBatchResp resp = new ExportVehicleCbuPoBatchResp();
+            resp.setBlocked(true);
+            resp.setTotal(req.getPoIds().size());
+            resp.setSuccessCount(0);
+            resp.setFailCount(failItems.size());
+            resp.setFailItems(failItems);
+            return resp;
+        }
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> self.resend(poId));
     }
 
     // ==================== 保函关联表辅助方法 ====================

@@ -35,10 +35,6 @@ public class HongqiCbuPurchaseOrderValidator {
 
     /** PO单号：HQ + YYYYMMDD + 6位流水（共 HQ + 14位数字） */
     private static final Pattern PO_NO = Pattern.compile("^HQ\\d{14}$");
-    /** 客户编码：HQ01=红旗股份 / HQ02=红旗进出口公司 */
-    private static final Pattern CUSTOMER_CODE = Pattern.compile("^HQ0[12]$");
-    /** 计划版本号：YYYYMMDD + V + 数字 */
-    private static final Pattern PLAN_VERSION = Pattern.compile("^\\d{8}V\\d+$");
     /** 18位零跑物料编码 */
     private static final Pattern MATERIAL_CODE = Pattern.compile("^[A-Za-z0-9]{18}$");
     /** 期望下线日期：YYYYMMDD */
@@ -77,8 +73,6 @@ public class HongqiCbuPurchaseOrderValidator {
             errors.add("[客户编码]不能为空");
         } else if (req.getCustomerCode().length() > 30) {
             errors.add("[客户编码]长度不能超过30");
-        } else if (!CUSTOMER_CODE.matcher(req.getCustomerCode()).matches()) {
-            errors.add("[客户编码]仅支持 HQ01(红旗股份) 或 HQ02(红旗进出口公司)，当前值: " + req.getCustomerCode());
         }
 
         // 计划版本号
@@ -86,10 +80,6 @@ public class HongqiCbuPurchaseOrderValidator {
             errors.add("[计划版本号]不能为空");
         } else if (req.getPlanVersion().length() > 30) {
             errors.add("[计划版本号]长度不能超过30");
-        } else if (!PLAN_VERSION.matcher(req.getPlanVersion()).matches()) {
-            errors.add("[计划版本号]格式错误，例 20260305V1，当前值: " + req.getPlanVersion());
-        } else if (!isRealDate(req.getPlanVersion().substring(0, 8))) {
-            errors.add("[计划版本号]内嵌日期段不是合法日期: " + req.getPlanVersion().substring(0, 8));
         }
 
         // 订单明细列表

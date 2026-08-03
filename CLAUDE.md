@@ -84,8 +84,6 @@ spring.cloud.nacos.discovery.password=<密码>
 - `i18n/messages*.properties` — 国际化消息资源（默认 + `zh_CN`），含校验/登录/权限等提示文案，供 `MessageSource` 取用。
 - `properties/common_*.properties` — 业务国际化语言包（`zh_CN`/`en_US`）。
 
-> 注意：`application.yml` 的 `spring.cache.ehcache.config: classpath:ehcache.xml` 引用了一项目前不存在的 `ehcache.xml`（模板遗留的悬空引用）。若启用本地 ehcache 缓存需补建该文件，否则可移除该引用。
-
 ## 新业务模块起步
 
 新业务优先使用 `ais-generator`（配置见 `app-ais-export-vehicle-generator/src/main/resources/generator.properties`，当前已配为 `business.name=so` / `generate.table.name=export_vehicle_cbu_so_interface_sync`）生成 DDD 全分层代码，再补业务逻辑。Generator 输出 Client/Adapter/App/Domain/Infrastructure 完整闭环，覆盖 CQRS+Gateway+MapStruct 模板；具体约束详见根目录 `.claude/rules/backend-coding-constraints.md`。

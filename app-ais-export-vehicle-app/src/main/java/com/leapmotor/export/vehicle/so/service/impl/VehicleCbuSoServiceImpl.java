@@ -147,7 +147,7 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     public VehicleCbuSoDetailAggregateResp detail(String id) {
         VehicleCbuSoDo orderDo = vehicleCbuSoQryExe.getSoDetailById(id);
         if (orderDo == null) {
-            return null;
+            throw new BizException("SO订单不存在");
         }
         VehicleCbuSoResp orderResp = VehicleCbuSoDTOStructMapper.INSTANCE.domainToResp(orderDo);
         fillSalesCompanyName(Collections.singletonList(orderResp));

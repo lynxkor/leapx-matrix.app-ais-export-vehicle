@@ -157,15 +157,19 @@ public class VehicleCbuSoCmdExe {
         // 1) build 阶段：Pair 锁住 1:1，类型层面保证主明细对齐
         List<Pair<VehicleCbuSoDo, VehicleCbuSoDetailDo>> pairs = new ArrayList<>();
         int lineNo = 1;
+        // 批次统一时间戳前缀，避免跨分钟导致同批次 SO 单号前缀不一致
+        String soNoPrefix = "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
         for (SoCreateReq.SoDetailReq detailReq : req.getDetails()) {
-            if (detailReq == null
-                    || detailReq.getDemandQuantity() == null
-                    || detailReq.getDemandQuantity().intValue() <= 0) {
-                continue;
+            if (detailReq == null) {
+                throw new BizException("PO明细存在空行，不允许创建SO");
+            }
+            if (detailReq.getDemandQuantity() == null || detailReq.getDemandQuantity().intValue() <= 0) {
+                throw new BizException("PO明细行" + detailReq.getPoDetailNo()
+                        + "需求数量为空或不大于0，不允许创建SO");
             }
             int quantity = detailReq.getDemandQuantity().intValue();
             for (int i = 0; i < quantity; i++) {
-                pairs.add(Pair.of(buildSo(req, detailReq, lineNo), buildSoDetail(detailReq)));
+                pairs.add(Pair.of(buildSo(req, detailReq, lineNo, soNoPrefix), buildSoDetail(detailReq)));
                 lineNo++;
             }
         }
@@ -215,19 +219,18 @@ public class VehicleCbuSoCmdExe {
     }
 
     /**
-     * 生成 SO 单号：SO + yyyyMMddHHmm + 5位流水（同 po_detail_no）
+     * 生成 SO 单号：prefix + 5位流水（同 po_detail_no）
      */
-    private String genSoNo() {
-        return "SO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
-                + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
+    private String genSoNo(String prefix) {
+        return prefix + NoGenerator.genNoOnly("SO", "yyyyMMddHHmm", 5);
     }
 
     /**
      * 构建 SO
      */
-    private VehicleCbuSoDo buildSo(SoCreateReq req, SoCreateReq.SoDetailReq detailReq, int lineNo) {
+    private VehicleCbuSoDo buildSo(SoCreateReq req, SoCreateReq.SoDetailReq detailReq, int lineNo, String soNoPrefix) {
         VehicleCbuSoDo so = new VehicleCbuSoDo();
-        so.setSoNo(genSoNo());
+        so.setSoNo(genSoNo(soNoPrefix));
         so.setPoId(req.getPoId());
         so.setPoNo(req.getPoNo());
         so.setPoDetailId(detailReq.getPoDetailId());
@@ -907,40 +910,51 @@ public class VehicleCbuSoCmdExe {
         if (req == null || StringUtils.isBlank(req.getVin()) || req.getResult() == null) {
             throw new BizException("VIN与质检结果不能为空");
         }
-        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailByVin(req.getVin());
-        if (detail == null) {
-            throw new BizException("VIN[" + req.getVin() + "]未找到车辆明细");
-        }
-        VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getId());
-        if (so == null) {
-            throw new BizException("VIN[" + req.getVin() + "]关联SO不存在");
-        }
-
-        // 校验订单状态至少为总装下线
-        if (!isAtLeastAssemblyOut(so.getOrderStatus())) {
-            throw new BizException("SO[" + so.getSoNo() + "]未总装下线，不能接收质检结果");
-        }
-
         VehicleCbuSoQcResultEnum qcEnum = VehicleCbuSoQcResultEnum.of(req.getResult());
         if (qcEnum == null) {
             throw new BizException("不支持的质检结果：" + req.getResult());
         }
 
-        // 通过状态不允许回退
-        if (VehicleCbuSoQcResultEnum.PASSED.getCode().equals(so.getQcResult())
-                && !VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum)) {
-            throw new BizException("SO[" + so.getSoNo() + "]当前已为质检通过，不允许回退");
+        // 先查一次仅用于获取 poNo 加锁与基本存在性校验
+        VehicleCbuSoDetailDo preDetail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailByVin(req.getVin());
+        if (preDetail == null) {
+            throw new BizException("VIN[" + req.getVin() + "]未找到车辆明细");
+        }
+        VehicleCbuSoDo preSo = vehicleCbuSoGateway.getVehicleCbuSoById(preDetail.getId());
+        if (preSo == null) {
+            throw new BizException("VIN[" + req.getVin() + "]关联SO不存在");
         }
 
         // PO 维度锁：保函转应收共享 PO 关联保函占用，同 PO 串行，锁释放晚于事务提交
         BlockLock lock;
         try {
-            lock = distributedLockTemplate.blockLock("so:qc:po:" + so.getPoNo(), 60000, 3000);
+            lock = distributedLockTemplate.blockLock("so:qc:po:" + preSo.getPoNo(), 60000, 3000);
         } catch (Exception e) {
             throw new BizException("质检通过获取锁失败，请稍后重试");
         }
         try {
             transactionTemplate.execute(status -> {
+                // 加锁后重新查询最新状态，避免并发下基于脏数据计算金额
+                VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailByVin(req.getVin());
+                if (detail == null) {
+                    throw new BizException("VIN[" + req.getVin() + "]未找到车辆明细");
+                }
+                VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getId());
+                if (so == null) {
+                    throw new BizException("VIN[" + req.getVin() + "]关联SO不存在");
+                }
+
+                // 校验订单状态至少为总装下线
+                if (!isAtLeastAssemblyOut(so.getOrderStatus())) {
+                    throw new BizException("SO[" + so.getSoNo() + "]未总装下线，不能接收质检结果");
+                }
+
+                // 通过状态不允许回退
+                if (VehicleCbuSoQcResultEnum.PASSED.getCode().equals(so.getQcResult())
+                        && !VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum)) {
+                    throw new BizException("SO[" + so.getSoNo() + "]当前已为质检通过，不允许回退");
+                }
+
                 doReceiveQcResult(so, detail, qcEnum, req);
                 return null;
             });

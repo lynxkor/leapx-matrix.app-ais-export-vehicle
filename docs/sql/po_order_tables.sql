@@ -29,7 +29,7 @@ CREATE TABLE `export_vehicle_cbu_po` (
     `plan_version`                        VARCHAR(30)      NOT NULL                         COMMENT '计划版本号,取自红旗CBU接口',
     `audit_result_sync_time`              DATETIME         DEFAULT NULL                     COMMENT '审结结果同步时间,反馈红旗接口的发送时间',
     `audit_result_sync_result`            VARCHAR(30)      DEFAULT NULL                     COMMENT '审结结果同步结果,= 成功/失败',
-    `customer_system_return_info`         VARCHAR(200)     DEFAULT NULL                     COMMENT '客户系统返回信息,红旗接口对方返回',
+    `customer_system_return_info`         VARCHAR(2000)    DEFAULT NULL                     COMMENT '客户系统返回信息,红旗接口对方返回(整包响应JSON)',
     -- 基础字段(平台模板 §7.0)
     `creator`                             BIGINT           NOT NULL                         COMMENT '创建者ID',
     `creator_name`                        VARCHAR(100)     NOT NULL                         COMMENT '创建人名称',

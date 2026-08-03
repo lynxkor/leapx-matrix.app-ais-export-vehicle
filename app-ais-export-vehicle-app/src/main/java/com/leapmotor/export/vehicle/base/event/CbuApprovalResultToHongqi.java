@@ -13,6 +13,7 @@ import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -54,12 +55,13 @@ public class CbuApprovalResultToHongqi extends AbstractEventHandler {
             result = hongqiGateway.pushCbuApprovalResult(req);
         } catch (Exception e) {
             log.error("红旗CBU审批结果推送异常, poId: {}", poId, e);
-            purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), "失败", "推送异常:" + e.getMessage());
+            purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), "失败", StringUtils.left("推送异常:" + e.getMessage(), 2000));
             return false;
         }
         boolean ok = result != null && result.isSuccess()
                 && result.getData() != null && "Y".equals(result.getData().getReceiveFlag());
-        String returnInfo = JSON.toJSONString(result);
+        // 红旗整包响应 JSON 可能较长，按列长 VARCHAR(2000) 截断兜底，避免 strict sql_mode 下 Data too long（与 SO 侧接口同步信息口径一致）
+        String returnInfo = StringUtils.left(JSON.toJSONString(result), 2000);
         purchaseOrderGateway.updateApprovalSyncResult(poId, LocalDateTime.now(), ok ? "成功" : "失败", returnInfo);
         if (!ok) {
             log.error("红旗CBU审批结果推送失败, poId: {}, returnInfo: {}", poId, returnInfo);

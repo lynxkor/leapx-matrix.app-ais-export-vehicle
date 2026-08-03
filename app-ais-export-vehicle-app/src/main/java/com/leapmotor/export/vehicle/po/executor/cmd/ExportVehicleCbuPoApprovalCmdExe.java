@@ -135,7 +135,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         }
         CustomerResponse customer = queryCustomerByExternalCode(order.getExternalCustomerCode());
         if (customer == null) {
-            errors.add("客户编码为空且外部客户编码匹配失败，提交失败");
+            errors.add("客户信息匹配失败，不允许提交，请检查客户信息");
         } else if (StringUtils.isBlank(order.getCustomerCode())) {
             order.setCustomerCode(customer.getCustomerCode());
             order.setCustomerName(customer.getCustomerName());
@@ -153,7 +153,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             if (StringUtils.isBlank(d.getMaterialCode())) {
                 VehicleMaterialDto m = materialMap.get(d.getSyncMaterialCode());
                 if (m == null) {
-                    errors.add("明细" + d.getOrderDetailNumber() + "物料编码无法匹配，不允许提交");
+                    errors.add(d.getPoDetailNo() + "物料编码匹配失败，不允许提交，请检查物料信息");
                     continue;
                 }
                 d.setMaterialCode(m.getCode());
@@ -206,6 +206,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             freezeReq.setRequiredAmount(order.getTotalAmount());
             // 保函数侧按订单创建时间筛选可用保函（失效日期 ≥ 创建时间 + coverDays），需传订单创建时间
             freezeReq.setOrderCreateTime(order.getCreateTime().toLocalDate());
+            freezeReq.setRemark("PO单[" + order.getPoNo() + "]提交，资金冻结");
             ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.freeze(freezeReq);
             if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess()) || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
                 throw new BizException("提交失败，资金校验未通过，请联系商务");
@@ -351,7 +352,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         ExportVehicleLetterGuaranteeUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeUnfreezeReq();
         unfreezeReq.setPoNo(order.getPoNo());
         unfreezeReq.setOrderId(order.getId());
-        unfreezeReq.setReason("供需审核驳回");
+        unfreezeReq.setReason("PO单[" + order.getPoNo() + "]驳回，资金解冻");
         letterGuaranteeService.unfreeze(unfreezeReq);
 
         // PO-保函关联表占用金额清零（按 poNo 查 + 逐条 update po_current_occupied_amount=0）
@@ -445,7 +446,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         ExportVehicleLetterGuaranteeUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeUnfreezeReq();
         unfreezeReq.setPoNo(order.getPoNo());
         unfreezeReq.setOrderId(order.getId());
-        unfreezeReq.setReason("产销平衡驳回");
+        unfreezeReq.setReason("PO单[" + order.getPoNo() + "]驳回，资金解冻");
         letterGuaranteeService.unfreeze(unfreezeReq);
         ExportVehicleCbuPoGuaranteeQo gqo = new ExportVehicleCbuPoGuaranteeQo();
         gqo.setPoNo(order.getPoNo());
@@ -463,8 +464,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         cancelReq.setReason("产销平衡驳回作废：" + req.getRejectReason());
         VehicleCbuSoOperateResult cancelResult = vehicleCbuSoCmdExe.cancel(cancelReq);
         if (CollectionUtils.isNotEmpty(cancelResult.getFailItems())) {
-            String failDetail = cancelResult.getFailItems().stream().map(i -> i.getSoNo() + ":" + i.getReason()).collect(Collectors.joining(";"));
-            throw new BizException("PO作废失败，部分SO作废异常：" + failDetail);
+            String soNos = cancelResult.getFailItems().stream().map(i -> i.getSoNo()).collect(Collectors.joining("、"));
+            throw new BizException("PO订单驳回失败，关联 SO订单（" + soNos + "）同步产销平台作废失败，请检查订单状态");
         }
 
         // 推红旗审批结果（驳回）
@@ -506,7 +507,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 Integer soStatus = so.getOrderStatus();
                 if (VehicleCbuSoStatusEnum.QC_PASSED.getCode().equals(soStatus)
                         || VehicleCbuSoStatusEnum.RECEIVED.getCode().equals(soStatus)) {
-                    throw new BizException("存在质检通过/已收款的车辆，不允许刷新价格");
+                    throw new BizException("存在质检通过的车辆，不允许刷新价格");
                 }
             }
         }
@@ -534,13 +535,11 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 purchaseOrderDetailGateway.updateExportVehicleCbuPoDetail(d);
             } else {
                 unmatchedCount++;
-                // 已审态（分支B）不允许把价格置空，否则破坏已审价格不变量并按缩水总额误触发保函调减；仅草稿态（分支A）留空
+                // 分支B（已审态）不允许匹配不到价格：否则破坏已审价格不变量并按缩水总额误触发保函调减
                 if (isBranchB) {
                     throw new BizException("物料 " + d.getMaterialCode() + " 刷新后匹配不到有效价格，不允许刷新");
                 }
-                d.setUnitPrice(null);
-                d.setTotalAmount(null);
-                purchaseOrderDetailGateway.updatePriceById(d.getId(), null, null);
+                // 分支A（草稿/驳回态）：未匹配成功的明细行保留原价、不更新（规格 4.6），原 totalAmount 照常计入 newTotal
             }
         }
         BigDecimal newTotal = details.stream().map(d -> d.getTotalAmount() != null ? d.getTotalAmount() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -591,11 +590,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 // 保函数侧按订单创建时间筛选可用保函（失效日期 ≥ 创建时间 + coverDays），需传订单创建时间
                 freezeReq.setOrderCreateTime(order.getCreateTime().toLocalDate());
                 freezeReq.setReason("刷新价格调增");
+                // adjustFreeze 可用金额不足时由 freeze 直接抛 BizException（整事务回滚），走到这里必为成功 resp
                 ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.adjustFreeze(freezeReq);
-                if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess()) || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
-                    String failMsg = (freezeResp != null && freezeResp.getFailMessage() != null) ? freezeResp.getFailMessage() : "剩余可用金额不足";
-                    throw new BizException(failMsg);
-                }
                 // 写/更新 PO-保函关联表：调增可能命中已冻结过的保函(同 poNo+lgId 已存在)，按存在性 update 累加/insert，避免撞 uk_po_guarantee
                 ExportVehicleCbuPoGuaranteeQo existGqo = new ExportVehicleCbuPoGuaranteeQo();
                 existGqo.setPoNo(order.getPoNo());

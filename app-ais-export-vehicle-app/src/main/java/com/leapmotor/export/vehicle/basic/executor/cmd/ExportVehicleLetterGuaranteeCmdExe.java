@@ -17,13 +17,13 @@ import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 写操作执行器 - 所有状态机 + 资金流方法统一在此声明 @Transactional
@@ -42,6 +42,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
 
     private ExportVehicleLetterGuaranteeGateway exportVehicleLetterGuaranteeGateway;
     private ExportVehicleLetterGuaranteeRecordGateway exportVehicleLetterGuaranteeRecordGateway;
+    private ApplicationContext applicationContext;
 
     // ============== 基础 CRUD ==============
 
@@ -136,7 +137,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         ExportVehicleLetterGuaranteeFreezeResp resp = new ExportVehicleLetterGuaranteeFreezeResp();
         resp.setPoNo(req.getPoNo());
         List<ExportVehicleLetterGuaranteeFreezeResp.FrozenItem> frozen = new ArrayList<>();
-        AtomicLong totalFrozen = new AtomicLong(0);
+        BigDecimal totalFrozen = BigDecimal.ZERO;
         BigDecimal remaining = req.getRequiredAmount();
         for (ExportVehicleLetterGuaranteeDo candidate : sorted) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
@@ -156,7 +157,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             item.setFrozenAmount(amount);
             item.setPoNo(req.getPoNo());
             frozen.add(item);
-            totalFrozen.addAndGet(amount.longValue());
+            totalFrozen = totalFrozen.add(amount);
             remaining = remaining.subtract(amount);
         }
 
@@ -164,7 +165,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             throw new BizException("可用保函总金额不足以覆盖需求,缺 " + remaining);
         }
         resp.setSuccess(true);
-        resp.setTotalFrozenAmount(BigDecimal.valueOf(totalFrozen.get()));
+        resp.setTotalFrozenAmount(totalFrozen);
         resp.setFrozenItems(frozen);
         return resp;
     }
@@ -183,7 +184,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         for (ExportVehicleLetterGuaranteeFreezeReq singlePo : list) {
             ExportVehicleLetterGuaranteeFreezeResp poResp;
             try {
-                poResp = freeze(singlePo);
+                poResp = applicationContext.getBean(ExportVehicleLetterGuaranteeCmdExe.class).freeze(singlePo);
             } catch (BizException e) {
                 poResp = new ExportVehicleLetterGuaranteeFreezeResp();
                 poResp.setPoNo(singlePo.getPoNo());
@@ -243,7 +244,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         for (ExportVehicleLetterGuaranteeUnfreezeReq singlePo : list) {
             ExportVehicleLetterGuaranteeUnfreezeResp poResp;
             try {
-                unfreeze(singlePo);
+                applicationContext.getBean(ExportVehicleLetterGuaranteeCmdExe.class).unfreeze(singlePo);
                 poResp = new ExportVehicleLetterGuaranteeUnfreezeResp();
                 poResp.setPoNo(singlePo.getPoNo());
                 poResp.setSuccess(true);

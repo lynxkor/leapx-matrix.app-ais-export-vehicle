@@ -15,12 +15,6 @@ spring:
     timeout-per-shutdown-phase: 3M
   banner:
     charset: UTF-8
-  cache:
-    ehcache:
-      config: classpath:ehcache.xml
-    jackson:
-      time-zone: GMT+8
-      date-format: yyyy-MM-dd HH:mm:ss
   servlet:
     enabled: true
     multipart:

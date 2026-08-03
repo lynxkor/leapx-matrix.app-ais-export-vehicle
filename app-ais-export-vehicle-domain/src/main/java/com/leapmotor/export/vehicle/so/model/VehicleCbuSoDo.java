@@ -357,7 +357,7 @@ public class VehicleCbuSoDo extends LpBaseModel implements Serializable {
     }
 
     /**
-     * 是否可作废（仅未下发生产、排产中可作废）。
+     * 是否可作废（未下发生产、已下发生产、排产中可作废）。
      */
     public boolean canCancel() {
         return VehicleCbuSoStatusEnum.NOT_ISSUED.getCode().equals(this.orderStatus)

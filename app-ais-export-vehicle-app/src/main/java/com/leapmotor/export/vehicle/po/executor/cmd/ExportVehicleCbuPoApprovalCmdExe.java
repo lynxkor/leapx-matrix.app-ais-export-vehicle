@@ -683,8 +683,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchSubmit(ExportVehicleCbuPoBatchReq req) {
-        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.DRAFT, "订单状态不是草稿，无法提交");
-        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoSubmitReq single = new ExportVehicleCbuPoSubmitReq();
@@ -694,8 +692,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchReject(ExportVehicleCbuPoBatchReq req) {
-        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.DRAFT, "订单状态不是草稿，无法驳回");
-        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoRejectReq single = new ExportVehicleCbuPoRejectReq();
@@ -706,8 +702,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchSupplyApprove(ExportVehicleCbuPoBatchReq req) {
-        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED, "订单状态不是销售已提交，无法供需审核通过");
-        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoSupplyApproveReq single = new ExportVehicleCbuPoSupplyApproveReq();
@@ -717,8 +711,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchSupplyReject(ExportVehicleCbuPoBatchReq req) {
-        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SALES_SUBMITTED, "订单状态不是销售已提交，无法供需审核驳回");
-        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoSupplyRejectReq single = new ExportVehicleCbuPoSupplyRejectReq();
@@ -729,8 +721,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchBalanceApprove(ExportVehicleCbuPoBatchReq req) {
-        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED, "订单状态不是供需审核通过，无法产销平衡审核通过");
-        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoBalanceApproveReq single = new ExportVehicleCbuPoBalanceApproveReq();
@@ -740,8 +730,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
     }
 
     public ExportVehicleCbuPoBatchResp batchBalanceReject(ExportVehicleCbuPoBatchReq req) {
-        ExportVehicleCbuPoBatchResp block = checkBatchStatus(req.getPoIds(), ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_APPROVED, "订单状态不是供需审核通过，无法产销平衡审核驳回");
-        if (block != null) return block;
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> {
             ExportVehicleCbuPoBalanceRejectReq single = new ExportVehicleCbuPoBalanceRejectReq();
@@ -749,30 +737,6 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             single.setRejectReason(req.getRejectReason());
             self.balanceReject(single);
         });
-    }
-
-    /** 批量操作状态前置校验：不符合条件的返回 BatchResp（前端弹窗展示），全部通过返回 null */
-    private ExportVehicleCbuPoBatchResp checkBatchStatus(List<String> poIds, ExportVehicleCbuPoStatusEnum expected, String reason) {
-        List<ExportVehicleCbuPoBatchResp.FailItem> failItems = new ArrayList<>();
-        for (String poId : poIds) {
-            ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(poId);
-            if (order == null || !expected.getCode().equals(order.getOrderStatus())) {
-                ExportVehicleCbuPoBatchResp.FailItem item = new ExportVehicleCbuPoBatchResp.FailItem();
-                item.setPoId(poId);
-                item.setReason(reason);
-                failItems.add(item);
-            }
-        }
-        if (failItems.isEmpty()) {
-            return null;
-        }
-        ExportVehicleCbuPoBatchResp resp = new ExportVehicleCbuPoBatchResp();
-        resp.setBlocked(true);
-        resp.setTotal(poIds.size());
-        resp.setSuccessCount(0);
-        resp.setFailCount(failItems.size());
-        resp.setFailItems(failItems);
-        return resp;
     }
 
     // ==================== 补推红旗审批结果 ====================
@@ -814,28 +778,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         return cbuApprovalResultToHongqi.pushAndWriteBack(poId, pushReq);
     }
 
-    /** 批量补推：前置校验（终态 + 同步非成功），不合格走弹窗 */
+    /** 批量补推：每条独立事务，部分成功部分失败（单条 resend 内部已校验终态 + 同步非成功） */
     public ExportVehicleCbuPoBatchResp batchResend(ExportVehicleCbuPoBatchReq req) {
-        List<ExportVehicleCbuPoBatchResp.FailItem> failItems = new ArrayList<>();
-        for (String poId : req.getPoIds()) {
-            ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(poId);
-            if (order == null || !RESENDABLE_STATUSES.contains(order.getOrderStatus())
-                    || "成功".equals(order.getAuditResultSyncResult())) {
-                ExportVehicleCbuPoBatchResp.FailItem item = new ExportVehicleCbuPoBatchResp.FailItem();
-                item.setPoId(poId);
-                item.setReason("不需要补推红旗");
-                failItems.add(item);
-            }
-        }
-        if (!failItems.isEmpty()) {
-            ExportVehicleCbuPoBatchResp resp = new ExportVehicleCbuPoBatchResp();
-            resp.setBlocked(true);
-            resp.setTotal(req.getPoIds().size());
-            resp.setSuccessCount(0);
-            resp.setFailCount(failItems.size());
-            resp.setFailItems(failItems);
-            return resp;
-        }
         ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
         return runBatch(req.getPoIds(), poId -> self.resend(poId));
     }

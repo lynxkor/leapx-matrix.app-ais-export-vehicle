@@ -28,9 +28,6 @@ public class ExportVehicleCbuPoBatchResp implements Serializable {
     @Schema(description = "失败条数")
     private int failCount;
 
-    @Schema(description = "是否被前置拦截（未执行任何操作）")
-    private boolean blocked;
-
     @Schema(description = "失败明细")
     private List<FailItem> failItems = new ArrayList<>();
 

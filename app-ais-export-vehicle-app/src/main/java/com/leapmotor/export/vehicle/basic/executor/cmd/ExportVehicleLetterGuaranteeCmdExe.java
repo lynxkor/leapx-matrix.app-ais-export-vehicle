@@ -52,7 +52,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         return exportVehicleLetterGuaranteeDo.getId() == null
                 ? exportVehicleLetterGuaranteeGateway.addExportVehicleLetterGuarantee(exportVehicleLetterGuaranteeDo)
                 : exportVehicleLetterGuaranteeGateway.updateExportVehicleLetterGuarantee(
-                        exportVehicleLetterGuaranteeDo);
+                exportVehicleLetterGuaranteeDo);
     }
 
     public boolean deleteExportVehicleLetterGuaranteeByIds(List<String> ids) {
@@ -93,9 +93,9 @@ public class ExportVehicleLetterGuaranteeCmdExe {
 
     /**
      * 单 PO 冻结 — 整体事务 all-or-nothing:任一保函冻结失败立即抛异常,事务整体回滚(
-             设计文档 §3.4.3 / §8.5.3)
+     * 设计文档 §3.4.3 / §8.5.3)
      * <p>候选保函由服务端按 {@code listAvailableForCustomer} 自动选取(
-             失效日期升序 + 同日按可用金额倒序 + 完全相同随机)。
+     * 失效日期升序 + 同日按可用金额倒序 + 完全相同随机)。
      * <p>无「单张保函失败」状态 — 任一失败抛 BizException,由 @Transactional 整体回滚。
      * <p>成功时每次 {@code gateway.freeze} 会写一条 {@code record_type=10(冻结)} 的保函交易记录。
      */
@@ -105,7 +105,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
 
         // 1. 自动选保函(透传 orderCreateTime 用于 coverDays SQL 过滤)
         List<ExportVehicleLetterGuaranteeDo> auto = exportVehicleLetterGuaranteeGateway.listAvailableForCustomer(req
-                .getCustomerId(),
+                        .getCustomerId(),
                 req.getOrderType(), req.getOrderCreateTime());
         if (auto == null || auto.isEmpty()) {
             throw new BizException("客户无可用保函");
@@ -115,8 +115,8 @@ public class ExportVehicleLetterGuaranteeCmdExe {
                 Objects::nonNull).reduce(BigDecimal.ZERO,
                 BigDecimal::add);
         if (totalAvailable.compareTo(req.getRequiredAmount()) < 0) {
-            throw new BizException("可用保函总金额不足以覆盖需求:可用=" + totalAvailable + ", 申请=" +
-                    req.getRequiredAmount());
+            log.error("可用保函总金额不足以覆盖需求:可用=" + totalAvailable + ", 申请=" + req.getRequiredAmount());
+            throw new BizException("提交失败，资金校验未通过，请联系商务");
         }
 
         // 排序规则(业务规则,设计文档 §8.5.3):
@@ -162,7 +162,8 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         }
 
         if (remaining.compareTo(BigDecimal.ZERO) > 0) {
-            throw new BizException("可用保函总金额不足以覆盖需求,缺 " + remaining);
+            log.error("可用保函总金额不足以覆盖需求,缺 " + remaining);
+            throw new BizException("提交失败，资金校验未通过，请联系商务");
         }
         resp.setSuccess(true);
         resp.setTotalFrozenAmount(totalFrozen);
@@ -173,7 +174,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     /**
      * 批量 PO 冻结 — 每个 PO 独立事务,任一 PO 失败不影响其他 PO。
      * <p>每个 PO 通过 cross-bean 调用 {@link #freeze(
-             ExportVehicleLetterGuaranteeFreezeReq)} 进入各自事务。
+     *ExportVehicleLetterGuaranteeFreezeReq)} 进入各自事务。
      */
     public List<ExportVehicleLetterGuaranteeFreezeResp> batchFreeze(List<ExportVehicleLetterGuaranteeFreezeReq> list) {
         if (list == null || list.isEmpty()) {
@@ -232,7 +233,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     /**
      * 批量 PO 解冻 — 每个 PO 独立事务,任一 PO 失败不影响其他 PO。
      * <p>每个 PO 通过 cross-bean 调用 {@link #unfreeze(
-             ExportVehicleLetterGuaranteeUnfreezeReq)} 进入各自事务。
+     *ExportVehicleLetterGuaranteeUnfreezeReq)} 进入各自事务。
      */
     public List<ExportVehicleLetterGuaranteeUnfreezeResp> batchUnfreeze(
             List<ExportVehicleLetterGuaranteeUnfreezeReq> list) {
@@ -267,7 +268,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     /**
      * 单 PO 转应收(
      * 质检通过) — 整体事务 all-or-nothing:任一保函转应收失败立即抛异常,事务整体回滚(
-                     设计文档 §3.4.3)
+     * 设计文档 §3.4.3)
      *
      * <p>输入是 SO 单粒度(poNo + soNo + frozenAmount + vin),服务端:
      * <ol>
@@ -281,11 +282,11 @@ public class ExportVehicleLetterGuaranteeCmdExe {
      *     </ul>
      *   </li>
      *   <li>按排序依次转应收,每张金额 = min(剩余 SO冻结金额,
-             该保函 PO累计占用金额),直至累计 = SO冻结金额</li>
+     * 该保函 PO累计占用金额),直至累计 = SO冻结金额</li>
      * </ol>
      *
      * <p>每次 {@code gateway.transferToReceivable} 会写一条 {@code record_type=30(
-             转应收)} 的保函交易记录。
+     * 转应收)} 的保函交易记录。
      */
     @Transactional(rollbackFor = Exception.class)
     public List<ExportVehicleLetterGuaranteeTransferItem> transferToReceivable(
@@ -367,7 +368,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
 
     /**
      * 单 PO 应收释放(
-             SAP 清账) — 整体事务 all-or-nothing:任一保函释放失败立即抛异常,事务整体回滚
+     * SAP 清账) — 整体事务 all-or-nothing:任一保函释放失败立即抛异常,事务整体回滚
      *
      * <p>输入是 PO 单粒度(poNo + soNo),服务端:
      * <ol>
@@ -427,7 +428,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
      *   <li>校验 amountDiff > 0</li>
      *   <li>查该 PO 下所有冻结明细(transaction_type=10),按 lgId 汇总 PO 当前累计占用</li>
      *   <li>取主表校验保函存在 → 形成候选集(失效/作废由 gateway
-             .unfreeze 内 ensureLgStatus 兜底)</li>
+     * .unfreeze 内 ensureLgStatus 兜底)</li>
      *   <li>排序:失效日期 DESC(最晚优先,nullsLast 保证 null 排末位)</li>
      *   <li>空候选集 → 抛 BizException("无可解冻保函")</li>
      *   <li>循环:对每张候选执行 gateway.unfreeze(本张占用 / 剩余金额,取小),
@@ -436,11 +437,11 @@ public class ExportVehicleLetterGuaranteeCmdExe {
      * </ol>
      *
      * <p>与 {@link #unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq)} 区别:这里是部分解冻(退金额差,
-             可能跨多张保函),
+     * 可能跨多张保函),
      * {@code unfreeze} 是全解冻(逐张全额释放)。
      *
      * <p>响应含所有被解冻保函的明细(按失效日期倒序,
-             可多张),便于 PO 模块回写关联保函信息。
+     * 可多张),便于 PO 模块回写关联保函信息。
      */
     @Transactional(rollbackFor = Exception.class)
     public ExportVehicleLetterGuaranteeAdjustUnfreezeResp adjustUnfreeze(
@@ -514,7 +515,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             items.add(item);
             remaining = remaining.subtract(unfreezeAmount);
             log.info("PO {} 调减退差部分解冻: 选中保函={}, 本次解冻={}, 剩余={}", req.getPoNo(), lg
-                    .getLgCode(), unfreezeAmount,
+                            .getLgCode(), unfreezeAmount,
                     remaining);
         }
 

@@ -23,8 +23,10 @@
             <artifactId>app-ais-export-vehicle-domain</artifactId>
         </dependency>
         <!-- project module -->
-
-
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-nexus-client</artifactId>
+        </dependency>
         <!-- ais-common components -->
         <dependency>
             <groupId>com.leapmotor.platform</groupId>

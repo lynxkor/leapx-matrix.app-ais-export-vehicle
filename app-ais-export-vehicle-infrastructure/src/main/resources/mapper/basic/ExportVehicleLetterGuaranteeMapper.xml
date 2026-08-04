@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.basic.mapper.ExportVehicleLetterGuaranteeMapper">
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.basic.entity.ExportVehicleLetterGuarantee">
+    <id column="id" property="id" />
+    <result column="lg_code" property="lgCode" />
+    <result column="customer_id" property="customerId" />
+    <result column="lg_type" property="lgType" />
+    <result column="order_type" property="orderType" />
+    <result column="bank_name" property="bankName" />
+    <result column="total_amount" property="totalAmount" />
+    <result column="conversion_ratio" property="conversionRatio" />
+    <result column="available_amount" property="availableAmount" />
+    <result column="occupied_amount" property="occupiedAmount" />
+    <result column="receivable_amount" property="receivableAmount" />
+    <result column="effective_date" property="effectiveDate" />
+    <result column="expiry_date" property="expiryDate" />
+    <result column="approval_status" property="approvalStatus" />
+    <result column="lg_status" property="lgStatus" />
+    <result column="submitter_id" property="submitterId" />
+    <result column="submitter_name" property="submitterName" />
+    <result column="submit_time" property="submitTime" />
+    <result column="approver_id" property="approverId" />
+    <result column="approver_name" property="approverName" />
+    <result column="approve_time" property="approveTime" />
+    <result column="approve_remark" property="approveRemark" />
+    <result column="remark" property="remark" />
+    <result column="creator" property="creator" />
+    <result column="creator_name" property="creatorName" />
+    <result column="create_time" property="createTime" />
+    <result column="modifier" property="modifier" />
+    <result column="modifier_name" property="modifierName" />
+    <result column="update_time" property="updateTime" />
+    <result column="delete_status" property="deleteStatus" />
+    <result column="status" property="status" />
+    <result column="status_desc" property="statusDesc" />
+    <result column="owner_user_id" property="ownerUserId" />
+    <result column="owner_org_id" property="ownerOrgId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, lg_code, customer_id, lg_type, order_type, bank_name, total_amount, conversion_ratio, available_amount, occupied_amount, receivable_amount, effective_date, expiry_date, approval_status, lg_status, submitter_id, submitter_name, submit_time, approver_id, approver_name, approve_time, approve_remark, remark, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+    </sql>
+
+</mapper>

@@ -116,7 +116,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
                 BigDecimal::add);
         if (totalAvailable.compareTo(req.getRequiredAmount()) < 0) {
             log.error("可用保函总金额不足以覆盖需求:可用=" + totalAvailable + ", 申请=" + req.getRequiredAmount());
-            throw new BizException("提交失败，资金校验未通过，请联系商务");
+            throw new BizException("可用的保函的剩余可用余额不足(" + totalAvailable + "<" + req.getRequiredAmount() + ")，请联系商务");
         }
 
         // 排序规则(业务规则,设计文档 §8.5.3):
@@ -205,24 +205,20 @@ public class ExportVehicleLetterGuaranteeCmdExe {
     @Transactional(rollbackFor = Exception.class)
     public boolean unfreeze(ExportVehicleLetterGuaranteeUnfreezeReq req) {
         log.info("保函 PO 解冻: req={}", JSON.toJSONString(req));
-        // 1. 查该 PO 下所有冻结记录(transaction_type=10),按保函逐张全额解冻
-        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
-        qo.setPoNo(req.getPoNo());
-        qo.setTransactionType(RecordTypeEnum.FREEZE.getCode());
-        List<ExportVehicleLetterGuaranteeRecordDo> frozen = exportVehicleLetterGuaranteeRecordGateway
-                .listExportVehicleLetterGuaranteeRecord(qo);
-        if (frozen == null || frozen.isEmpty()) {
-            log.info("PO {} 下无冻结记录,无需解冻", req.getPoNo());
+        // 1. 查该 PO 下冻结/解冻/转应收明细,按 lgId 汇总 PO 当前净占用(冻结 - 解冻 - 转应收),逐张全额解冻
+        Map<String, BigDecimal> occupiedByLgId = loadNetOccupiedByLgId(req.getPoNo());
+        if (occupiedByLgId.isEmpty()) {
+            log.info("PO {} 下无冻结记录或全部已解冻,无需解冻", req.getPoNo());
             return true;
         }
         int unfrozenCount = 0;
-        for (ExportVehicleLetterGuaranteeRecordDo rec : frozen) {
-            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
+        for (Map.Entry<String, BigDecimal> e : occupiedByLgId.entrySet()) {
+            BigDecimal amt = e.getValue() == null ? BigDecimal.ZERO : e.getValue();
             if (amt.compareTo(BigDecimal.ZERO) <= 0) continue;
-            boolean ok = exportVehicleLetterGuaranteeGateway.unfreeze(rec.getLgId(), amt,
+            boolean ok = exportVehicleLetterGuaranteeGateway.unfreeze(e.getKey(), amt,
                     req.getOrderId(), req.getPoNo(), req.getReason());
             if (!ok) {
-                throw new BizException("保函解冻失败: lgId=" + rec.getLgId());
+                throw new BizException("保函解冻失败: lgId=" + e.getKey());
             }
             unfrozenCount++;
         }
@@ -272,7 +268,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
      *
      * <p>输入是 SO 单粒度(poNo + soNo + frozenAmount + vin),服务端:
      * <ol>
-     *   <li>查该 PO 下所有冻结明细(transaction_type=10),按 lgId 汇总 PO当前累计占用金额</li>
+     *   <li>查该 PO 下冻结+解冻+转应收明细(transaction_type=10/20/30),按 lgId 汇总 PO 当前净占用金额(冻结 - 解冻 - 转应收)</li>
      *   <li>校验累计占用 ≥ SO冻结金额(否则整体回滚)</li>
      *   <li>排序规则:
      *     <ul>
@@ -293,19 +289,10 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             ExportVehicleLetterGuaranteeTransferReq req) {
         log.info("保函单 PO 转应收: req={} ", JSON.toJSONString(req));
 
-        // 1. 查该 PO 下所有冻结明细,按 lgId 汇总 PO当前累计占用金额
-        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
-        qo.setPoNo(req.getPoNo());
-        qo.setTransactionType(RecordTypeEnum.FREEZE.getCode());
-        List<ExportVehicleLetterGuaranteeRecordDo> frozen = exportVehicleLetterGuaranteeRecordGateway
-                .listExportVehicleLetterGuaranteeRecord(qo);
-        if (frozen == null || frozen.isEmpty()) {
+        // 1. 查该 PO 下冻结/解冻/转应收明细,按 lgId 汇总 PO 当前净占用金额(冻结 - 解冻 - 转应收)
+        Map<String, BigDecimal> occupiedByLgId = loadNetOccupiedByLgId(req.getPoNo());
+        if (occupiedByLgId.isEmpty()) {
             throw new BizException("PO " + req.getPoNo() + " 下无冻结记录,无法转应收");
-        }
-        Map<String, BigDecimal> occupiedByLgId = new LinkedHashMap<>();
-        for (ExportVehicleLetterGuaranteeRecordDo rec : frozen) {
-            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
-            occupiedByLgId.merge(rec.getLgId(), amt, BigDecimal::add);
         }
 
         // 2. 校验累计占用 ≥ SO冻结金额
@@ -417,6 +404,41 @@ public class ExportVehicleLetterGuaranteeCmdExe {
         return true;
     }
 
+    // ============== 私有助手方法 ==============
+
+    /**
+     * 查 PO 下所有冻结/解冻/转应收明细,按 lgId 汇总 PO 当前净占用(冻结 - 解冻 - 转应收)。
+     * <p>用于避免「同一 PO 多次资金操作时,占用基于历史冻结总额而非净占用」的 bug:
+     * 流水一旦写入便不会改写/删除,故必须显式减去所有「会减少 occupied 字段」的后续流水才能拿到当前真实占用。
+     * <p>净占用 ≤ 0 的 lgId 会被剔除,返回空 Map 等价于「PO 下无任何可用净占用」。
+     */
+    private Map<String, BigDecimal> loadNetOccupiedByLgId(String poNo) {
+        Map<String, BigDecimal> net = new LinkedHashMap<>();
+        accumulateByLgId(net, queryRecordsByType(poNo, RecordTypeEnum.FREEZE.getCode()), BigDecimal::add);
+        accumulateByLgId(net, queryRecordsByType(poNo, RecordTypeEnum.UNFREEZE.getCode()), BigDecimal::subtract);
+        accumulateByLgId(net, queryRecordsByType(poNo, RecordTypeEnum.TRANSFER_RECEIVABLE.getCode()), BigDecimal::subtract);
+        // 仅保留净占用 > 0 的项,空 Map 表示「PO 下无任何净占用」
+        net.entrySet().removeIf(e -> e.getValue() == null || e.getValue().compareTo(BigDecimal.ZERO) <= 0);
+        return net;
+    }
+
+    private List<ExportVehicleLetterGuaranteeRecordDo> queryRecordsByType(String poNo, String transactionType) {
+        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
+        qo.setPoNo(poNo);
+        qo.setTransactionType(transactionType);
+        return exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(qo);
+    }
+
+    private void accumulateByLgId(Map<String, BigDecimal> net,
+                                  List<ExportVehicleLetterGuaranteeRecordDo> recs,
+                                  java.util.function.BinaryOperator<BigDecimal> op) {
+        if (recs == null) return;
+        for (ExportVehicleLetterGuaranteeRecordDo rec : recs) {
+            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
+            net.merge(rec.getLgId(), amt, op);
+        }
+    }
+
     // ============== PO 刷新订单价格联动(§3.5) ==============
 
     /**
@@ -426,7 +448,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
      * <p>算法(单一 {@code @Transactional(rollbackFor=Exception.class)} 事务,all-or-nothing):
      * <ol>
      *   <li>校验 amountDiff > 0</li>
-     *   <li>查该 PO 下所有冻结明细(transaction_type=10),按 lgId 汇总 PO 当前累计占用</li>
+     *   <li>查该 PO 下冻结+解冻+转应收明细(transaction_type=10/20/30),按 lgId 汇总 PO 当前净占用(冻结 - 解冻 - 转应收)</li>
      *   <li>取主表校验保函存在 → 形成候选集(失效/作废由 gateway
      * .unfreeze 内 ensureLgStatus 兜底)</li>
      *   <li>排序:失效日期 DESC(最晚优先,nullsLast 保证 null 排末位)</li>
@@ -452,19 +474,10 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             throw new BizException("amountDiff 必须大于 0");
         }
 
-        // 1. 查该 PO 下所有冻结明细,按 lgId 汇总 PO 当前累计占用
-        ExportVehicleLetterGuaranteeRecordQo qo = new ExportVehicleLetterGuaranteeRecordQo();
-        qo.setPoNo(req.getPoNo());
-        qo.setTransactionType(RecordTypeEnum.FREEZE.getCode());
-        List<ExportVehicleLetterGuaranteeRecordDo> frozen = exportVehicleLetterGuaranteeRecordGateway
-                .listExportVehicleLetterGuaranteeRecord(qo);
-        if (frozen == null || frozen.isEmpty()) {
+        // 1. 查该 PO 下冻结/解冻/转应收明细,按 lgId 汇总 PO 当前净占用(冻结 - 解冻 - 转应收)
+        Map<String, BigDecimal> occupiedByLgId = loadNetOccupiedByLgId(req.getPoNo());
+        if (occupiedByLgId.isEmpty()) {
             throw new BizException("PO " + req.getPoNo() + " 下无冻结记录,无法调减");
-        }
-        Map<String, BigDecimal> occupiedByLgId = new LinkedHashMap<>();
-        for (ExportVehicleLetterGuaranteeRecordDo rec : frozen) {
-            BigDecimal amt = rec.getTransactionAmount() == null ? BigDecimal.ZERO : rec.getTransactionAmount();
-            occupiedByLgId.merge(rec.getLgId(), amt, BigDecimal::add);
         }
 
         // 2. 取主表形成候选集(失效/作废 由 gateway.unfreeze 内 ensureLgStatus 兜底)

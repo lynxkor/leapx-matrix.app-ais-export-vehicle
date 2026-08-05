@@ -116,7 +116,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
                 BigDecimal::add);
         if (totalAvailable.compareTo(req.getRequiredAmount()) < 0) {
             log.error("可用保函总金额不足以覆盖需求:可用=" + totalAvailable + ", 申请=" + req.getRequiredAmount());
-            throw new BizException("提交失败，资金校验未通过，请联系商务");
+            throw new BizException("可用的保函的剩余可用余额不足(" + totalAvailable + "<" + req.getRequiredAmount() + ")，请联系商务");
         }
 
         // 排序规则(业务规则,设计文档 §8.5.3):

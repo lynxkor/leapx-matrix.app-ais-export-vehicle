@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.gatewayimpl;
 
 import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
+import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.client.SapClientApi;
@@ -34,6 +35,21 @@ public class SapGatewayImpl implements SapGateway {
         } catch (Exception e) {
             log.error("SO订单同步SAP异常：{}", e.getMessage());
             throw new BizException("SO订单同步SAP异常：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public SapResult syncPayableList(PayableListSyncSapReq req) {
+        try {
+            log.info("应付清单同步SAP, request:{}", req);
+            SapResult result = sapClientApi.syncPayableList(req);
+            log.info("应付清单同步SAP, request:{}, response:{}", req, result);
+            return result;
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("应付清单同步SAP异常：{}", e.getMessage());
+            throw new BizException("应付清单同步SAP异常：" + e.getMessage());
         }
     }
 }

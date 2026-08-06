@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.client;
 
+import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -22,4 +23,10 @@ public interface SapClientApi {
      */
     @PostMapping("/orderSync")
     SapResult orderSync(@RequestBody SapOrderSyncReq req);
+
+    /**
+     * 应付清单同步 SAP（契约待 SAP 侧提供，先占位）
+     */
+    @PostMapping("/payableList/sync")
+    SapResult syncPayableList(@RequestBody PayableListSyncSapReq req);
 }

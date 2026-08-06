@@ -1,5 +1,7 @@
 package com.leapmotor.export.vehicle.controller.open.hongqi;
 
+import com.leapmotor.export.vehicle.payablelist.dto.HqConfirmReq;
+import com.leapmotor.export.vehicle.payablelist.executor.integration.HqConfirmProcessor;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author leapmotor
  * @since 2026-07-08
  */
-@Tag(name = "红旗系统开放接口", description = "红旗 → PO/SO 入站接口")
+@Tag(name = "红旗系统开放接口", description = "红旗系统入站接口")
 @RestController
 @AllArgsConstructor
 @RequestMapping("/openApi/hongqi")
@@ -30,6 +32,7 @@ public class HongqiOpenController {
 
     private ExportVehicleCbuPoService purchaseOrderService;
     private VehicleCbuSoService vehicleCbuSoService;
+    private HqConfirmProcessor hqConfirmProcessor;
 
     /**
      * 红旗CBU订单采购申请 → 创建草稿PO订单（主表+明细联保存）
@@ -47,6 +50,16 @@ public class HongqiOpenController {
     @PostMapping("/vehicleCbuSo/receiveQcResult")
     public AjaxResult<Void> receiveQcResult(@RequestBody VehicleCbuSoReceiveQcReq req) {
         vehicleCbuSoService.receiveQcResult(req);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 红旗确认结果反馈
+     */
+    @Operation(summary = "应付清单红旗确认结果反馈")
+    @PostMapping("/payableList/confirmResult")
+    public AjaxResult<Void> confirmResult(@RequestBody HqConfirmReq req) {
+        hqConfirmProcessor.process(req.getPayableListNo(), req.getConfirmResult(), req.getConfirmTime(), req.getConfirmRemark());
         return AjaxResult.success();
     }
 }

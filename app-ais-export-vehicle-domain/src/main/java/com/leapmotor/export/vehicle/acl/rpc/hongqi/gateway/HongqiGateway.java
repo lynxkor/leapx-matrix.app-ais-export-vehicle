@@ -1,8 +1,10 @@
 package com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway;
 
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotifyReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
 
 import java.util.List;
@@ -21,17 +23,17 @@ public interface HongqiGateway {
      * 推送 CBU 审批结果到红旗。
      *
      * @param req 审批结果回传请求
-     * @return 红旗返回
+     * @return 红旗返回（data = HongqiResultData）
      */
-    HongqiResult pushCbuApprovalResult(CbuApprovalResultReq req);
+    HongqiResult<HongqiResultData> pushCbuApprovalResult(CbuApprovalResultReq req);
 
     /**
      * 车辆生产信息同步红旗（VDO53003）。
      *
      * @param req 生产信息同步请求列表
-     * @return 红旗返回
+     * @return 红旗返回（data = List&lt;HongqiProductionNodeResultData&gt;，每条入参对应一条出参）
      */
-    HongqiResult pushProductionNodeSync(List<HongqiProductionNodeNotifyReq> req);
+    HongqiResult<List<HongqiProductionNodeResultData>> pushProductionNodeSync(List<HongqiProductionNodeNotifyReq> req);
 
     /**
      * 应付清单同步红旗。

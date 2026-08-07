@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.so.resp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
@@ -52,6 +53,9 @@ public class VehicleCbuSoDetailResp extends LpBaseModel implements Serializable 
 
     @Schema(description = "选装包")
     private String optionalPackage;
+
+    @Schema(description = "计划总装下线日期，从APS获取")
+    private LocalDate planOfflineDate;
 
     @Schema(description = "排产时间，从APS获取")
     private LocalDateTime scheduleTime;

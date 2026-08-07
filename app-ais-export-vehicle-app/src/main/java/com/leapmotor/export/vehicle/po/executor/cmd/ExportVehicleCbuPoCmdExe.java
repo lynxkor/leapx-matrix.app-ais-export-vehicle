@@ -25,6 +25,7 @@ import com.leapmotor.export.vehicle.po.req.HongqiCbuOrderDetailReq;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoDetailSaveReq;
 import com.leapmotor.export.vehicle.po.req.ExportVehicleCbuPoSaveReq;
+import com.leapmotor.export.vehicle.po.validator.HongqiCbuPurchaseOrderValidator;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -39,15 +40,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +69,8 @@ public class ExportVehicleCbuPoCmdExe {
     private VehiclePriceHqApi vehiclePriceHqApi;
     /** 销售公司主数据，对接 app-ais-export-nexus 销售公司服务 */
     private CompanyApi companyApi;
+    /** 红旗CBU采购申请入参校验器（手写全量收集，替代注解校验） */
+    private HongqiCbuPurchaseOrderValidator purchaseOrderValidator;
 
 
     public boolean deleteExportVehicleCbuPoByIds(List<String> ids) {
@@ -89,6 +89,12 @@ public class ExportVehicleCbuPoCmdExe {
      */
     @Transactional(rollbackFor = Exception.class)
     public String createFromHongqi(HongqiCbuPurchaseOrderReq req) {
+        // 0. 参数全量校验：一次性收集全部参数错误（[字段]/第N行[字段]+错误值），不依赖注解，message 可控
+        List<String> paramErrors = purchaseOrderValidator.validate(req);
+        if (!paramErrors.isEmpty()) {
+            throw new BizException(String.join("；", paramErrors));
+        }
+
         // 1. PO单号唯一性（已存在则报错，重复推送同样报错）
         ExportVehicleCbuPoQo existQo = new ExportVehicleCbuPoQo();
         existQo.setPoNo(req.getPoNo());
@@ -96,17 +102,10 @@ public class ExportVehicleCbuPoCmdExe {
             throw new BizException("PO单号已存在: " + req.getPoNo());
         }
 
-        // 2. 同一 PO 内订单明细编号唯一
-        checkDetailNumberUnique(req);
-
-        // 2.1 PO单号/计划版本号 内嵌日期段合法性（@Pattern 只校验数字位，非法日期如 20261332 在此拦截）
-        validateDateSegment(req.getPoNo().substring(2, 10), "PO单号");
-        validateDateSegment(req.getPlanVersion().substring(0, 8), "计划版本号");
-
-        // 3. 客户匹配（接口客户编码 = 外部客户编码 → 客户主数据）
+        // 2. 客户匹配（接口客户编码 = 外部客户编码 → 客户主数据）
         CustomerResponse customer = queryCustomerByExternalCode(req.getCustomerCode());
 
-        // 4. 抬头组装
+        // 3. 抬头组装
         LocalDateTime now = LocalDateTime.now();
         ExportVehicleCbuPoDo order = new ExportVehicleCbuPoDo();
         order.setPoNo(req.getPoNo());
@@ -117,45 +116,27 @@ public class ExportVehicleCbuPoCmdExe {
             order.setCustomerName(customer.getCustomerName());
         }
         order.setDataSource(DataSourceEnum.HONGQI.getCode());
-        order.setSalesCompanyCode("1000");
+        // 销售公司留空，由草稿编辑保存时从下拉选填写
         order.setOrderType(PoOrderTypeEnum.CBU.getCode());
         order.setPlanVersion(req.getPlanVersion());
 
-        // 5. 明细组装（物料匹配 + 单价匹配 + 金额合计）
+        // 4. 明细组装（物料匹配 + 单价匹配 + 金额合计）
         List<ExportVehicleCbuPoDetailDo> details = buildDetails(req, now);
 
-        // 6. 总金额 = SUM(明细金额合计)
+        // 5. 总金额 = SUM(明细金额合计)
         BigDecimal total = details.stream()
                 .map(ExportVehicleCbuPoDetailDo::getTotalAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         order.setTotalAmount(total);
 
-        // 7. 联保存：主表 + 明细批量（同事务）
+        // 6. 联保存：主表 + 明细批量（同事务）
         String poId = purchaseOrderGateway.addExportVehicleCbuPo(order);
         purchaseOrderDetailGateway.addBatchExportVehicleCbuPoDetail(details);
         return poId;
     }
 
-    /** 同一 PO 内订单明细编号唯一校验 */
-    private void checkDetailNumberUnique(HongqiCbuPurchaseOrderReq req) {
-        Set<String> seen = new HashSet<>();
-        for (HongqiCbuOrderDetailReq d : req.getOrderDetailList()) {
-            if (!seen.add(d.getDetailNumber())) {
-                throw new BizException("订单明细编号重复: " + d.getDetailNumber());
-            }
-        }
-    }
-
-    /** 校验 yyyyMMdd 日期段是真实合法日期（@Pattern 只验数字位，20261332 这类伪日期在此拦截） */
-    private void validateDateSegment(String yyyyMMdd, String field) {
-        try {
-            LocalDate.parse(yyyyMMdd, DateTimeFormatter.BASIC_ISO_DATE);
-        } catch (DateTimeParseException e) {
-            throw new BizException(field + "内嵌日期段非法(应为合法 yyyyMMdd): " + yyyyMMdd);
-        }
-    }
-
+    /** 校验销售公司编码在主数据中存在（数据来源为销售公司主数据下拉，禁止随意填写） */
     /** 校验销售公司编码在主数据中存在（数据来源为销售公司主数据下拉，禁止随意填写） */
     private void checkSalesCompany(String companyCode) {
         try {
@@ -188,7 +169,7 @@ public class ExportVehicleCbuPoCmdExe {
         // 价格批量匹配：用物料匹配到的 code 一次 batchMatch
         Map<String, BigDecimal> priceMap = queryLatestApprovedPrices(
                 new ArrayList<>(materialMap.values().stream().map(VehicleMaterialDto::getCode).collect(Collectors.toSet())),
-                1, orderCreateTime);
+                PoOrderTypeEnum.CBU.getCode(), orderCreateTime);
         List<ExportVehicleCbuPoDetailDo> list = new ArrayList<>();
         for (HongqiCbuOrderDetailReq d : req.getOrderDetailList()) {
             ExportVehicleCbuPoDetailDo detail = new ExportVehicleCbuPoDetailDo();

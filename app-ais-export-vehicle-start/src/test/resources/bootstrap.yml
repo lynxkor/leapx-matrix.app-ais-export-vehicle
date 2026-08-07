@@ -24,6 +24,7 @@ spring:
       - nacos:portal-jwt.yaml?refreshEnabled=true&group=leapx
       - nacos:app-ais-export-vehicle.yaml?refreshEnabled=true&group=ais
       - nacos:app-ais-export-vehicle-datasource.yaml?refreshEnabled=true&group=ais
+      - nacos:app-ais-export-vehicle-event.yaml?refreshEnabled=true&group=ais
 
 
 

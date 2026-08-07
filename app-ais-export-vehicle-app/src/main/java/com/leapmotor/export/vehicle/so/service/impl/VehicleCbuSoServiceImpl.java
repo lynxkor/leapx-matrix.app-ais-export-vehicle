@@ -18,6 +18,7 @@ import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveStatusReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReissueSapReq;
 import com.leapmotor.export.vehicle.so.resp.SoResult;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoOperateResult;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoDetailAggregateResp;
@@ -123,8 +124,8 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     }
 
     @Override
-    public void receiveProductionStatus(VehicleCbuSoReceiveStatusReq req) {
-        vehicleCbuSoCmdExe.receiveProductionStatus(req);
+    public VehicleCbuSoOperateResult receiveProductionStatus(List<VehicleCbuSoReceiveStatusReq> reqs) {
+        return vehicleCbuSoCmdExe.receiveProductionStatusBatch(reqs);
     }
 
     @Override
@@ -138,15 +139,15 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     }
 
     @Override
-    public void reissueSap(String soNo) {
-        vehicleCbuSoCmdExe.reissueSap(soNo);
+    public VehicleCbuSoOperateResult reissueSap(VehicleCbuSoReissueSapReq req) {
+        return vehicleCbuSoCmdExe.reissueSap(req);
     }
 
     @Override
     public VehicleCbuSoDetailAggregateResp detail(String id) {
         VehicleCbuSoDo orderDo = vehicleCbuSoQryExe.getSoDetailById(id);
         if (orderDo == null) {
-            return null;
+            throw new BizException("SO订单不存在");
         }
         VehicleCbuSoResp orderResp = VehicleCbuSoDTOStructMapper.INSTANCE.domainToResp(orderDo);
         fillSalesCompanyName(Collections.singletonList(orderResp));

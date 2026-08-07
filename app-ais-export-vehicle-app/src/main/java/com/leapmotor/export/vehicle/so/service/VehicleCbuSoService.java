@@ -7,6 +7,7 @@ import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveStatusReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReissueSapReq;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoResp;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoAddOrUpdateReq;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
@@ -86,7 +87,8 @@ public interface VehicleCbuSoService {
 
     /**
      * 按 PO 刷新 SO 车辆价/冻结金额（PO 刷新价格分支B 联动 SO）。
-     * 调用方需保证 PO 处于已审态(销售已提交/供需通过/产销通过)且 SO 无质检通过/已收款。
+     * 调用方需保证 PO 处于已审态(
+             销售已提交/供需通过/产销通过)且 SO 无质检通过/已收款。
      *
      * @param req PO单号 + 明细新单价(按 poDetailId 匹配 SO)
      */
@@ -125,11 +127,12 @@ public interface VehicleCbuSoService {
     VehicleCbuSoDetailAggregateResp detail(String id);
 
     /**
-     * 接收 APS 生产状态回传
+     * 接收 APS 生产状态回传（批量，单次不超过配置上限 aps.receive.batch-size-limit）
      *
-     * @param req APS 状态回传请求
+     * @param reqs APS 状态回传请求列表
+     * @return 批量处理结果（总数/成功/失败/失败明细）
      */
-    void receiveProductionStatus(VehicleCbuSoReceiveStatusReq req);
+    VehicleCbuSoOperateResult receiveProductionStatus(List<VehicleCbuSoReceiveStatusReq> reqs);
 
     /**
      * 接收红旗质检结果回传
@@ -150,6 +153,6 @@ public interface VehicleCbuSoService {
      *
      * @param soNo SO 单号
      */
-    void reissueSap(String soNo);
+    VehicleCbuSoOperateResult reissueSap(VehicleCbuSoReissueSapReq req);
 
 }

@@ -1,6 +1,11 @@
 package com.leapmotor.export.vehicle.so.service;
 
+import com.leapmotor.export.nexus.company.api.CompanyApi;
+import com.leapmotor.export.nexus.company.response.CompanyResponse;
+import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.export.vehicle.acl.rpc.aps.gateway.ApsGateway;
+import com.leapmotor.export.vehicle.acl.rpc.aps.req.ApsCancelReq;
+import com.leapmotor.export.vehicle.acl.rpc.aps.req.ApsIssueReq;
 import com.leapmotor.export.vehicle.acl.rpc.aps.resp.ApsResult;
 import com.leapmotor.export.vehicle.base.BaseServiceTest;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoDetailGateway;
@@ -20,10 +25,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -57,6 +64,9 @@ public class VehicleCbuSoIssueCancelServiceTest extends BaseServiceTest<VehicleC
     @MockBean
     private ApsGateway apsGateway;
 
+    @MockBean
+    private CompanyApi companyApi;
+
     @Resource
     private VehicleCbuSoGateway vehicleCbuSoGateway;
 
@@ -73,6 +83,12 @@ public class VehicleCbuSoIssueCancelServiceTest extends BaseServiceTest<VehicleC
         ok.setMessage("ok");
         when(apsGateway.issueSync(any())).thenReturn(ok);
         when(apsGateway.cancelSync(any())).thenReturn(ok);
+        // 销售公司主数据 stub（buildApsIssueReq 查 salesCompanyName）
+        CompanyResponse company = new CompanyResponse();
+        company.setCompanyCode("1000");
+        company.setCompanyName("测试销售公司");
+        AjaxResult<List<CompanyResponse>> companyAjax = AjaxResult.success(Arrays.asList(company));
+        when(companyApi.list(any())).thenReturn(companyAjax);
     }
 
     @Test
@@ -114,8 +130,9 @@ public class VehicleCbuSoIssueCancelServiceTest extends BaseServiceTest<VehicleC
         VehicleCbuSoOperateResult result = service.issueToProduction(batch);
 
         assertEquals(1, result.getSuccessCount(), "仅未下发的 1 条应成功");
-        assertEquals(1, result.getFailItems().size(), "已下发的 1 条应记失败");
-        assertEquals(issued.getSoNo(), result.getFailItems().get(0).getSoNo());
+        assertEquals(1, result.getSkipCount(), "已下发的 1 条应记跳过");
+        assertEquals(0, result.getFailCount(), "无失败");
+        assertEquals(issued.getSoNo(), result.getSkipItems().get(0).getSoNo());
         assertEquals(1002, getOrderStatus(poNo1, issued.getSoNo()), "已下发的不应回滚");
         assertEquals(1002, getOrderStatus(poNo2, notIssued.getSoNo()), "未下发的应成功流转");
     }
@@ -184,11 +201,113 @@ public class VehicleCbuSoIssueCancelServiceTest extends BaseServiceTest<VehicleC
         verify(apsGateway, times(1)).cancelSync(any());
     }
 
+    @Test
+    @DisplayName("下发：ApsIssueReq 字段对齐真实契约（含 issueOn 取 SO.receiveOrderTime）")
+    public void testIssue_apsReqFields() {
+        String poNo = "PO-F-" + UUID.randomUUID().toString().substring(0, 8);
+        LocalDateTime receiveOrderTime = LocalDateTime.of(2026, 7, 1, 9, 30, 0);
+        SoCreateReq createReq = new SoCreateReq();
+        createReq.setPoNo(poNo);
+        createReq.setPoId(UUID.randomUUID().toString());
+        createReq.setSalesCompanyCode("1000");
+        createReq.setCustomerCode("CUST001");
+        createReq.setCustomerName("测试客户");
+        createReq.setOrderType(1);
+        createReq.setPlanVersion("V1");
+        createReq.setReceiveOrderTime(receiveOrderTime);
+
+        List<SoCreateReq.SoDetailReq> details = new ArrayList<>();
+        SoCreateReq.SoDetailReq d1 = new SoCreateReq.SoDetailReq();
+        d1.setPoDetailNo("D001");
+        d1.setDemandQuantity(new BigDecimal("1"));
+        d1.setUnitPrice(new BigDecimal("150000.00"));
+        d1.setVinYear("2026");
+        d1.setExpectedOfflineDate(LocalDate.of(2026, 9, 1));
+        d1.setMaterialCode("MAT001");
+        d1.setMaterialDescription("测试物料1");
+        details.add(d1);
+        createReq.setDetails(details);
+
+        SoResult.SoItem item = service.createSo(createReq).getData().get(0);
+
+        VehicleCbuSoIssueReq req = new VehicleCbuSoIssueReq();
+        req.setId(item.getSoId());
+        service.issueToProduction(req);
+
+        ArgumentCaptor<ApsIssueReq> captor = ArgumentCaptor.forClass(ApsIssueReq.class);
+        verify(apsGateway, times(1)).issueSync(captor.capture());
+        ApsIssueReq apsReq = captor.getValue();
+        assertEquals(poNo, apsReq.getVehPoName());
+        assertEquals(item.getSoNo(), apsReq.getVehCbuSoName());
+        assertEquals(item.getSoId(), apsReq.getVehCbuSoId());
+        assertEquals("1000", apsReq.getSalesCompanyCode());
+        assertEquals("测试销售公司", apsReq.getSalesCompanyName(),
+                "salesCompanyName 从主数据查");
+        assertEquals("CUST001", apsReq.getCustomerCode());
+        assertEquals("测试客户", apsReq.getCustomerName());
+        assertEquals("MAT001", apsReq.getVehicleMaterialName());
+        assertEquals("测试物料1", apsReq.getVehicleMaterialDesc());
+        assertEquals(10, apsReq.getOrderType(), "orderType 固定 10");
+        assertEquals(100, apsReq.getOrderCategory(), "orderCategory 固定 100");
+        assertEquals(200, apsReq.getVehOrderSource(), "vehOrderSource 固定 200");
+        assertEquals(1, apsReq.getQuantity(), "quantity 固定 1");
+        assertEquals("2026", apsReq.getVinYear());
+        assertEquals("2026-07-01 09:30:00", apsReq.getIssueOn(),
+                "issueOn 取 SO.receiveOrderTime 格式化 yyyy-MM-dd HH:mm:ss");
+        assertNotNull(apsReq.getExpectProducedOn(), "expectProducedOn 取 expectedOfflineDate");
+    }
+
+    @Test
+    @DisplayName("作废：ApsCancelReq 字段名 vehPoName/vehCbuSoName（SO 维度）")
+    public void testCancel_apsReqFields_soDim() {
+        String poNo = "PO-F-" + UUID.randomUUID().toString().substring(0, 8);
+        SoResult.SoItem item = createSingleSo(poNo);
+        // 置为排产中(1003)以触发 APS 作废同步
+        VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoById(item.getSoId());
+        so.setOrderStatus(1003);
+        vehicleCbuSoGateway.updateVehicleCbuSo(so);
+
+        VehicleCbuSoCancelReq req = new VehicleCbuSoCancelReq();
+        req.setId(item.getSoId());
+        req.setReason("测试");
+        service.cancel(req);
+
+        ArgumentCaptor<ApsCancelReq> captor = ArgumentCaptor.forClass(ApsCancelReq.class);
+        verify(apsGateway, times(1)).cancelSync(captor.capture());
+        ApsCancelReq apsReq = captor.getValue();
+        assertEquals(poNo, apsReq.getVehPoName(), "SO 维度作废应传 vehPoName");
+        assertEquals(item.getSoNo(), apsReq.getVehCbuSoName(), "SO 维度作废应传 vehCbuSoName");
+        assertEquals(-1, apsReq.getChangeType());
+    }
+
+    @Test
+    @DisplayName("作废：ApsCancelReq 字段名 vehPoName（PO 维度，vehCbuSoName 空）")
+    public void testCancel_apsReqFields_poDim() {
+        String poNo = "PO-F-" + UUID.randomUUID().toString().substring(0, 8);
+        SoResult.SoItem item = createSingleSo(poNo);
+        VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoById(item.getSoId());
+        so.setOrderStatus(1003);
+        vehicleCbuSoGateway.updateVehicleCbuSo(so);
+
+        VehicleCbuSoCancelReq req = new VehicleCbuSoCancelReq();
+        req.setPoNo(poNo);
+        req.setReason("测试");
+        service.cancel(req);
+
+        ArgumentCaptor<ApsCancelReq> captor = ArgumentCaptor.forClass(ApsCancelReq.class);
+        verify(apsGateway, atLeast(1)).cancelSync(captor.capture());
+        ApsCancelReq apsReq = captor.getValue();
+        assertEquals(poNo, apsReq.getVehPoName());
+        assertNull(apsReq.getVehCbuSoName(), "PO 维度作废 vehCbuSoName 应为空");
+        assertEquals(-1, apsReq.getChangeType());
+    }
+
     // ==================== 辅助 ====================
 
     private SoResult.SoItem createSingleSo(String poNo) {
         SoCreateReq req = new SoCreateReq();
         req.setPoNo(poNo);
+        req.setPoId(UUID.randomUUID().toString());
         req.setSalesCompanyCode("1000");
         req.setCustomerCode("CUST001");
         req.setCustomerName("测试客户");

@@ -7,9 +7,7 @@ import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeUnfree
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeAdjustUnfreezeResp;
 import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeFreezeResp;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeService;
-import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
-import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
-import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
+import com.leapmotor.export.vehicle.base.event.CbuApprovalResultToHongqi;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
@@ -69,6 +67,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -103,9 +102,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
      */
     private ExportVehicleLetterGuaranteeService letterGuaranteeService;
     /**
-     * 事件发布（推红旗，T03 事件机制）
+     * 红旗 CBU 审批结果推送（共用 CbuApprovalResultToHongqi 的 pushAndWriteBack，避免重复逻辑）
      */
-    private EventHandlerHelper eventHandlerHelper;
+    private CbuApprovalResultToHongqi cbuApprovalResultToHongqi;
     /**
      * 用于批量操作中 self 代理调用（保证 @Transactional 生效）
      */
@@ -126,23 +125,21 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             throw new BizException("PO订单不存在");
         }
         if (!ExportVehicleCbuPoStatusEnum.DRAFT.getCode().equals(order.getOrderStatus())) {
-            throw new BizException("仅草稿态订单可提交");
+            throw new BizException("订单状态不是草稿，无法提交");
         }
 
-        // ===== 步骤1 检查订单数据 + 兜底匹配 =====
+        // ===== 步骤1 检查订单数据 + 兜底匹配（一次性收集所有错误） =====
+        List<String> errors = new ArrayList<>();
         if (StringUtils.isBlank(order.getSalesCompanyCode())) {
-            throw new BizException("销售公司不能为空");
+            errors.add("销售公司不能为空");
         }
         CustomerResponse customer = queryCustomerByExternalCode(order.getExternalCustomerCode());
-        // 提交为强校验节点：客户主数据必须能查到（查不到说明 nexus 异常或数据缺失），不能静默跳过保函数资金校验
         if (customer == null) {
-            throw new BizException("客户主数据查询失败，无法提交，请稍后重试");
-        }
-        if (StringUtils.isBlank(order.getCustomerCode())) {
+            errors.add("客户信息匹配失败，不允许提交，请检查客户信息");
+        } else if (StringUtils.isBlank(order.getCustomerCode())) {
             order.setCustomerCode(customer.getCustomerCode());
             order.setCustomerName(customer.getCustomerName());
         }
-        // 明细物料兜底（批量匹配：一次 Feign 替代循环内逐条）
         ExportVehicleCbuPoDetailQo detailQo = new ExportVehicleCbuPoDetailQo();
         detailQo.setPoNo(order.getPoNo());
         List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(detailQo);
@@ -156,7 +153,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             if (StringUtils.isBlank(d.getMaterialCode())) {
                 VehicleMaterialDto m = materialMap.get(d.getSyncMaterialCode());
                 if (m == null) {
-                    throw new BizException("明细" + d.getOrderDetailNumber() + "物料编码无法匹配，不允许提交");
+                    errors.add(d.getPoDetailNo() + "物料编码匹配失败，不允许提交，请检查物料信息");
+                    continue;
                 }
                 d.setMaterialCode(m.getCode());
                 d.setMaterialDescription(m.getMaterialDesc());
@@ -164,6 +162,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 d.setModelYear(m.getYearType());
                 d.setOptionalPackage(m.getOptionPackage());
             }
+        }
+        if (!errors.isEmpty()) {
+            throw new BizException(String.join("；", errors));
         }
 
         // ===== 步骤2 价格匹配（单价空的明细按 物料+订单类型+创建时间 取审批最新价） =====
@@ -205,6 +206,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             freezeReq.setRequiredAmount(order.getTotalAmount());
             // 保函数侧按订单创建时间筛选可用保函（失效日期 ≥ 创建时间 + coverDays），需传订单创建时间
             freezeReq.setOrderCreateTime(order.getCreateTime().toLocalDate());
+            freezeReq.setRemark("PO单[" + order.getPoNo() + "]提交，资金冻结");
             ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.freeze(freezeReq);
             if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess()) || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
                 throw new BizException("提交失败，资金校验未通过，请联系商务");
@@ -242,7 +244,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             throw new BizException("PO订单不存在");
         }
         if (!ExportVehicleCbuPoStatusEnum.DRAFT.getCode().equals(order.getOrderStatus())) {
-            throw new BizException("仅草稿态订单可驳回");
+            throw new BizException("订单状态不是草稿，无法驳回");
         }
 
         // 状态→销售已驳回（终态）+ 驳回时间/人/说明（只 set 这些，updateById 防篡改）
@@ -259,9 +261,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("R");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 供需审核通过（生成 SO 单） ====================
@@ -317,6 +319,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             sd.setProductionRemark(d.getProductionRemark());
             sd.setMaterialCode(d.getMaterialCode());
             sd.setMaterialDescription(d.getMaterialDescription());
+            sd.setSalesMarket(d.getSalesMarket());
+            sd.setModelYear(d.getModelYear());
+            sd.setOptionalPackage(d.getOptionalPackage());
             return sd;
         }).toList());
         return req;
@@ -347,7 +352,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         ExportVehicleLetterGuaranteeUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeUnfreezeReq();
         unfreezeReq.setPoNo(order.getPoNo());
         unfreezeReq.setOrderId(order.getId());
-        unfreezeReq.setReason("供需审核驳回");
+        unfreezeReq.setReason("PO单[" + order.getPoNo() + "]驳回，资金解冻");
         letterGuaranteeService.unfreeze(unfreezeReq);
 
         // PO-保函关联表占用金额清零（按 poNo 查 + 逐条 update po_current_occupied_amount=0）
@@ -366,9 +371,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("R");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 产销平衡审核通过（终态 + 推红旗） ====================
@@ -395,8 +400,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("A");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 产销平衡审核驳回（SO 作废 + 保函解冻 + 推红旗，APS 同步由 SO 侧负责） ====================
@@ -421,6 +426,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             if (status != null
                     && (VehicleCbuSoStatusEnum.CANCELLED.getCode().equals(status)
                     || VehicleCbuSoStatusEnum.NOT_ISSUED.getCode().equals(status)
+                    || VehicleCbuSoStatusEnum.ISSUED.getCode().equals(status)
                     || VehicleCbuSoStatusEnum.SCHEDULING.getCode().equals(status))) {
                 continue;
             }
@@ -440,7 +446,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         ExportVehicleLetterGuaranteeUnfreezeReq unfreezeReq = new ExportVehicleLetterGuaranteeUnfreezeReq();
         unfreezeReq.setPoNo(order.getPoNo());
         unfreezeReq.setOrderId(order.getId());
-        unfreezeReq.setReason("产销平衡驳回");
+        unfreezeReq.setReason("PO单[" + order.getPoNo() + "]驳回，资金解冻");
         letterGuaranteeService.unfreeze(unfreezeReq);
         ExportVehicleCbuPoGuaranteeQo gqo = new ExportVehicleCbuPoGuaranteeQo();
         gqo.setPoNo(order.getPoNo());
@@ -458,8 +464,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         cancelReq.setReason("产销平衡驳回作废：" + req.getRejectReason());
         VehicleCbuSoOperateResult cancelResult = vehicleCbuSoCmdExe.cancel(cancelReq);
         if (CollectionUtils.isNotEmpty(cancelResult.getFailItems())) {
-            String failDetail = cancelResult.getFailItems().stream().map(i -> i.getSoNo() + ":" + i.getReason()).collect(Collectors.joining(";"));
-            throw new BizException("PO作废失败，部分SO作废异常：" + failDetail);
+            String soNos = cancelResult.getFailItems().stream().map(i -> i.getSoNo()).collect(Collectors.joining("、"));
+            throw new BizException("PO订单驳回失败，关联 SO订单（" + soNos + "）同步产销平台作废失败，请检查订单状态");
         }
 
         // 推红旗审批结果（驳回）
@@ -467,9 +473,9 @@ public class ExportVehicleCbuPoApprovalCmdExe {
         pushReq.setPoNo(order.getPoNo());
         pushReq.setPlanVersion(order.getPlanVersion());
         pushReq.setStatus("R");
-        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
         pushReq.setRemark(req.getRejectReason());
-        eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.HONGQI, HongqiEventTypeEnum.PUSH_CBU_APPROVAL_RESULT, order.getId(), pushReq);
+        cbuApprovalResultToHongqi.pushAndWriteBack(order.getId(), pushReq);
     }
 
     // ==================== 刷新订单价格（联动保函 / SO） ====================
@@ -501,7 +507,7 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 Integer soStatus = so.getOrderStatus();
                 if (VehicleCbuSoStatusEnum.QC_PASSED.getCode().equals(soStatus)
                         || VehicleCbuSoStatusEnum.RECEIVED.getCode().equals(soStatus)) {
-                    throw new BizException("存在质检通过/已收款的车辆，不允许刷新价格");
+                    throw new BizException("存在质检通过的车辆，不允许刷新价格");
                 }
             }
         }
@@ -529,13 +535,11 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 purchaseOrderDetailGateway.updateExportVehicleCbuPoDetail(d);
             } else {
                 unmatchedCount++;
-                // 已审态（分支B）不允许把价格置空，否则破坏已审价格不变量并按缩水总额误触发保函调减；仅草稿态（分支A）留空
+                // 分支B（已审态）不允许匹配不到价格：否则破坏已审价格不变量并按缩水总额误触发保函调减
                 if (isBranchB) {
                     throw new BizException("物料 " + d.getMaterialCode() + " 刷新后匹配不到有效价格，不允许刷新");
                 }
-                d.setUnitPrice(null);
-                d.setTotalAmount(null);
-                purchaseOrderDetailGateway.updatePriceById(d.getId(), null, null);
+                // 分支A（草稿/驳回态）：未匹配成功的明细行保留原价、不更新（规格 4.6），原 totalAmount 照常计入 newTotal
             }
         }
         BigDecimal newTotal = details.stream().map(d -> d.getTotalAmount() != null ? d.getTotalAmount() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -586,11 +590,8 @@ public class ExportVehicleCbuPoApprovalCmdExe {
                 // 保函数侧按订单创建时间筛选可用保函（失效日期 ≥ 创建时间 + coverDays），需传订单创建时间
                 freezeReq.setOrderCreateTime(order.getCreateTime().toLocalDate());
                 freezeReq.setReason("刷新价格调增");
+                // adjustFreeze 可用金额不足时由 freeze 直接抛 BizException（整事务回滚），走到这里必为成功 resp
                 ExportVehicleLetterGuaranteeFreezeResp freezeResp = letterGuaranteeService.adjustFreeze(freezeReq);
-                if (freezeResp == null || !Boolean.TRUE.equals(freezeResp.getSuccess()) || CollectionUtils.isEmpty(freezeResp.getFrozenItems())) {
-                    String failMsg = (freezeResp != null && freezeResp.getFailMessage() != null) ? freezeResp.getFailMessage() : "剩余可用金额不足";
-                    throw new BizException(failMsg);
-                }
                 // 写/更新 PO-保函关联表：调增可能命中已冻结过的保函(同 poNo+lgId 已存在)，按存在性 update 累加/insert，避免撞 uk_po_guarantee
                 ExportVehicleCbuPoGuaranteeQo existGqo = new ExportVehicleCbuPoGuaranteeQo();
                 existGqo.setPoNo(order.getPoNo());
@@ -736,6 +737,51 @@ public class ExportVehicleCbuPoApprovalCmdExe {
             single.setRejectReason(req.getRejectReason());
             self.balanceReject(single);
         });
+    }
+
+    // ==================== 补推红旗审批结果 ====================
+
+    /** 终态集合：销售已驳回/供需审核驳回/产销平衡通过/产销平衡驳回 */
+    private static final Set<String> RESENDABLE_STATUSES = Set.of(
+            ExportVehicleCbuPoStatusEnum.SALES_REJECTED.getCode(),
+            ExportVehicleCbuPoStatusEnum.SUPPLY_DEMAND_REJECTED.getCode(),
+            ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode(),
+            ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_REJECTED.getCode()
+    );
+
+    /** 根据订单终态推导推送红旗的 status 值：驳回类=R，通过类=A */
+    private String pushStatusFromOrder(ExportVehicleCbuPoDo order) {
+        if (ExportVehicleCbuPoStatusEnum.PRODUCTION_SALES_BALANCE_APPROVED.getCode().equals(order.getOrderStatus())) {
+            return "A";
+        }
+        return "R";
+    }
+
+    /** 单条补推：加载订单 → 构造 pushReq → pushAndWriteBack */
+    public boolean resend(String poId) {
+        ExportVehicleCbuPoDo order = purchaseOrderGateway.getExportVehicleCbuPoById(poId);
+        if (order == null) {
+            throw new BizException("PO订单不存在");
+        }
+        if (!RESENDABLE_STATUSES.contains(order.getOrderStatus())) {
+            throw new BizException("订单状态无需补推红旗");
+        }
+        if ("成功".equals(order.getAuditResultSyncResult())) {
+            throw new BizException("订单已推送成功，无需补推");
+        }
+        CbuApprovalResultReq pushReq = new CbuApprovalResultReq();
+        pushReq.setPoNo(order.getPoNo());
+        pushReq.setPlanVersion(order.getPlanVersion());
+        pushReq.setStatus(pushStatusFromOrder(order));
+        pushReq.setAuditTime(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+        pushReq.setRemark(order.getRejectReason());
+        return cbuApprovalResultToHongqi.pushAndWriteBack(poId, pushReq);
+    }
+
+    /** 批量补推：每条独立事务，部分成功部分失败（单条 resend 内部已校验终态 + 同步非成功） */
+    public ExportVehicleCbuPoBatchResp batchResend(ExportVehicleCbuPoBatchReq req) {
+        ExportVehicleCbuPoApprovalCmdExe self = applicationContext.getBean(ExportVehicleCbuPoApprovalCmdExe.class);
+        return runBatch(req.getPoIds(), poId -> self.resend(poId));
     }
 
     // ==================== 保函关联表辅助方法 ====================

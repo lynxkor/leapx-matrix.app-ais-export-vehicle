@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.po.gatewayimpl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -13,6 +14,10 @@ import com.leapmotor.export.vehicle.infrastructure.po.dao.ExportVehicleCbuPoDao;
 import com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportVehicleCbuPoMapper;
 import com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -105,5 +110,14 @@ public class ExportVehicleCbuPoGatewayImpl implements ExportVehicleCbuPoGateway 
         }
         return true;
     }
-}
 
+    @Override
+    public int updateApprovalSyncResult(String poId, LocalDateTime syncTime, String syncResult, String returnInfo) {
+        return purchaseOrderMapper.update(null,
+                new LambdaUpdateWrapper<ExportVehicleCbuPo>()
+                        .eq(ExportVehicleCbuPo::getId, poId)
+                        .set(ExportVehicleCbuPo::getAuditResultSyncTime, syncTime)
+                        .set(ExportVehicleCbuPo::getAuditResultSyncResult, syncResult)
+                        .set(ExportVehicleCbuPo::getCustomerSystemReturnInfo, returnInfo));
+    }
+}

@@ -83,5 +83,14 @@ public class SoCreateReq implements Serializable {
 
         @Schema(description = "物料描述")
         private String materialDescription;
+
+        @Schema(description = "销售市场")
+        private String salesMarket;
+
+        @Schema(description = "年款")
+        private String modelYear;
+
+        @Schema(description = "选装包")
+        private String optionalPackage;
     }
 }

@@ -89,4 +89,10 @@ public interface ExportVehicleCbuPoService {
     /** 批量产销平衡审核驳回 */
     ExportVehicleCbuPoBatchResp batchBalanceReject(ExportVehicleCbuPoBatchReq req);
 
+    /** 单条补推红旗审批结果，返回 true=推送成功 */
+    boolean resend(String poId);
+
+    /** 批量补推红旗审批结果 */
+    ExportVehicleCbuPoBatchResp batchResend(ExportVehicleCbuPoBatchReq req);
+
 }

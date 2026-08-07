@@ -100,6 +100,7 @@
         <result column="sales_market" property="salesMarket"/>
         <result column="model_year" property="modelYear"/>
         <result column="optional_package" property="optionalPackage"/>
+        <result column="plan_offline_date" property="planOfflineDate"/>
         <result column="schedule_time" property="scheduleTime"/>
         <result column="barcode_print_time" property="barcodePrintTime"/>
         <result column="body_in_time" property="bodyInTime"/>
@@ -125,7 +126,7 @@
         m.vehicle_price, m.frozen_amount, m.receivable_amount, m.order_status, m.issue_time, m.cancel_time, m.qc_result, m.qc_result_time,
         m.qc_remark, m.last_qc_result, m.last_qc_result_time, m.last_qc_remark, m.receive_time, m.data_source, m.remark,
         d.internal_vehicle_no, d.production_identify_code, d.vin, d.material_code, d.material_description, d.sales_market, d.model_year,
-        d.optional_package, d.schedule_time, d.barcode_print_time, d.body_in_time, d.paint_in_time, d.assembly_in_time, d.assembly_out_time,
+        d.optional_package, d.plan_offline_date, d.schedule_time, d.barcode_print_time, d.body_in_time, d.paint_in_time, d.assembly_in_time, d.assembly_out_time,
         d.sync_aps_result, d.sync_aps_time, d.sync_aps_response_info, d.sync_sap_result, d.sync_sap_time, d.sync_sap_response_info,
         d.sync_customer_result, d.sync_customer_time, d.sync_customer_response_info
     </sql>
@@ -139,6 +140,9 @@
             </if>
             <if test="qo.poNoLike != null and qo.poNoLike != ''">
                 AND m.po_no LIKE CONCAT('%', #{qo.poNoLike}, '%')
+            </if>
+            <if test="qo.customerCode != null and qo.customerCode != ''">
+                AND m.customer_code = #{qo.customerCode}
             </if>
             <if test="qo.customerNameLike != null and qo.customerNameLike != ''">
                 AND m.customer_name LIKE CONCAT('%', #{qo.customerNameLike}, '%')
@@ -245,7 +249,7 @@
         FROM export_vehicle_cbu_so m
         LEFT JOIN export_vehicle_cbu_so_detail d ON m.id = d.id AND d.delete_status = 0
         <include refid="SoDetail_Where_Clause"/>
-        ORDER BY m.create_time DESC
+        ORDER BY m.create_time DESC, m.line_no ASC
     </select>
 
     <select id="listSoList" resultMap="SoDetailResultMap">

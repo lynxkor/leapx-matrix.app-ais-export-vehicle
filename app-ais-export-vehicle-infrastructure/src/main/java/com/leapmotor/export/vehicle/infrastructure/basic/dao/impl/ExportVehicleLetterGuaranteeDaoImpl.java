@@ -9,7 +9,9 @@ import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeQo;
 import com.leapmotor.export.vehicle.infrastructure.basic.dao.ExportVehicleLetterGuaranteeDao;
 import com.leapmotor.export.vehicle.infrastructure.basic.mapper.ExportVehicleLetterGuaranteeMapper;
 import com.leapmotor.export.vehicle.infrastructure.basic.entity.ExportVehicleLetterGuarantee;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
 import lombok.AllArgsConstructor;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -25,7 +27,13 @@ public class ExportVehicleLetterGuaranteeDaoImpl extends ServiceImpl<ExportVehic
     @Override
     public QueryWrapper<ExportVehicleLetterGuarantee> buildQueryWrapper(ExportVehicleLetterGuaranteeQo query) {
         QueryWrapper<ExportVehicleLetterGuarantee> queryWrapper = ExportVehicleLetterGuaranteeDao.super.buildBasicQueryWrapper(query);
+        // 保函管理列表页默认过滤「作废(50)」状态:仅当调用方未指定 approvalStatus / approvalStatusList 时,
+        // 才追加 NOT IN 默认排除。显式传值(含仅传 "50")则尊重前端筛选,不影响。
+        boolean noStatusFilter = StringUtils.isBlank(query.getApprovalStatus())
+                && CollectionUtils.isEmpty(query.getApprovalStatusList());
         queryWrapper.lambda()
+            .notIn(noStatusFilter, ExportVehicleLetterGuarantee::getApprovalStatus,
+                    List.of(ApprovalStatusEnum.CANCELLED.getCode()))
             .eq(StringUtils.isNotBlank(query.getLgCode()),ExportVehicleLetterGuarantee::getLgCode,query.getLgCode())
             .like(StringUtils.isNotBlank(query.getLgCodeLike()),ExportVehicleLetterGuarantee::getLgCode,query.getLgCodeLike())
             .eq(StringUtils.isNotBlank(query.getCustomerId()),ExportVehicleLetterGuarantee::getCustomerId,query.getCustomerId())

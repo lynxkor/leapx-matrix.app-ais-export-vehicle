@@ -55,7 +55,8 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
     @Order(1)
     @DisplayName("list — 无条件返回保函列表")
     public void testList_returnsRows() {
-        List<ExportVehicleLetterGuaranteeResp> rows = service.listExportVehicleLetterGuarantee(new ExportVehicleLetterGuaranteeParam());
+        List<ExportVehicleLetterGuaranteeResp> rows = service.listExportVehicleLetterGuarantee(
+                new ExportVehicleLetterGuaranteeParam());
         printJson(rows);
         assertNotNull(rows);
     }
@@ -165,7 +166,8 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
     @DisplayName("delete — 仅草稿可删,审核通过/已提交不可删")
     public void testDelete_rejectsNonDraftStatus() {
         // 先准备一张已审核通过的保函(用于"非草稿不可删"负向用例)
-        String approvedId = createApprovedLg("LG_DEL_APPROVED_" + UUID.randomUUID().toString().substring(0, 8), "CUST_G117", "CBU",
+        String approvedId = createApprovedLg("LG_DEL_APPROVED_" + UUID.randomUUID().toString().substring(0, 8),
+                "CUST_G117", "CBU",
                 new BigDecimal("100.00"));
         assertThrows(BizException.class, () -> service.deleteExportVehicleLetterGuaranteeByIds(List.of(approvedId)));
     }
@@ -698,9 +700,11 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
         req.setVin("LV" + UUID.randomUUID().toString().substring(0, 14).toUpperCase());
         req.setReason("质检通过");
 
-        boolean ok = service.transferToReceivable(req);
-        printJson(ok);
-        assertTrue(ok);
+        List<ExportVehicleLetterGuaranteeTransferItem> items = service.transferToReceivable(req);
+        printJson(items);
+        assertFalse(items.isEmpty(), "转应收返回明细非空");
+        assertEquals(0, items.get(0).getTransferAmount().compareTo(new BigDecimal("500000.00")),
+                "首张变动金额=50万");
 
         ExportVehicleLetterGuaranteeResp lg = service.getExportVehicleLetterGuaranteeById(lgId);
         assertEquals(0, lg.getOccupiedAmount().compareTo(BigDecimal.ZERO), "占用清零");
@@ -745,7 +749,7 @@ public class ExportVehicleLetterGuaranteeServiceTest extends BaseServiceTest<Exp
         tReq.setOrderId(fReq.getOrderId());
         tReq.setFrozenAmount(new BigDecimal("300000.00"));
         tReq.setVin("LV" + UUID.randomUUID().toString().substring(0, 14).toUpperCase());
-        assertTrue(service.transferToReceivable(tReq));
+        assertFalse(service.transferToReceivable(tReq).isEmpty(), "转应收返回明细非空");
 
         ExportVehicleLetterGuaranteeReleaseReq req = new ExportVehicleLetterGuaranteeReleaseReq();
         req.setPoNo(poNo);

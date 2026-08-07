@@ -46,10 +46,10 @@ import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -120,8 +120,12 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
             }
         }
 
+        ExportVehicleCbuPoResp orderResp = ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(order);
+        // 回填销售公司名称：salesCompanyName 不在主表DO中，需按 salesCompanyCode 关联公司主数据补全（与 page 接口保持一致）
+        fillSalesCompanyName(Collections.singletonList(orderResp));
+
         ExportVehicleCbuPoDetailFullResp resp = new ExportVehicleCbuPoDetailFullResp();
-        resp.setOrder(ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(order));
+        resp.setOrder(orderResp);
         resp.setDetails(ExportVehicleCbuPoDetailDTOStructMapper.INSTANCE.domainsToResps(detailDos));
         resp.setGuarantees(ExportVehicleCbuPoGuaranteeDTOStructMapper.INSTANCE.domainsToResps(guaranteeDos));
         return resp;
@@ -227,29 +231,40 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
         return purchaseOrderApprovalCmdExe.batchBalanceReject(req);
     }
 
+    @Override
+    public boolean resend(String poId) {
+        return purchaseOrderApprovalCmdExe.resend(poId);
+    }
+
+    @Override
+    public ExportVehicleCbuPoBatchResp batchResend(ExportVehicleCbuPoBatchReq req) {
+        return purchaseOrderApprovalCmdExe.batchResend(req);
+    }
+
     private void fillSalesCompanyName(List<ExportVehicleCbuPoResp> records) {
         if (CollectionUtils.isEmpty(records)) {
             return;
         }
-        Set<String> codes = records.stream()
+        List<String> codes = records.stream()
                 .map(ExportVehicleCbuPoResp::getSalesCompanyCode)
                 .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toSet());
+                .distinct()
+                .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(codes)) {
             return;
         }
-        Map<String, String> nameMap = codes.stream()
-                .map(code -> {
-                    CompanyRequest request = new CompanyRequest();
-                    request.setCompanyCode(code);
-                    AjaxResult<List<CompanyResponse>> ajaxResult = companyApi.list(request);
-                    if (ajaxResult == null || !Objects.equals(ResultEnum.SUCCESS.getCode(), ajaxResult.getCode())) {
-                        throw new BizException("销售公司信息查询失败");
-                    }
-                    return ajaxResult.getData();
-                })
-                .filter(CollectionUtils::isNotEmpty)
-                .flatMap(List::stream)
+        // 批量查询
+        CompanyRequest request = new CompanyRequest();
+        request.setCompanyCodes(codes);
+        AjaxResult<List<CompanyResponse>> ajaxResult = companyApi.list(request);
+        if (ajaxResult == null || !Objects.equals(ResultEnum.SUCCESS.getCode(), ajaxResult.getCode())) {
+            throw new BizException("销售公司信息查询失败");
+        }
+        List<CompanyResponse> data = ajaxResult.getData();
+        if (CollectionUtils.isEmpty(data)) {
+            return;
+        }
+        Map<String, String> nameMap = data.stream()
                 .filter(c -> StringUtils.isNotBlank(c.getCompanyCode()) && StringUtils.isNotBlank(c.getCompanyName()))
                 .collect(Collectors.toMap(CompanyResponse::getCompanyCode, CompanyResponse::getCompanyName,
                         (v1, v2) -> v1));

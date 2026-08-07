@@ -4,6 +4,7 @@ import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.response.LpOptionalResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.platform.ais.common.idempotent.annotation.RepeatSubmit;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
 import com.leapmotor.paltform.ais.common.model.enums.BooleanEnum;
 import org.springframework.validation.annotation.Validated;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoParam;
+import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReissueSapReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
 import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoDetailAggregateResp;
@@ -73,6 +75,7 @@ public class VehicleCbuSoController {
 
     @Operation(summary = "CBU整车销售订单下发生产")
     @ResourcePermission(value = "web:so:vehicleCbuSo:issueToProduction", desc = "CBU整车销售订单下发生产")
+    @RepeatSubmit
     @PostMapping("/issueToProduction")
     public AjaxResult<VehicleCbuSoOperateResult> issueToProduction(@RequestBody @Validated VehicleCbuSoIssueReq req) {
         return AjaxResult.success(vehicleCbuSoService.issueToProduction(req));
@@ -80,6 +83,7 @@ public class VehicleCbuSoController {
 
     @Operation(summary = "CBU整车销售订单作废")
     @ResourcePermission(value = "web:so:vehicleCbuSo:cancel", desc = "CBU整车销售订单作废")
+    @RepeatSubmit
     @PostMapping("/cancel")
     public AjaxResult<VehicleCbuSoOperateResult> cancel(@RequestBody @Validated VehicleCbuSoCancelReq req) {
         return AjaxResult.success(vehicleCbuSoService.cancel(req));
@@ -87,16 +91,17 @@ public class VehicleCbuSoController {
 
     @Operation(summary = "CBU整车销售订单SAP手动补推")
     @ResourcePermission(value = "web:so:vehicleCbuSo:reissueSap", desc = "CBU整车销售订单SAP手动补推")
+    @RepeatSubmit
     @PostMapping("/reissueSap")
-    public AjaxResult<Void> reissueSap(@RequestBody String soNo) {
-        vehicleCbuSoService.reissueSap(soNo);
-        return AjaxResult.success();
+    public AjaxResult<VehicleCbuSoOperateResult> reissueSap(@RequestBody @Validated VehicleCbuSoReissueSapReq req) {
+        return AjaxResult.success(vehicleCbuSoService.reissueSap(req));
     }
 
     @Operation(summary = "CBU整车销售订单主表新增/编辑")
     @ResourcePermission(value = "web:so:vehicleCbuSo:addOrUpdate", desc = "CBU整车销售订单主表新增/编辑")
     @PostMapping("/addOrUpdate")
-    public AjaxResult<String> addOrUpdate(@RequestBody @Validated VehicleCbuSoAddOrUpdateReq vehicleCbuSoAddOrUpdateReq) {
+    public AjaxResult<String> addOrUpdate(
+            @RequestBody @Validated VehicleCbuSoAddOrUpdateReq vehicleCbuSoAddOrUpdateReq) {
         return AjaxResult.success(vehicleCbuSoService.addOrUpdateVehicleCbuSo(vehicleCbuSoAddOrUpdateReq));
     }
 
@@ -110,7 +115,8 @@ public class VehicleCbuSoController {
 
 
     @Operation(summary = "CBU整车销售订单主表启用/禁用")
-    @ResourcePermission(value = "web:so:vehicleCbuSo:enableOrDisable", desc = "CBU整车销售订单主表启用/禁用")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:enableOrDisable",
+            desc = "CBU整车销售订单主表启用/禁用")
     @PostMapping("/enableOrDisable")
     public AjaxResult<Void> enableOrDisable(@RequestBody LpBaseParam param) {
         if (CollectionUtils.isEmpty(param.getIdSet())) {

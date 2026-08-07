@@ -12,9 +12,7 @@ import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
  * <p>G117 红旗项目默认新建草稿时取值 {@link #CBU}。
  */
 public enum OrderTypeEnum implements IBaseEnum<String> {
-    CBU ("CBU", "CBU"),
-    SKD ("SKD", "SKD"),
-    CKD ("CKD", "CKD");
+    CBU ("CBU", "CBU");
 
     private final String code;
     private final String message;

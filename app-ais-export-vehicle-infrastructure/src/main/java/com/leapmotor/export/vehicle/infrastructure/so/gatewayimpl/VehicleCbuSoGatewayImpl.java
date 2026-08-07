@@ -1,6 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.so.gatewayimpl;
 
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -143,13 +143,13 @@ public class VehicleCbuSoGatewayImpl implements VehicleCbuSoGateway {
         if (CollectionUtils.isEmpty(ids)) {
             return 0;
         }
-        UpdateWrapper<VehicleCbuSo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.in("id", ids).set("order_status", orderStatus);
+        LambdaUpdateWrapper<VehicleCbuSo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(VehicleCbuSo::getId, ids).set(VehicleCbuSo::getOrderStatus, orderStatus);
         if (issueTime != null) {
-            updateWrapper.set("issue_time", issueTime);
+            updateWrapper.set(VehicleCbuSo::getIssueTime, issueTime);
         }
         if (cancelTime != null) {
-            updateWrapper.set("cancel_time", cancelTime);
+            updateWrapper.set(VehicleCbuSo::getCancelTime, cancelTime);
         }
         return vehicleCbuSoMapper.update(null, updateWrapper);
     }

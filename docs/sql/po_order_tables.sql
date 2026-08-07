@@ -29,7 +29,7 @@ CREATE TABLE `export_vehicle_cbu_po` (
     `plan_version`                        VARCHAR(30)      NOT NULL                         COMMENT '计划版本号,取自红旗CBU接口',
     `audit_result_sync_time`              DATETIME         DEFAULT NULL                     COMMENT '审结结果同步时间,反馈红旗接口的发送时间',
     `audit_result_sync_result`            VARCHAR(30)      DEFAULT NULL                     COMMENT '审结结果同步结果,= 成功/失败',
-    `customer_system_return_info`         VARCHAR(200)     DEFAULT NULL                     COMMENT '客户系统返回信息,红旗接口对方返回',
+    `customer_system_return_info`         VARCHAR(2000)    DEFAULT NULL                     COMMENT '客户系统返回信息,红旗接口对方返回(整包响应JSON)',
     -- 基础字段(平台模板 §7.0)
     `creator`                             BIGINT           NOT NULL                         COMMENT '创建者ID',
     `creator_name`                        VARCHAR(100)     NOT NULL                         COMMENT '创建人名称',
@@ -60,7 +60,7 @@ CREATE TABLE `export_vehicle_cbu_po_detail` (
     `optional_package`      VARCHAR(100)    DEFAULT NULL                    COMMENT '选装包,关联整编主数据',
     `demand_quantity`       DECIMAL(20,2)   NOT NULL                        COMMENT '需求数量,取自红旗CBU接口',
     `expected_offline_date` DATE            NOT NULL                        COMMENT '期望下线日期,取自红旗CBU接口',
-    `vin_year`              VARCHAR(10)     NOT NULL                        COMMENT 'VIN码年份,取自红旗CBU接口',
+    `vin_year`              VARCHAR(10)     DEFAULT NULL                        COMMENT 'VIN码年份,取自红旗CBU接口',
     `production_remark`     VARCHAR(1000)   DEFAULT NULL                    COMMENT '生产备注,可编辑,非必填,最多1000字',
     `unit_price`            DECIMAL(20,2)   DEFAULT NULL                    COMMENT '单价,按 物料编码+创建时间+订单类型 匹配价格主数据(取最后审核通过价);提交时必填',
     `total_amount`          DECIMAL(20,2)   DEFAULT NULL                    COMMENT '金额合计,= 单价 × 需求数量',

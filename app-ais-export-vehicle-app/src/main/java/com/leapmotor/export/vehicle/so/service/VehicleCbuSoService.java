@@ -151,7 +151,7 @@ public interface VehicleCbuSoService {
     /**
      * SAP 手动补推
      *
-     * @param soNo SO 单号
+     * @param req 补推请求
      */
     VehicleCbuSoOperateResult reissueSap(VehicleCbuSoReissueSapReq req);
 

@@ -1,6 +1,6 @@
-package com.leapmotor.export.vehicle.payablelist.dao;
+package com.leapmotor.export.vehicle.infrastructure.payablelist.dao;
 
-import com.leapmotor.export.vehicle.payablelist.entity.PayableList;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableList;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
 import com.leapmotor.platform.ais.common.mybatis.support.LpBaseDao;
 

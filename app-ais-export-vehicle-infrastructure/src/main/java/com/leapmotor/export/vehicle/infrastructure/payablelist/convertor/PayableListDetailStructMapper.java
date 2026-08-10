@@ -1,6 +1,6 @@
-package com.leapmotor.export.vehicle.payablelist.convertor;
+package com.leapmotor.export.vehicle.infrastructure.payablelist.convertor;
 
-import com.leapmotor.export.vehicle.payablelist.entity.PayableListDetail;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableListDetail;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;

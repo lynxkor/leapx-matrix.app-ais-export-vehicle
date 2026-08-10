@@ -2,7 +2,6 @@ package com.leapmotor.export.vehicle.controller.web.payablelist;
 
 import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
-import com.leapmotor.export.vehicle.payablelist.resp.PayableListAvailableVehicleResp;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
@@ -48,27 +47,6 @@ public class PayableListManagementController {
     @PostMapping("/submit")
     public AjaxResult<String> submit(@RequestBody PayableListSubmitReq req) {
         return AjaxResult.success(payableListService.submitPayableList(req));
-    }
-
-    @Operation(summary = "查询可添加车辆")
-    @ResourcePermission(value = "web:payableList:payableListManagement:queryAvailableVehicles", desc = "查询可添加车辆")
-    @PostMapping("/queryAvailableVehicles")
-    public AjaxResult<List<PayableListAvailableVehicleResp>> queryAvailableVehicles(@RequestBody String payableListId) {
-        return AjaxResult.success(payableListService.queryAvailableVehicles(payableListId));
-    }
-
-    @Operation(summary = "批量添加车辆")
-    @ResourcePermission(value = "web:payableList:payableListManagement:addVehicles", desc = "批量添加车辆")
-    @PostMapping("/addVehicles")
-    public AjaxResult<String> addVehicles(@RequestBody PayableListAddVehiclesReq req) {
-        return AjaxResult.success(payableListService.addVehicles(req));
-    }
-
-    @Operation(summary = "删除车辆")
-    @ResourcePermission(value = "web:payableList:payableListManagement:removeVehicles", desc = "删除车辆")
-    @PostMapping("/removeVehicles")
-    public AjaxResult<String> removeVehicles(@RequestBody PayableListRemoveVehiclesReq req) {
-        return AjaxResult.success(payableListService.removeVehicles(req));
     }
 
     @Operation(summary = "导入最新价格")

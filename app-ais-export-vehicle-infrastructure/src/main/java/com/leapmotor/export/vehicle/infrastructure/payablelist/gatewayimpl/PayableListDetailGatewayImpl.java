@@ -1,13 +1,13 @@
-package com.leapmotor.export.vehicle.payablelist.gatewayimpl;
+package com.leapmotor.export.vehicle.infrastructure.payablelist.gatewayimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.leapmotor.export.vehicle.payablelist.convertor.PayableListDetailStructMapper;
-import com.leapmotor.export.vehicle.payablelist.dao.PayableListDetailDao;
-import com.leapmotor.export.vehicle.payablelist.entity.PayableListDetail;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.convertor.PayableListDetailStructMapper;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.dao.PayableListDetailDao;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableListDetail;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
-import com.leapmotor.export.vehicle.payablelist.mapper.PayableListDetailMapper;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.mapper.PayableListDetailMapper;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListDetailQo;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
@@ -131,5 +131,16 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
         queryWrapper.lambda().in(PayableListDetail::getSoNo, soNos);
         List<PayableListDetail> details = payableListDetailMapper.selectList(queryWrapper);
         return PayableListDetailStructMapper.INSTANCE.dataObjectsToDomains(details);
+    }
+
+    @Override
+    public List<String> listAllBoundSoIds() {
+        QueryWrapper<PayableListDetail> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("DISTINCT so_id");
+        List<PayableListDetail> details = payableListDetailMapper.selectList(queryWrapper);
+        return details.stream()
+                .map(PayableListDetail::getSoId)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
     }
 }

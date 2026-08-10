@@ -111,4 +111,11 @@ public interface PayableListDetailGateway {
      * @return 应付清单明细领域对象列表
      */
     List<PayableListDetailDo> listBySoNos(Collection<String> soNos);
+
+    /**
+     * 查询所有已绑定到应付清单的SO订单ID列表
+     *
+     * @return 已绑定的SO订单ID列表
+     */
+    List<String> listAllBoundSoIds();
 }

@@ -1,6 +1,6 @@
-package com.leapmotor.export.vehicle.payablelist.mapper;
+package com.leapmotor.export.vehicle.infrastructure.payablelist.mapper;
 
-import com.leapmotor.export.vehicle.payablelist.entity.PayableListDetail;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableListDetail;
 import com.leapmotor.platform.ais.common.mybatis.support.LpBaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 

@@ -1,11 +1,11 @@
-package com.leapmotor.export.vehicle.payablelist.dao.impl;
+package com.leapmotor.export.vehicle.infrastructure.payablelist.dao.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.leapmotor.export.vehicle.payablelist.dao.PayableListDetailDao;
-import com.leapmotor.export.vehicle.payablelist.entity.PayableListDetail;
-import com.leapmotor.export.vehicle.payablelist.mapper.PayableListDetailMapper;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.dao.PayableListDetailDao;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableListDetail;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.mapper.PayableListDetailMapper;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListDetailQo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;

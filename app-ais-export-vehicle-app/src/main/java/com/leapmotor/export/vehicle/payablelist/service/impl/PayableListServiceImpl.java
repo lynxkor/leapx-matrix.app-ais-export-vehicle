@@ -1,30 +1,26 @@
 package com.leapmotor.export.vehicle.payablelist.service.impl;
 
-import com.alibaba.fastjson.JSONObject;
+import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.payablelist.convertor.PayableListDTOStructMapper;
-import com.leapmotor.export.vehicle.payablelist.dto.PayableListImportPriceDto;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListImportPriceExe;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
-import com.leapmotor.export.vehicle.payablelist.req.*;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListImportPriceReq;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListPageParam;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListSubmitReq;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
-import com.leapmotor.export.vehicle.payablelist.resp.PayableListAvailableVehicleResp;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
-import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
-import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
+import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
-import cn.hutool.core.util.StrUtil;
 import lombok.AllArgsConstructor;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -94,26 +90,6 @@ public class PayableListServiceImpl implements PayableListService {
         // TODO: 同步红旗系统
 
         return payableList.getId();
-    }
-
-    @Override
-    public List<PayableListAvailableVehicleResp> queryAvailableVehicles(String payableListId) {
-        // TODO: 调用 SO Gateway 查询可添加车辆
-        return null;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public String addVehicles(PayableListAddVehiclesReq req) {
-        // TODO: 实现添加车辆逻辑
-        return null;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public String removeVehicles(PayableListRemoveVehiclesReq req) {
-        // TODO: 实现删除车辆逻辑
-        return null;
     }
 
     @Override

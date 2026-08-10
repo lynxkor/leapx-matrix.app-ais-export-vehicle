@@ -3,15 +3,15 @@ package com.leapmotor.export.vehicle.payablelist.executor.cmd;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.leapmotor.export.vehicle.payablelist.dto.PayableListImportPriceDto;
-import com.leapmotor.export.vehicle.payablelist.dto.SoUpdatePriceReq;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.gateway.SoOrderGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListImportPriceReq;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
+import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
+import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
@@ -41,7 +41,7 @@ public class PayableListImportPriceExe {
 
     private PayableListGateway payableListGateway;
     private PayableListDetailGateway payableListDetailGateway;
-    private SoOrderGateway soOrderGateway;
+    private VehicleCbuSoGateway vehicleCbuSoGateway;
 
     /**
      * 导入最新价格
@@ -140,10 +140,13 @@ public class PayableListImportPriceExe {
             detail.setPrice(item.getPrice());
             payableListDetailGateway.updatePayableListDetail(detail);
             // 同步更新 SO 车辆售价
-            SoUpdatePriceReq priceReq = new SoUpdatePriceReq();
-            priceReq.setSoId(detail.getSoId());
-            priceReq.setNewPrice(item.getPrice());
-            soOrderGateway.updatePrice(priceReq);
+            VehicleCbuSoDo soDo = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getSoId());
+            if (soDo != null) {
+                soDo.setVehiclePrice(item.getPrice());
+                vehicleCbuSoGateway.updateVehicleCbuSo(soDo);
+            } else {
+                log.warn("导入价格：SO主表不存在，soId={}", detail.getSoId());
+            }
         }
 
         // 8. 重算汇总

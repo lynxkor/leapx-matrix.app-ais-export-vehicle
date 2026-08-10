@@ -1,7 +1,6 @@
 package com.leapmotor.export.vehicle.controller.open.hongqi;
 
 import com.leapmotor.export.vehicle.payablelist.dto.HqConfirmReq;
-import com.leapmotor.export.vehicle.payablelist.executor.integration.HqConfirmProcessor;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
@@ -58,7 +57,7 @@ public class HongqiOpenController {
     @Operation(summary = "应付清单红旗确认结果反馈")
     @PostMapping("/payableList/confirmResult")
     public AjaxResult<Void> confirmResult(@RequestBody HqConfirmReq req) {
-        hqConfirmProcessor.process(req.getPayableListNo(), req.getConfirmResult(), req.getConfirmTime(), req.getConfirmRemark());
+        // todo
         return AjaxResult.success();
     }
 }

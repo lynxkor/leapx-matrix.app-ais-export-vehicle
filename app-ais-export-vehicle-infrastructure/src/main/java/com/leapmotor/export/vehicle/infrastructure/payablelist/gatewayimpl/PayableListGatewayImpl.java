@@ -1,13 +1,13 @@
-package com.leapmotor.export.vehicle.payablelist.gatewayimpl;
+package com.leapmotor.export.vehicle.infrastructure.payablelist.gatewayimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.leapmotor.export.vehicle.payablelist.convertor.PayableListStructMapper;
-import com.leapmotor.export.vehicle.payablelist.dao.PayableListDao;
-import com.leapmotor.export.vehicle.payablelist.entity.PayableList;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.convertor.PayableListStructMapper;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.dao.PayableListDao;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableList;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.mapper.PayableListMapper;
+import com.leapmotor.export.vehicle.infrastructure.payablelist.mapper.PayableListMapper;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;

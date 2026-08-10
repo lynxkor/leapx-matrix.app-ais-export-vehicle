@@ -1,25 +1,25 @@
 package com.leapmotor.export.vehicle.payablelist.executor.integration;
 
-import com.leapmotor.export.vehicle.payablelist.dto.LgBindInfoDto;
-import com.leapmotor.export.vehicle.payablelist.dto.LgReleaseReceivableReq;
+import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
+import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRecordGateway;
+import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
+import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeRecordQo;
+import com.leapmotor.export.vehicle.letterGuarantee.enums.RecordTypeEnum;
 import com.leapmotor.export.vehicle.payablelist.dto.SapClearAccountReq;
-import com.leapmotor.export.vehicle.payablelist.dto.SoUpdateStatusReq;
 import com.leapmotor.export.vehicle.payablelist.enums.IsReceivedEnum;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
-import com.leapmotor.export.vehicle.payablelist.gateway.LetterGuaranteeGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.gateway.SoOrderGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
+import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
+import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
+import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -35,8 +35,9 @@ public class SapClearAccountProcessor {
 
     private PayableListGateway payableListGateway;
     private PayableListDetailGateway payableListDetailGateway;
-    private SoOrderGateway soOrderGateway;
-    private LetterGuaranteeGateway letterGuaranteeGateway;
+    private VehicleCbuSoGateway vehicleCbuSoGateway;
+    private ExportVehicleLetterGuaranteeRecordGateway letterGuaranteeRecordGateway;
+    private ExportVehicleLetterGuaranteeGateway letterGuaranteeGateway;
 
     @Transactional(rollbackFor = Exception.class)
     public void process(SapClearAccountReq req) {
@@ -53,21 +54,39 @@ public class SapClearAccountProcessor {
             payableListDetailGateway.updatePayableListDetail(detail);
 
             // 更新 SO 状态为已收款
-            SoUpdateStatusReq statusReq = new SoUpdateStatusReq();
-            statusReq.setSoId(detail.getSoId());
-            statusReq.setReceiveTime(item.getReceiveTime());
-            soOrderGateway.updateStatusReceived(statusReq);
+            VehicleCbuSoDo soDo = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getSoId());
+            if (soDo != null) {
+                soDo.setOrderStatus(VehicleCbuSoStatusEnum.RECEIVED.getCode());
+                soDo.setReceiveTime(item.getReceiveTime());
+                vehicleCbuSoGateway.updateVehicleCbuSo(soDo);
+            } else {
+                log.warn("SAP清账：SO单号{}对应的SO主表不存在，soId={}", item.getSoNo(), detail.getSoId());
+            }
 
             // 查询保函信息，释放应收
-            List<LgBindInfoDto> lgList = letterGuaranteeGateway.queryBySoNo(item.getSoNo());
-            for (LgBindInfoDto lg : lgList) {
-                LgReleaseReceivableReq releaseReq = new LgReleaseReceivableReq();
-                releaseReq.setSoNo(item.getSoNo());
-                // releaseReq.setLetterGuaranteeId(lg.getLetterGuaranteeId());
-                // releaseReq.setAmount(lg.getReceivableAmount());
-                // releaseReq.setVin(item.getVin());
-                // releaseReq.setPoNo(detail.getPoNo());
-                letterGuaranteeGateway.releaseReceivable(releaseReq);
+            // 查询该SO对应的保函转应收记录
+            ExportVehicleLetterGuaranteeRecordQo recordQo = new ExportVehicleLetterGuaranteeRecordQo();
+            recordQo.setSoNo(item.getSoNo());
+            recordQo.setTransactionType(RecordTypeEnum.TRANSFER_RECEIVABLE.getCode());
+            List<ExportVehicleLetterGuaranteeRecordDo> lgRecords = letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(recordQo);
+
+            // 遍历每条转应收记录，执行应收释放
+            for (ExportVehicleLetterGuaranteeRecordDo record : lgRecords) {
+                boolean success = letterGuaranteeGateway.releaseReceivable(
+                    record.getLgId(),
+                    record.getTransactionAmount(),
+                    detail.getSoId(),
+                    record.getPoNo(),
+                    item.getSoNo(),
+                    "SAP清账，自动释放应收"
+                );
+
+                if (success) {
+                    log.info("保函应收释放成功：lgId={}, soNo={}, amount={}",
+                        record.getLgId(), item.getSoNo(), record.getTransactionAmount());
+                } else {
+                    log.warn("保函应收释放失败：lgId={}, soNo={}", record.getLgId(), item.getSoNo());
+                }
             }
 
             log.info("SAP清账处理完成：soNo={}, vin={}", item.getSoNo(), item.getVin());

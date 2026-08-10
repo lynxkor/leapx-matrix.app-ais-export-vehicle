@@ -4,9 +4,12 @@ import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.gateway.SoOrderGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
+import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoQcResultEnum;
+import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
+import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
+import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +38,7 @@ public class PayableListGenerateExe {
 
     private PayableListGateway payableListGateway;
     private PayableListDetailGateway payableListDetailGateway;
-    private SoOrderGateway soOrderGateway;
+    private VehicleCbuSoGateway vehicleCbuSoGateway;
 
     @Transactional(rollbackFor = Exception.class)
     public void generateMonthly() {
@@ -41,12 +46,34 @@ public class PayableListGenerateExe {
         String generateMonth = LocalDateTime.now().minusMonths(1)
                 .format(DateTimeFormatter.ofPattern("yyyyMM"));
 
-        // 查询所有质检通过且未绑定的SO车辆
-        List<SoOrderForPayableDto> soList = soOrderGateway.queryQcPassedAndUnbound();
-        if (soList.isEmpty()) {
-            log.info("月度生成：无待生成车辆，任务结束");
+        // 查询质检通过的车辆
+        VehicleCbuSoQo qo = new VehicleCbuSoQo();
+        qo.setQcResult(VehicleCbuSoQcResultEnum.PASSED.getCode());
+        List<VehicleCbuSoDo> qcPassedList = vehicleCbuSoGateway.listVehicleCbuSo(qo);
+
+        if (qcPassedList.isEmpty()) {
+            log.info("月度生成：无质检通过的车辆，任务结束");
             return;
         }
+
+        // 查询已绑定的 SO 订单 ID 列表
+        List<String> boundSoIds = payableListDetailGateway.listAllBoundSoIds();
+        Set<String> boundSoIdSet = new HashSet<>(boundSoIds);
+
+        // 过滤出未绑定的车辆
+        List<VehicleCbuSoDo> unboundList = qcPassedList.stream()
+                .filter(so -> !boundSoIdSet.contains(so.getId()))
+                .toList();
+
+        if (unboundList.isEmpty()) {
+            log.info("月度生成：质检通过的车辆均已绑定，任务结束");
+            return;
+        }
+
+        // 转换为 DTO
+        List<SoOrderForPayableDto> soList = unboundList.stream()
+                .map(this::convertToDto)
+                .toList();
 
         // 按客户编码分组
         Map<String, List<SoOrderForPayableDto>> customerGroups = soList.stream()
@@ -98,5 +125,28 @@ public class PayableListGenerateExe {
         }
 
         log.info("月度生成完成，共{}个客户，{}辆车辆", customerGroups.size(), soList.size());
+    }
+
+    /**
+     * 将 VehicleCbuSoDo 转换为 SoOrderForPayableDto
+     *
+     * @param soDo SO 领域对象
+     * @return DTO
+     */
+    private SoOrderForPayableDto convertToDto(VehicleCbuSoDo soDo) {
+        SoOrderForPayableDto dto = new SoOrderForPayableDto();
+        dto.setSoId(soDo.getId());
+        dto.setSoNo(soDo.getSoNo());
+        dto.setPoNo(soDo.getPoNo());
+        dto.setVin(soDo.getVin());
+        dto.setMaterialCode(soDo.getMaterialCode());
+        dto.setMaterialDesc(soDo.getMaterialDescription());
+        dto.setCustomerCode(soDo.getCustomerCode());
+        dto.setCustomerName(soDo.getCustomerName());
+        dto.setVehiclePrice(soDo.getVehiclePrice());
+        dto.setFrozenAmount(soDo.getFrozenAmount());
+        dto.setReceivableAmount(soDo.getReceivableAmount());
+        dto.setQcResultTime(soDo.getQcResultTime());
+        return dto;
     }
 }

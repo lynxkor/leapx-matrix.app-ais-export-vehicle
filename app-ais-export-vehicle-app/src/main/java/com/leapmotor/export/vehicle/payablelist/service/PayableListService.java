@@ -2,7 +2,6 @@ package com.leapmotor.export.vehicle.payablelist.service;
 
 import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
-import com.leapmotor.export.vehicle.payablelist.resp.PayableListAvailableVehicleResp;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 
@@ -39,30 +38,6 @@ public interface PayableListService {
      * @return 结果
      */
     String submitPayableList(PayableListSubmitReq req);
-
-    /**
-     * 查询可添加车辆
-     *
-     * @param payableListId 应付清单ID
-     * @return 可添加车辆列表
-     */
-    List<PayableListAvailableVehicleResp> queryAvailableVehicles(String payableListId);
-
-    /**
-     * 批量添加车辆
-     *
-     * @param req 添加请求
-     * @return 结果
-     */
-    String addVehicles(PayableListAddVehiclesReq req);
-
-    /**
-     * 删除车辆
-     *
-     * @param req 删除请求
-     * @return 结果
-     */
-    String removeVehicles(PayableListRemoveVehiclesReq req);
 
     /**
      * 导入最新价格

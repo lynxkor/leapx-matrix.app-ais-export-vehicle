@@ -39,7 +39,7 @@ public class HqConfirmProcessor {
     public void process(String payableListNo, String confirmResult, LocalDateTime confirmTime, String confirmRemark) {
         PayableListDo db = payableListGateway.getPayableListByNo(payableListNo);
         if (db == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException(ResultEnum.NO_DATA, "应付清单不存在");
         }
         // 已确认状态不允许再同步
         if (PayableListStatusEnum.CONFIRMED.getCode().equals(db.getBillStatus())) {
@@ -55,10 +55,9 @@ public class HqConfirmProcessor {
             payableListGateway.updatePayableList(db);
             log.info("红旗驳回，payableListNo={}", payableListNo);
         } else if (PayableListStatusEnum.CONFIRMED.getCode().equals(confirmResult)) {
-            // 确认通过
+            // 确认
             db.setBillStatus(PayableListStatusEnum.CONFIRMED.getCode());
             payableListGateway.updatePayableList(db);
-
             // 发布 SAP 同步事件（异步，事务提交后执行）
             PayableListForSapDto sapPayload = buildSapPayload(db);
             eventHandlerHelper.publishAsync(

@@ -25,7 +25,7 @@ public interface SapClientApi {
     SapResult orderSync(@RequestBody SapOrderSyncReq req);
 
     /**
-     * 应付清单同步 SAP（契约待 SAP 侧提供，先占位）
+     * 应付清单同步 SAP
      */
     @PostMapping("/payableList/sync")
     SapResult syncPayableList(@RequestBody PayableListSyncSapReq req);

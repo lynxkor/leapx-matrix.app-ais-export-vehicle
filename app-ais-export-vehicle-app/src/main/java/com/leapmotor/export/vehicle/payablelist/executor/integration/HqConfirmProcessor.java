@@ -13,6 +13,7 @@ import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,16 +47,20 @@ public class HqConfirmProcessor {
             throw new BizException(ResultEnum.BAD_REQUEST, "不允许已确认之后再同步");
         }
 
-        db.setConfirmTime(confirmTime);
-        db.setConfirmRemark(confirmRemark);
-
         if (PayableListStatusEnum.REJECTED.getCode().equals(confirmResult)) {
             // 驳回
+            if(StringUtils.isBlank(confirmRemark)){
+                throw new BizException(ResultEnum.BAD_REQUEST, "驳回原因不能为空");
+            }
+            db.setConfirmTime(confirmTime);
+            db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.REJECTED.getCode());
             payableListGateway.updatePayableList(db);
             log.info("红旗驳回，payableListNo={}", payableListNo);
         } else if (PayableListStatusEnum.CONFIRMED.getCode().equals(confirmResult)) {
             // 确认
+            db.setConfirmTime(confirmTime);
+            db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.CONFIRMED.getCode());
             payableListGateway.updatePayableList(db);
             // 发布 SAP 同步事件（异步，事务提交后执行）

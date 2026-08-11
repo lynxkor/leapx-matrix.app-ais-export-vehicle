@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.convertor.PayableListDetailStructMapper;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.dao.PayableListDetailDao;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableListDetail;
-import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.mapper.PayableListDetailMapper;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListDetailQo;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
@@ -16,6 +16,8 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -142,5 +144,35 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
                 .map(PayableListDetail::getSoId)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public int countByPayableListId(String payableListId) {
+        QueryWrapper<PayableListDetail> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(PayableListDetail::getPayableListId, payableListId);
+        return Math.toIntExact(payableListDetailMapper.selectCount(queryWrapper));
+    }
+
+    @Override
+    public BigDecimal sumAmountByPayableListId(String payableListId) {
+        QueryWrapper<PayableListDetail> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("COALESCE(SUM(price), 0) as price")
+                .lambda()
+                .eq(PayableListDetail::getPayableListId, payableListId);
+        PayableListDetail result = payableListDetailMapper.selectOne(queryWrapper);
+        return result != null && result.getPrice() != null ? result.getPrice() : BigDecimal.ZERO;
+    }
+
+    @Override
+    public int updateBillStatusByPayableListId(String payableListId, String billStatus, LocalDateTime submitDate, LocalDateTime confirmTime) {
+        UpdateWrapper<PayableListDetail> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.lambda().eq(PayableListDetail::getPayableListId, payableListId);
+
+        PayableListDetail update = new PayableListDetail();
+        update.setBillStatus(billStatus);
+        update.setSubmitDate(submitDate);
+        update.setConfirmTime(confirmTime);
+
+        return payableListDetailMapper.update(update, updateWrapper);
     }
 }

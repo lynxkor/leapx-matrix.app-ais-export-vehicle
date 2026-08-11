@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.payablelist.service;
 
+import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
@@ -40,6 +41,14 @@ public interface PayableListService {
     String submitPayableList(PayableListSubmitReq req);
 
     /**
+     * 批量提交应付清单
+     *
+     * @param req 批量提交请求
+     * @return 成功的ID列表
+     */
+    List<String> batchSubmitPayableList(PayableListBatchSubmitReq req);
+
+    /**
      * 导入最新价格
      *
      * @param req 导入请求
@@ -54,4 +63,28 @@ public interface PayableListService {
      * @return 结果
      */
     boolean deletePayableListByIds(List<String> ids);
+
+    /**
+     * 查询可添加车辆
+     *
+     * @param req 查询请求
+     * @return 可添加车辆列表
+     */
+    List<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req);
+
+    /**
+     * 添加车辆
+     *
+     * @param req 添加请求
+     * @return 结果
+     */
+    String addVehicles(PayableListAddVehiclesReq req);
+
+    /**
+     * 删除车辆
+     *
+     * @param req 删除请求
+     * @return 结果
+     */
+    String deleteVehicles(PayableListDeleteVehicleReq req);
 }

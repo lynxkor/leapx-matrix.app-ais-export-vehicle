@@ -2,13 +2,24 @@ package com.leapmotor.export.vehicle.payablelist.service.impl;
 
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.payablelist.convertor.PayableListDTOStructMapper;
+import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
+import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListAddVehiclesExe;
+import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListBatchSubmitExe;
+import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListDeleteVehicleExe;
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListImportPriceExe;
+import com.leapmotor.export.vehicle.payablelist.executor.query.PayableListAvailableVehicleQryExe;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListAddVehiclesReq;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListBatchSubmitReq;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListDeleteVehicleReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListImportPriceReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListPageParam;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListQueryAvailableVehiclesReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListSubmitReq;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
@@ -34,7 +45,12 @@ import java.util.List;
 public class PayableListServiceImpl implements PayableListService {
 
     private PayableListGateway payableListGateway;
+    private PayableListDetailGateway payableListDetailGateway;
     private PayableListImportPriceExe payableListImportPriceExe;
+    private PayableListAddVehiclesExe payableListAddVehiclesExe;
+    private PayableListDeleteVehicleExe payableListDeleteVehicleExe;
+    private PayableListBatchSubmitExe payableListBatchSubmitExe;
+    private PayableListAvailableVehicleQryExe payableListAvailableVehicleQryExe;
 
     @Override
     public PageResult<PayableListResp> pagePayableList(PayableListPageParam param) {
@@ -64,7 +80,15 @@ public class PayableListServiceImpl implements PayableListService {
         if (payableListDo == null) {
             throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
         }
-        return PayableListDTOStructMapper.INSTANCE.domainToResp(payableListDo);
+
+        // 查询明细列表
+        List<PayableListDetailDo> detailDoList = payableListDetailGateway.listByPayableListId(id);
+
+        // 转换为响应对象
+        PayableListResp resp = PayableListDTOStructMapper.INSTANCE.domainToResp(payableListDo);
+        resp.setDetailList(PayableListDTOStructMapper.INSTANCE.detailDomainToResps(detailDoList));
+
+        return resp;
     }
 
     @Override
@@ -94,6 +118,13 @@ public class PayableListServiceImpl implements PayableListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public List<String> batchSubmitPayableList(PayableListBatchSubmitReq req) {
+        return payableListBatchSubmitExe.execute(req);
+    }
+
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public ExcelBaseResult importPrice(PayableListImportPriceReq req) {
         return payableListImportPriceExe.execute(req);
     }
@@ -109,5 +140,21 @@ public class PayableListServiceImpl implements PayableListService {
             payableListGateway.deleteById(id);
         }
         return true;
+    }
+
+    @Override
+    public List<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req) {
+        return payableListAvailableVehicleQryExe.execute(req);
+    }
+
+    @Override
+    public String addVehicles(PayableListAddVehiclesReq req) {
+        return payableListAddVehiclesExe.execute(req);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String deleteVehicles(PayableListDeleteVehicleReq req) {
+        return payableListDeleteVehicleExe.execute(req);
     }
 }

@@ -76,4 +76,24 @@ public class SoOrderForPayableDto implements Serializable {
      * 质检通过时间
      */
     private LocalDateTime qcResultTime;
+
+    /**
+     * PO创建时间
+     */
+    private LocalDateTime poCreateTime;
+
+    /**
+     * 销售市场
+     */
+    private String saleMarket;
+
+    /**
+     * 年款
+     */
+    private String modelYear;
+
+    /**
+     * 选装包
+     */
+    private String optionPackage;
 }

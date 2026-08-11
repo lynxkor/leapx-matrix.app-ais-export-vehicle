@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.controller.web.payablelist;
 
+import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
@@ -47,6 +48,34 @@ public class PayableListManagementController {
     @PostMapping("/submit")
     public AjaxResult<String> submit(@RequestBody PayableListSubmitReq req) {
         return AjaxResult.success(payableListService.submitPayableList(req));
+    }
+
+    @Operation(summary = "批量提交应付清单")
+    @ResourcePermission(value = "web:payableList:payableListManagement:batchSubmit", desc = "批量提交应付清单")
+    @PostMapping("/batchSubmit")
+    public AjaxResult<List<String>> batchSubmit(@RequestBody PayableListBatchSubmitReq req) {
+        return AjaxResult.success(payableListService.batchSubmitPayableList(req));
+    }
+
+    @Operation(summary = "查询可添加车辆")
+    @ResourcePermission(value = "web:payableList:payableListManagement:queryAvailableVehicles", desc = "查询可添加车辆")
+    @PostMapping("/queryAvailableVehicles")
+    public AjaxResult<List<SoOrderForPayableDto>> queryAvailableVehicles(@RequestBody PayableListQueryAvailableVehiclesReq req) {
+        return AjaxResult.success(payableListService.queryAvailableVehicles(req));
+    }
+
+    @Operation(summary = "添加车辆")
+    @ResourcePermission(value = "web:payableList:payableListManagement:addVehicles", desc = "添加车辆")
+    @PostMapping("/addVehicles")
+    public AjaxResult<String> addVehicles(@RequestBody PayableListAddVehiclesReq req) {
+        return AjaxResult.success(payableListService.addVehicles(req));
+    }
+
+    @Operation(summary = "删除车辆")
+    @ResourcePermission(value = "web:payableList:payableListManagement:deleteVehicles", desc = "删除车辆")
+    @PostMapping("/deleteVehicles")
+    public AjaxResult<String> deleteVehicles(@RequestBody PayableListDeleteVehicleReq req) {
+        return AjaxResult.success(payableListService.deleteVehicles(req));
     }
 
     @Operation(summary = "导入最新价格")

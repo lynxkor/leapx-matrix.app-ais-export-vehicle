@@ -28,14 +28,27 @@ public class PayableListDetailResp extends LpBaseModel implements Serializable {
     @Schema(description = "明细编号")
     private String detailNo;
 
+    @Schema(description = "生成月份")
+    private String generateMonth;
+
+    @Schema(description = "单据状态")
+    @DictEnumType(prefix = "PayableListStatusEnum")
+    private String billStatus;
+
+    @Schema(description = "VIN号")
+    private String vin;
+
     @Schema(description = "SO订单号")
     private String soNo;
 
     @Schema(description = "PO单号")
     private String poNo;
 
-    @Schema(description = "VIN号")
-    private String vin;
+    @Schema(description = "客户编码")
+    private String customerCode;
+
+    @Schema(description = "客户名称")
+    private String customerName;
 
     @Schema(description = "整车物料编码")
     private String materialCode;
@@ -55,4 +68,22 @@ public class PayableListDetailResp extends LpBaseModel implements Serializable {
 
     @Schema(description = "收款时间")
     private LocalDateTime receiveTime;
+
+    @Schema(description = "PO创建时间")
+    private LocalDateTime poCreateTime;
+
+    @Schema(description = "销售市场")
+    private String saleMarket;
+
+    @Schema(description = "年款")
+    private String modelYear;
+
+    @Schema(description = "选装包")
+    private String optionPackage;
+
+    @Schema(description = "提交日期")
+    private LocalDateTime submitDate;
+
+    @Schema(description = "确认时间")
+    private LocalDateTime confirmTime;
 }

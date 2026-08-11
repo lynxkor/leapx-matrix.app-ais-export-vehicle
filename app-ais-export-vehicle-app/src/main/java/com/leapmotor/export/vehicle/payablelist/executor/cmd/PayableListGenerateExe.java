@@ -99,18 +99,37 @@ public class PayableListGenerateExe {
             // 生成明细
             for (SoOrderForPayableDto so : vehicles) {
                 PayableListDetailDo detail = new PayableListDetailDo();
+                // 应付清单相关信息
                 detail.setPayableListId(header.getId());
-                // 编号规则：YX + 年月日 + 6位流水号，如 YX20260601000001
+                detail.setGenerateMonth(header.getGenerateMonth());
+                detail.setBillStatus(header.getBillStatus());
+
+                // 明细编号
                 detail.setDetailNo(NoGenerator.genNoOnly("YX", "yyyyMMdd", 6));
+
+                // SO订单信息
                 detail.setSoId(so.getSoId());
                 detail.setSoNo(so.getSoNo());
                 detail.setPoNo(so.getPoNo());
+
+                // 客户信息
+                detail.setCustomerCode(header.getCustomerCode());
+                detail.setCustomerName(header.getCustomerName());
+
+                // 车辆信息
                 detail.setVin(so.getVin());
                 detail.setMaterialCode(so.getMaterialCode());
                 detail.setMaterialDesc(so.getMaterialDesc());
                 detail.setPrice(so.getVehiclePrice());
                 detail.setQcPassTime(so.getQcResultTime());
                 detail.setIsReceived(0);
+
+                // 从SO获取的其他信息
+                detail.setPoCreateTime(so.getPoCreateTime());
+                detail.setSaleMarket(so.getSaleMarket());
+                detail.setModelYear(so.getModelYear());
+                detail.setOptionPackage(so.getOptionPackage());
+
                 payableListDetailGateway.addPayableListDetail(detail);
             }
 
@@ -147,6 +166,10 @@ public class PayableListGenerateExe {
         dto.setFrozenAmount(soDo.getFrozenAmount());
         dto.setReceivableAmount(soDo.getReceivableAmount());
         dto.setQcResultTime(soDo.getQcResultTime());
+        dto.setPoCreateTime(soDo.getReceiveOrderTime());
+        dto.setSaleMarket(soDo.getSalesMarket());
+        dto.setModelYear(soDo.getModelYear());
+        dto.setOptionPackage(soDo.getOptionalPackage());
         return dto;
     }
 }

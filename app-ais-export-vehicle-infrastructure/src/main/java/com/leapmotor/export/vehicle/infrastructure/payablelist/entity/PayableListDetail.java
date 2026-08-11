@@ -36,6 +36,18 @@ public class PayableListDetail extends LpBaseEntity implements Serializable {
     private String detailNo;
 
     /**
+     * 生成月份 yyyyMM
+     */
+    @TableField("generate_month")
+    private String generateMonth;
+
+    /**
+     * 单据状态：10=草稿/20=已提交待确认/30=已确认/40=驳回/50=部分收款/60=已收款
+     */
+    @TableField("bill_status")
+    private String billStatus;
+
+    /**
      * 关联SO订单ID
      */
     @TableField("so_id")
@@ -52,6 +64,18 @@ public class PayableListDetail extends LpBaseEntity implements Serializable {
      */
     @TableField("po_no")
     private String poNo;
+
+    /**
+     * 客户编码
+     */
+    @TableField("customer_code")
+    private String customerCode;
+
+    /**
+     * 客户名称
+     */
+    @TableField("customer_name")
+    private String customerName;
 
     /**
      * VIN号
@@ -94,6 +118,42 @@ public class PayableListDetail extends LpBaseEntity implements Serializable {
      */
     @TableField("receive_time")
     private LocalDateTime receiveTime;
+
+    /**
+     * PO创建时间
+     */
+    @TableField("po_create_time")
+    private LocalDateTime poCreateTime;
+
+    /**
+     * 销售市场
+     */
+    @TableField("sale_market")
+    private String saleMarket;
+
+    /**
+     * 年款
+     */
+    @TableField("model_year")
+    private String modelYear;
+
+    /**
+     * 选装包
+     */
+    @TableField("option_package")
+    private String optionPackage;
+
+    /**
+     * 提交日期
+     */
+    @TableField("submit_date")
+    private LocalDateTime submitDate;
+
+    /**
+     * 确认时间
+     */
+    @TableField("confirm_time")
+    private LocalDateTime confirmTime;
 
     /**
      * 归属用户ID，当数据权限归属到用户时

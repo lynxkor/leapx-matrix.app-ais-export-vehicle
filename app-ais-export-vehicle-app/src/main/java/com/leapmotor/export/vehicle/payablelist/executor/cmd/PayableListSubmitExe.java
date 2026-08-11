@@ -54,8 +54,17 @@ public class PayableListSubmitExe {
         // 更新状态为已提交待确认
         db.setBillStatus(PayableListStatusEnum.SUBMITTED.getCode());
         db.setVersion(db.getVersion() + 1);
-        db.setSubmitTime(LocalDateTime.now());
+        LocalDateTime submitTime = LocalDateTime.now();
+        db.setSubmitTime(submitTime);
         payableListGateway.updatePayableList(db);
+
+        // 同步更新明细表状态
+        payableListDetailGateway.updateBillStatusByPayableListId(
+                db.getId(),
+                PayableListStatusEnum.SUBMITTED.getCode(),
+                submitTime,
+                null
+        );
 
         // 发布红旗同步事件（异步，事务提交后执行）
         PayableListForHqDto hqPayload = buildHqPayload(db);

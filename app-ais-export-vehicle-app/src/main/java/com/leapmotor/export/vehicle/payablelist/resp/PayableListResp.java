@@ -9,6 +9,8 @@ import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 应付清单响应对象
@@ -73,4 +75,7 @@ public class PayableListResp extends LpBaseModel implements Serializable {
 
     @Schema(description = "同步SAP接口返回报文")
     private String syncSapMessage;
+
+    @Schema(description = "明细列表")
+    private List<PayableListDetailResp> detailList = new ArrayList<>();
 }

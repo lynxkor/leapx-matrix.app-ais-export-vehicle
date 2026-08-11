@@ -31,6 +31,16 @@ public class PayableListDetailDo extends LpBaseModel implements Serializable {
     private String detailNo;
 
     /**
+     * 生成月份 yyyyMM
+     */
+    private String generateMonth;
+
+    /**
+     * 单据状态：10=草稿/20=已提交待确认/30=已确认/40=驳回/50=部分收款/60=已收款
+     */
+    private String billStatus;
+
+    /**
      * 关联SO订单ID
      */
     private String soId;
@@ -44,6 +54,16 @@ public class PayableListDetailDo extends LpBaseModel implements Serializable {
      * PO单号
      */
     private String poNo;
+
+    /**
+     * 客户编码
+     */
+    private String customerCode;
+
+    /**
+     * 客户名称
+     */
+    private String customerName;
 
     /**
      * VIN号
@@ -79,6 +99,36 @@ public class PayableListDetailDo extends LpBaseModel implements Serializable {
      * 收款时间
      */
     private LocalDateTime receiveTime;
+
+    /**
+     * PO创建时间
+     */
+    private LocalDateTime poCreateTime;
+
+    /**
+     * 销售市场
+     */
+    private String saleMarket;
+
+    /**
+     * 年款
+     */
+    private String modelYear;
+
+    /**
+     * 选装包
+     */
+    private String optionPackage;
+
+    /**
+     * 提交日期
+     */
+    private LocalDateTime submitDate;
+
+    /**
+     * 确认时间
+     */
+    private LocalDateTime confirmTime;
 
     /**
      * 归属用户ID，当数据权限归属到用户时

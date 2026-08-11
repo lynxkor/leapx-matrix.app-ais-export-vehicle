@@ -4,6 +4,8 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListDetailQo;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -118,4 +120,31 @@ public interface PayableListDetailGateway {
      * @return 已绑定的SO订单ID列表
      */
     List<String> listAllBoundSoIds();
+
+    /**
+     * 根据应付清单ID统计车辆数量
+     *
+     * @param payableListId 应付清单ID
+     * @return 车辆数量
+     */
+    int countByPayableListId(String payableListId);
+
+    /**
+     * 根据应付清单ID统计金额合计
+     *
+     * @param payableListId 应付清单ID
+     * @return 金额合计
+     */
+    BigDecimal sumAmountByPayableListId(String payableListId);
+
+    /**
+     * 根据应付清单ID批量更新明细状态
+     *
+     * @param payableListId 应付清单ID
+     * @param billStatus    单据状态
+     * @param submitDate    提交日期
+     * @param confirmTime   确认时间
+     * @return 影响行数
+     */
+    int updateBillStatusByPayableListId(String payableListId, String billStatus, LocalDateTime submitDate, LocalDateTime confirmTime);
 }

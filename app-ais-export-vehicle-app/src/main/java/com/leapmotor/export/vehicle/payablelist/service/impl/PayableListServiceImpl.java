@@ -8,6 +8,7 @@ import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListAddVehic
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListBatchSubmitExe;
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListDeleteVehicleExe;
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListImportPriceExe;
+import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListUpdateExe;
 import com.leapmotor.export.vehicle.payablelist.executor.query.PayableListAvailableVehicleQryExe;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
@@ -21,6 +22,7 @@ import com.leapmotor.export.vehicle.payablelist.req.PayableListImportPriceReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListPageParam;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListQueryAvailableVehiclesReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListSubmitReq;
+import com.leapmotor.export.vehicle.payablelist.req.PayableListUpdateReq;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
@@ -48,6 +50,7 @@ public class PayableListServiceImpl implements PayableListService {
     private PayableListDetailGateway payableListDetailGateway;
     private PayableListImportPriceExe payableListImportPriceExe;
     private PayableListAddVehiclesExe payableListAddVehiclesExe;
+    private PayableListUpdateExe payableListUpdateExe;
     private PayableListDeleteVehicleExe payableListDeleteVehicleExe;
     private PayableListBatchSubmitExe payableListBatchSubmitExe;
     private PayableListAvailableVehicleQryExe payableListAvailableVehicleQryExe;
@@ -156,5 +159,11 @@ public class PayableListServiceImpl implements PayableListService {
     @Transactional(rollbackFor = Exception.class)
     public String deleteVehicles(PayableListDeleteVehicleReq req) {
         return payableListDeleteVehicleExe.execute(req);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String updatePayableList(PayableListUpdateReq req) {
+        return payableListUpdateExe.execute(req);
     }
 }

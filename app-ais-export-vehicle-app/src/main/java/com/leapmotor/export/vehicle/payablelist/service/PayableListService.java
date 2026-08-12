@@ -41,6 +41,14 @@ public interface PayableListService {
     String submitPayableList(PayableListSubmitReq req);
 
     /**
+     * 更新应付清单基础信息（客户编码、客户名称）
+     *
+     * @param req 更新请求
+     * @return 应付清单ID
+     */
+    String updatePayableList(PayableListUpdateReq req);
+
+    /**
      * 批量提交应付清单
      *
      * @param req 批量提交请求

@@ -11,6 +11,7 @@ import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermissio
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -48,6 +49,13 @@ public class PayableListManagementController {
     @PostMapping("/submit")
     public AjaxResult<String> submit(@RequestBody PayableListSubmitReq req) {
         return AjaxResult.success(payableListService.submitPayableList(req));
+    }
+
+    @Operation(summary = "更新应付清单基础信息（客户编码、客户名称）")
+    @ResourcePermission(value = "web:payableList:payableListManagement:addOrUpdate", desc = "更新应付清单基础信息")
+    @PostMapping("/addOrUpdate")
+    public AjaxResult<String> addOrUpdate(@RequestBody @Validated PayableListUpdateReq req) {
+        return AjaxResult.success(payableListService.updatePayableList(req));
     }
 
     @Operation(summary = "批量提交应付清单")

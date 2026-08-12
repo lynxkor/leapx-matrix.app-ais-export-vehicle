@@ -40,5 +40,5 @@ VALUES ('export_vehicle_cbu_po_order_type', '1', 'CBU', 1, NULL, 'system', CURRE
 -- ---------- 数据来源 export_vehicle_cbu_po_data_source ----------
 -- 对应字段 data_source,PO 与 SO 共用;枚举 DataSourceEnum
 INSERT INTO `common_dict_value` (`dict_type`, `dict_value`, `dict_label`, `sort`, `creator`, `creator_name`, `create_time`)
-VALUES ('export_vehicle_cbu_po_data_source', '1', '销服', NULL, 'system', CURRENT_TIMESTAMP),
-       ('export_vehicle_cbu_po_data_source', '2', '红旗', NULL, 'system', CURRENT_TIMESTAMP);
+VALUES ('export_vehicle_cbu_po_data_source', '1', '销服', 1, NULL, 'system', CURRENT_TIMESTAMP),
+       ('export_vehicle_cbu_po_data_source', '2', '红旗', 2, NULL, 'system', CURRENT_TIMESTAMP);

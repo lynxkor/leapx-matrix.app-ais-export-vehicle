@@ -12,7 +12,7 @@ CREATE TABLE `event_notify_task`
     `related_no`           varchar(64)   DEFAULT NULL COMMENT '业务关联单据',
     `target`               varchar(32)   DEFAULT NULL COMMENT '目标平台(HONGQI)',
     `failed_count`         bigint        DEFAULT '0' COMMENT '失败次数',
-    `failed_reason`        varchar(1000) DEFAULT NULL COMMENT '失败原因',
+    `failed_reason`        varchar(2000) DEFAULT NULL COMMENT '失败原因',
     `execute_result`       int           DEFAULT '0' COMMENT '执行结果 0待处理 8已完成 9已取消 10最终失败',
     `data_param`           text          DEFAULT NULL COMMENT '事件数据快照(请求体JSON)',
     `extend1`              varchar(255)  DEFAULT NULL COMMENT '拓展字段1',

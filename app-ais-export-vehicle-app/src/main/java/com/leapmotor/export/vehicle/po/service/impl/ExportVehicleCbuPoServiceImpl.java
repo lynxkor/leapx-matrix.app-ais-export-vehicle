@@ -46,6 +46,7 @@ import lombok.AllArgsConstructor;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -119,8 +120,12 @@ public class ExportVehicleCbuPoServiceImpl implements ExportVehicleCbuPoService 
             }
         }
 
+        ExportVehicleCbuPoResp orderResp = ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(order);
+        // 回填销售公司名称：salesCompanyName 不在主表DO中，需按 salesCompanyCode 关联公司主数据补全（与 page 接口保持一致）
+        fillSalesCompanyName(Collections.singletonList(orderResp));
+
         ExportVehicleCbuPoDetailFullResp resp = new ExportVehicleCbuPoDetailFullResp();
-        resp.setOrder(ExportVehicleCbuPoDTOStructMapper.INSTANCE.domainToResp(order));
+        resp.setOrder(orderResp);
         resp.setDetails(ExportVehicleCbuPoDetailDTOStructMapper.INSTANCE.domainsToResps(detailDos));
         resp.setGuarantees(ExportVehicleCbuPoGuaranteeDTOStructMapper.INSTANCE.domainsToResps(guaranteeDos));
         return resp;

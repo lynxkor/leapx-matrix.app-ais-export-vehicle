@@ -949,10 +949,17 @@ public class VehicleCbuSoCmdExe {
                     throw new BizException("SO[" + so.getSoNo() + "]未总装下线，不能接收质检结果");
                 }
 
-                // 通过状态不允许回退
-                if (VehicleCbuSoQcResultEnum.PASSED.getCode().equals(so.getQcResult())
-                        && !VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum)) {
-                    throw new BizException("SO[" + so.getSoNo() + "]当前已为质检通过，不允许回退");
+                Integer currentQcResult = so.getQcResult();
+
+                // 质检通过为终态，不允许变更
+                if (VehicleCbuSoQcResultEnum.PASSED.getCode().equals(currentQcResult)) {
+                    throw new BizException("SO[" + so.getSoNo() + "]当前已为质检通过，不允许变更");
+                }
+
+                // 质检不通过不允许改为未收到车辆
+                if (VehicleCbuSoQcResultEnum.FAILED.getCode().equals(currentQcResult)
+                        && VehicleCbuSoQcResultEnum.NO_VEHICLE.equals(qcEnum)) {
+                    throw new BizException("SO[" + so.getSoNo() + "]当前为质检不通过，不允许改为未收到车辆");
                 }
 
                 doReceiveQcResult(so, detail, qcEnum, req);

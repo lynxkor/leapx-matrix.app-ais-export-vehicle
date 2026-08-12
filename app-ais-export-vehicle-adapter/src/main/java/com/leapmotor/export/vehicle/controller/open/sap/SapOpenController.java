@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * SAP系统开放接口（SAP → 本系统，入站）。
+ * SAP系统开放接口
  * 路径前缀 /openApi/sap，需签名校验。
  *
  * @author 赵吴涯
  * @since 2026-07-21
  */
-@Tag(name = "SAP系统开放接口", description = "SAP系统入站接口")
+@Tag(name = "SAP系统开放接口", description = "SAP系统开放接口")
 @RestController
 @AllArgsConstructor
 @RequestMapping("/openApi/sap")
@@ -27,8 +27,8 @@ public class SapOpenController {
     private SapClearAccountProcessor sapClearAccountProcessor;
 
     @Operation(summary = "SAP清账结果同步")
-    @PostMapping("/payableList/sapClearAccount")
-    public AjaxResult<Void> sapClearAccount(@RequestBody SapClearAccountReq req) {
+    @PostMapping("/payableList/clearCallback")
+    public AjaxResult<Void> clearCallback(@RequestBody SapClearAccountReq req) {
         sapClearAccountProcessor.process(req);
         return AjaxResult.success();
     }

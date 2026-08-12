@@ -37,6 +37,9 @@ public class PayableListResp extends LpBaseModel implements Serializable {
     @Schema(description = "客户名称")
     private String customerName;
 
+    @Schema(description = "外部客户编码")
+    private String externalCustomerCode;
+
     @Schema(description = "车辆总数量")
     private Integer totalVehicles;
 

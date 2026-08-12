@@ -90,6 +90,7 @@ public class PayableListGenerateExe {
             header.setBillStatus(PayableListStatusEnum.DRAFT.getCode());
             header.setCustomerCode(customerCode);
             header.setCustomerName(vehicles.get(0).getCustomerName());
+            header.setExternalCustomerCode(vehicles.get(0).getExternalCustomerCode());
             header.setGenerateMonth(generateMonth);
             header.setTotalVehicles(0);
             header.setTotalAmount(BigDecimal.ZERO);
@@ -162,6 +163,7 @@ public class PayableListGenerateExe {
         dto.setMaterialDesc(soDo.getMaterialDescription());
         dto.setCustomerCode(soDo.getCustomerCode());
         dto.setCustomerName(soDo.getCustomerName());
+        dto.setExternalCustomerCode(soDo.getExternalCustomerCode());
         dto.setVehiclePrice(soDo.getVehiclePrice());
         dto.setFrozenAmount(soDo.getFrozenAmount());
         dto.setReceivableAmount(soDo.getReceivableAmount());

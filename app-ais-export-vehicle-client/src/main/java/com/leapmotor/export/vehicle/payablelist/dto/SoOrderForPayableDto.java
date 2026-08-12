@@ -58,6 +58,11 @@ public class SoOrderForPayableDto implements Serializable {
     private String customerName;
 
     /**
+     * 外部客户编码
+     */
+    private String externalCustomerCode;
+
+    /**
      * 车辆价格
      */
     private BigDecimal vehiclePrice;

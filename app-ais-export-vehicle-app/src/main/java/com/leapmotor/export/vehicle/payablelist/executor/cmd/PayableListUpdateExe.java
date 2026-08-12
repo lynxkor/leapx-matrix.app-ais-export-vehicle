@@ -35,9 +35,16 @@ public class PayableListUpdateExe {
         // 乐观锁校验
         PayableListStatusChecker.checkVersion(db, req.getVersion());
 
-        // 仅更新可编辑字段：客户编码、客户名称，其余字段保持原值
+        // 更新可编辑字段（版本号由后端统一 +1，不回写请求值）
         db.setCustomerCode(req.getCustomerCode());
         db.setCustomerName(req.getCustomerName());
+        db.setExternalCustomerCode(req.getExternalCustomerCode());
+        db.setGenerateMonth(req.getGenerateMonth());
+        db.setTotalVehicles(req.getTotalVehicles());
+        db.setTotalAmount(req.getTotalAmount());
+        db.setSubmitTime(req.getSubmitTime());
+        db.setConfirmTime(req.getConfirmTime());
+        db.setConfirmRemark(req.getConfirmRemark());
         db.setVersion(db.getVersion() + 1);
         payableListGateway.updatePayableList(db);
 

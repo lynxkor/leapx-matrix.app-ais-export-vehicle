@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 应付清单基础信息更新请求
@@ -32,4 +34,25 @@ public class PayableListUpdateReq implements Serializable {
 
     @Schema(description = "客户名称")
     private String customerName;
+
+    @Schema(description = "外部客户编码")
+    private String externalCustomerCode;
+
+    @Schema(description = "生成月份 yyyyMM")
+    private String generateMonth;
+
+    @Schema(description = "车辆总数量")
+    private Integer totalVehicles;
+
+    @Schema(description = "金额合计")
+    private BigDecimal totalAmount;
+
+    @Schema(description = "提交时间")
+    private LocalDateTime submitTime;
+
+    @Schema(description = "确认时间")
+    private LocalDateTime confirmTime;
+
+    @Schema(description = "确认说明")
+    private String confirmRemark;
 }

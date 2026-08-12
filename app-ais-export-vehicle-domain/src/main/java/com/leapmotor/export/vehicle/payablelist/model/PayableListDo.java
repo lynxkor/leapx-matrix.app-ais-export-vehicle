@@ -41,6 +41,11 @@ public class PayableListDo extends LpBaseModel implements Serializable {
     private String customerName;
 
     /**
+     * 外部客户编码（来源SO，取自红旗CBU接口）
+     */
+    private String externalCustomerCode;
+
+    /**
      * 车辆总数量
      */
     private Integer totalVehicles;

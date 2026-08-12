@@ -48,6 +48,12 @@ public class PayableList extends LpBaseEntity implements Serializable {
     private String customerName;
 
     /**
+     * 外部客户编码（来源SO，取自红旗CBU接口）
+     */
+    @TableField("external_customer_code")
+    private String externalCustomerCode;
+
+    /**
      * 车辆总数量
      */
     @TableField("total_vehicles")

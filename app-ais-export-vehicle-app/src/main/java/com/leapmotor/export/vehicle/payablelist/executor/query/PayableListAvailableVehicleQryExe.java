@@ -93,6 +93,7 @@ public class PayableListAvailableVehicleQryExe {
         dto.setMaterialDesc(soDo.getMaterialDescription());
         dto.setCustomerCode(soDo.getCustomerCode());
         dto.setCustomerName(soDo.getCustomerName());
+        dto.setExternalCustomerCode(soDo.getExternalCustomerCode());
         dto.setVehiclePrice(soDo.getVehiclePrice());
         dto.setFrozenAmount(soDo.getFrozenAmount());
         dto.setReceivableAmount(soDo.getReceivableAmount());

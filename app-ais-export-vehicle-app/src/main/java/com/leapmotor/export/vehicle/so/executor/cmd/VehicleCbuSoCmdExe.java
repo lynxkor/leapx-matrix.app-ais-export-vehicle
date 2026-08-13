@@ -50,12 +50,14 @@ import com.leapmotor.platform.ais.common.redis.BlockLock;
 import com.leapmotor.platform.ais.common.redis.DistributedLockTemplate;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import com.leapmotor.platform.ais.common.web.thread.AisRunnable;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,7 +85,8 @@ import java.util.stream.Collectors;
  * @since 2026-07-13
  */
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
+@RefreshScope
 @Component
 public class VehicleCbuSoCmdExe {
 
@@ -117,6 +120,13 @@ public class VehicleCbuSoCmdExe {
     private final TaskExecutor soIssueExecutor;
     private final ExportVehicleLetterGuaranteeService letterGuaranteeService;
     private final ExportVehicleCbuPoGuaranteeGateway purchaseOrderGuaranteeGateway;
+
+    /**
+     * SAP 同步开关，默认关闭（上线后经 Nacos 配置 sap.sync.enabled=true 打开）。
+     * 质检同步 SAP 接口晚于接收质检接口上线，上线前关闭待上线后打开。
+     */
+    @Value("${sap.sync.enabled:false}")
+    private boolean sapSyncEnabled;
 
     public String addOrUpdateVehicleCbuSo(VehicleCbuSoDo vehicleCbuSoDo) {
         return vehicleCbuSoDo.getId() == null
@@ -959,7 +969,8 @@ public class VehicleCbuSoCmdExe {
                 // 质检不通过不允许改为未收到车辆
                 if (VehicleCbuSoQcResultEnum.FAILED.getCode().equals(currentQcResult)
                         && VehicleCbuSoQcResultEnum.NO_VEHICLE.equals(qcEnum)) {
-                    throw new BizException("SO[" + so.getSoNo() + "]当前为质检不通过，不允许改为未收到车辆");
+                    throw new BizException("SO[" + so.getSoNo()
+                            + "]当前为质检不通过，不允许改为未收到车辆");
                 }
 
                 doReceiveQcResult(so, detail, qcEnum, req);
@@ -994,7 +1005,7 @@ public class VehicleCbuSoCmdExe {
         vehicleCbuSoGateway.updateVehicleCbuSo(so);
 
         // 质检通过：afterCommit 发布 SAP 同步事件（publishAsync 事务内自动 afterCommit，回滚不发布）
-        if (VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum)) {
+        if (VehicleCbuSoQcResultEnum.PASSED.equals(qcEnum) && sapSyncEnabled) {
             SapOrderSyncReq sapReq = buildSapOrderSyncReq(so, detail);
             eventHandlerHelper.publishAsync(ThirdTargetPlatformEnum.SAP,
                     SapEventTypeEnum.SYNC_SAP, so.getSoNo(), sapReq);
@@ -1235,21 +1246,43 @@ public class VehicleCbuSoCmdExe {
 
     private SapOrderSyncReq buildSapOrderSyncReq(VehicleCbuSoDo so, VehicleCbuSoDetailDo detail) {
         SapOrderSyncReq req = new SapOrderSyncReq();
-        req.setCustomerPoNo(so.getPoNo());
-        req.setSalesServiceSoNo(so.getSoNo());
-        req.setOrderDate(so.getCreateTime() != null ? so.getCreateTime().toLocalDate() : null);
-        req.setLogisticsStatus("");
-        req.setOrderStatusDate(LocalDateTime.now());
-        req.setSalesCompanyCode(so.getSalesCompanyCode());
-        req.setCustomerCode(so.getCustomerCode());
-        req.setOrderType(String.valueOf(so.getOrderType()));
-        req.setOrderCategory("");
-        req.setSplitOrderNo("");
-        req.setVin(detail != null ? detail.getVin() : so.getVin());
-        req.setMaterialCode(detail != null ? detail.getMaterialCode() : so.getMaterialCode());
-        req.setOrderQuantity(BigDecimal.ONE);
-        req.setExwUnitPrice(so.getVehiclePrice());
+        req.setIvSysid("DMS");
+
+        SapOrderSyncReq.IsHead head = new SapOrderSyncReq.IsHead();
+        head.setSorder(so.getSoNo());
+        head.setPorder(so.getPoNo());
+        head.setErdat(so.getReceiveOrderTime() != null
+                ? so.getReceiveOrderTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
+        head.setLstatus("77");
+        head.setLsdatum(so.getQcResultTime() != null
+                ? so.getQcResultTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
+        head.setBukrs(so.getSalesCompanyCode());
+        head.setKunnr(so.getCustomerCode());
+        head.setRecordType(convertOrderTypeToRecordType(so.getOrderType()));
+        head.setOrderWay("100");
+        req.setIsHead(head);
+
+        SapOrderSyncReq.ImTabItem item = new SapOrderSyncReq.ImTabItem();
+        item.setSorderSub(so.getSoNo());
+        item.setVhcle(detail != null ? detail.getInternalVehicleNo() : null);
+        item.setVhvin(detail != null ? detail.getVin() : so.getVin());
+        item.setMatnr(detail != null ? detail.getMaterialCode() : so.getMaterialCode());
+        item.setMenge(BigDecimal.ONE);
+        item.setPriceExw(so.getVehiclePrice());
+        req.setImTab(List.of(item));
+
         return req;
+    }
+
+    private String convertOrderTypeToRecordType(Integer orderType) {
+        if (orderType == null) {
+            return "";
+        }
+        // 后续补充 SKD/CKD 等映射
+        return switch (orderType) {
+            case 1 -> "CBU";
+            default -> "CBU";
+        };
     }
 
     /**

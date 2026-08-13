@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 /**
  * SO 订单同步 SAP 事件处理器：
  * 反序列化 dataParam -> 调 SapGateway -> 写类型4 接口同步记录（自动刷新明细表 SAP 三字段）
- * -> code!=200 抛异常触发重试。
+ * -> ES_RET.RET_CODE != S 抛异常触发重试。
  *
  * <p>不加 @Transactional：writeInterfaceSyncRecord 依赖 addVehicleCbuSoInterfaceSync 自带事务落库，
  * SAP 失败抛异常时不回滚已写入的失败记录（对齐 HongqiProductionNodeNotifyHandler）。
@@ -55,7 +55,7 @@ public class SapSyncNotifyHandler extends AbstractEventHandler {
         SapResult result = sapGateway.syncSap(req);
         log.info("SO订单同步SAP结果: {}", result);
         writeInterfaceSyncRecord(task.getBizNo(), result);
-        if (result == null || result.getCode() != 200) {
+        if (!isSapSuccess(result)) {
             throw new BizException("SO订单同步SAP失败: " + JSON.toJSONString(result));
         }
     }
@@ -76,14 +76,35 @@ public class SapSyncNotifyHandler extends AbstractEventHandler {
             syncDo.setInterfaceDesc("订单同步SAP");
             syncDo.setCallTime(LocalDateTime.now());
             syncDo.setRequestInfo(StringUtils.left(soNo, 2000));
-            syncDo.setResultStatus(result != null && result.getCode() == 200 ? 1 : 0);
-            syncDo.setResponseInfo(StringUtils.left(result == null ? null : result.getMessage(), 2000));
+            syncDo.setResultStatus(isSapSuccess(result) ? 1 : 0);
+            syncDo.setResponseInfo(StringUtils.left(extractSapReason(result), 2000));
             syncDo.setRemark("质检通过同步SAP");
             syncDo.setStatus(1);
             vehicleCbuSoInterfaceSyncGateway.addVehicleCbuSoInterfaceSync(syncDo);
         } catch (Exception e) {
             log.error("写SAP同步记录失败, soNo={}", soNo, e);
         }
+    }
+
+    private boolean isSapSuccess(SapResult result) {
+        if (result == null || !result.isSuccess()) {
+            return false;
+        }
+        if (result.getBody() == null || result.getBody().getEsRet() == null) {
+            return false;
+        }
+        return "S".equals(result.getBody().getEsRet().getRetCode());
+    }
+
+    private String extractSapReason(SapResult result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.getBody() != null && result.getBody().getEsRet() != null
+                && StringUtils.isNotBlank(result.getBody().getEsRet().getRetReason())) {
+            return result.getBody().getEsRet().getRetReason();
+        }
+        return result.getMessage();
     }
 
     @Override

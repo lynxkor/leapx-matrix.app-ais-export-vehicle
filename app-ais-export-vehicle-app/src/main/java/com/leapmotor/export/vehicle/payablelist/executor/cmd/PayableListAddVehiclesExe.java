@@ -99,7 +99,7 @@ public class PayableListAddVehiclesExe {
             detail.setBillStatus(payableList.getBillStatus());
 
             // 明细编号
-            detail.setDetailNo(NoGenerator.genNoOnly("YX", "yyyyMMdd", 6));
+            detail.setDetailNo(NoGenerator.genYearMonthDay("YX", 6));
 
             // SO订单信息
             detail.setSoId(so.getId());

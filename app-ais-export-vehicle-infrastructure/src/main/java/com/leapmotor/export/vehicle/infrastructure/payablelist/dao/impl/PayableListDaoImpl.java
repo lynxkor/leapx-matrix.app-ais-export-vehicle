@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.infrastructure.payablelist.dao.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.dao.PayableListDao;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableList;
@@ -8,6 +9,8 @@ import com.leapmotor.export.vehicle.infrastructure.payablelist.mapper.PayableLis
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 /**
  * 应付清单抬头 DB数据交互实现
@@ -23,8 +26,18 @@ public class PayableListDaoImpl extends ServiceImpl<PayableListMapper, PayableLi
     public QueryWrapper<PayableList> buildQueryWrapper(PayableListQo query) {
         QueryWrapper<PayableList> queryWrapper = PayableListDao.super.buildBasicQueryWrapper(query);
         queryWrapper.lambda()
-                // TODO: 根据实际需求添加查询条件
-        ;
+                .like(StringUtils.isNotBlank(query.getPayableListNo()), PayableList::getPayableListNo, query.getPayableListNo())
+                .in(query.getBillStatusList() != null && !query.getBillStatusList().isEmpty(),
+                        PayableList::getBillStatus, query.getBillStatusList())
+                .eq(StringUtils.isNotBlank(query.getCustomerCode()), PayableList::getCustomerCode, query.getCustomerCode())
+                .like(StringUtils.isNotBlank(query.getCustomerNameLike()), PayableList::getCustomerName, query.getCustomerNameLike())
+                .eq(StringUtils.isNotBlank(query.getGenerateMonth()), PayableList::getGenerateMonth, query.getGenerateMonth())
+                .ge(Objects.nonNull(query.getCreateTimeStart()), PayableList::getCreateTime, query.getCreateTimeStart())
+                .le(Objects.nonNull(query.getCreateTimeEnd()), PayableList::getCreateTime, query.getCreateTimeEnd())
+                .ge(Objects.nonNull(query.getSubmitTimeStart()), PayableList::getSubmitTime, query.getSubmitTimeStart())
+                .le(Objects.nonNull(query.getSubmitTimeEnd()), PayableList::getSubmitTime, query.getSubmitTimeEnd())
+                .ge(Objects.nonNull(query.getConfirmTimeStart()), PayableList::getConfirmTime, query.getConfirmTimeStart())
+                .le(Objects.nonNull(query.getConfirmTimeEnd()), PayableList::getConfirmTime, query.getConfirmTimeEnd());
         queryWrapper.orderByDesc(STATUS_COLUMN).orderByDesc(CREATED_TIME_COLUMN).orderByDesc(ID_COLUMN);
         return queryWrapper;
     }

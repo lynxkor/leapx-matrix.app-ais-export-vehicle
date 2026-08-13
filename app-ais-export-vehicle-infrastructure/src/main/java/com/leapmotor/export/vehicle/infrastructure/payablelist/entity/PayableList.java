@@ -66,7 +66,7 @@ public class PayableList extends LpBaseEntity implements Serializable {
     private BigDecimal totalAmount;
 
     /**
-     * 生成月份 yyyyMM，仅作批次标记字段，记录定时任务执行时间的上一个月份，不参与查询过滤
+     * 生成月份 yyyyMM，用于页面按月份筛选
      */
     @TableField("generate_month")
     private String generateMonth;

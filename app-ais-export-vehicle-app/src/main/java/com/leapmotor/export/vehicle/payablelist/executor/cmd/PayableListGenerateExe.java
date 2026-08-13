@@ -86,7 +86,7 @@ public class PayableListGenerateExe {
             // 生成抬头
             PayableListDo header = new PayableListDo();
             // 编号规则：YF + 年月 + 6位流水号，如 YF202606000001
-            header.setPayableListNo(NoGenerator.genNoOnly("YF", "yyyyMM", 6));
+            header.setPayableListNo(NoGenerator.genYearMonth("YF", 6));
             header.setBillStatus(PayableListStatusEnum.DRAFT.getCode());
             header.setCustomerCode(customerCode);
             header.setCustomerName(vehicles.get(0).getCustomerName());
@@ -106,7 +106,7 @@ public class PayableListGenerateExe {
                 detail.setBillStatus(header.getBillStatus());
 
                 // 明细编号
-                detail.setDetailNo(NoGenerator.genNoOnly("YX", "yyyyMMdd", 6));
+                detail.setDetailNo(NoGenerator.genYearMonthDay("YX", 6));
 
                 // SO订单信息
                 detail.setSoId(so.getSoId());

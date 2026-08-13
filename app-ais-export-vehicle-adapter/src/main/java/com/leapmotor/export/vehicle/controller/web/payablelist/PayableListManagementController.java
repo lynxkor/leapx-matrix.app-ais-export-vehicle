@@ -89,7 +89,7 @@ public class PayableListManagementController {
     @Operation(summary = "导入最新价格")
     @ResourcePermission(value = "web:payableList:payableListManagement:importPrice", desc = "导入最新价格")
     @PostMapping("/importPrice")
-    public AjaxResult<ExcelBaseResult> importPrice(@RequestBody PayableListImportPriceReq req) {
+    public AjaxResult<ExcelBaseResult> importPrice(@RequestBody @Validated PayableListImportPriceReq req) {
         return AjaxResult.success(payableListService.importPrice(req));
     }
 

@@ -49,6 +49,15 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
     @Override
     public int addBatchPayableListDetail(List<PayableListDetailDo> detailDos) {
         List<PayableListDetail> details = PayableListDetailStructMapper.INSTANCE.domainToDataObjects(detailDos);
+        // 显式填充 owner_user_id / owner_org_id 默认值，避免 insertBatchSomeColumn 将 null 拼进 INSERT 触发 NOT NULL 报错
+        for (PayableListDetail detail : details) {
+            if (detail.getOwnerUserId() == null) {
+                detail.setOwnerUserId(0L);
+            }
+            if (detail.getOwnerOrgId() == null) {
+                detail.setOwnerOrgId(0L);
+            }
+        }
         return payableListDetailDao.batchSaveSomeColumn(details);
     }
 

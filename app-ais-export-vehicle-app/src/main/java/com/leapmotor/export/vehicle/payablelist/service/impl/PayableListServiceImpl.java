@@ -18,7 +18,6 @@ import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListAddVehiclesReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListBatchSubmitReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListDeleteVehicleReq;
-import com.leapmotor.export.vehicle.payablelist.req.PayableListImportPriceReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListPageParam;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListQueryAvailableVehiclesReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListSubmitReq;
@@ -26,6 +25,7 @@ import com.leapmotor.export.vehicle.payablelist.req.PayableListUpdateReq;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
@@ -128,8 +128,8 @@ public class PayableListServiceImpl implements PayableListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ExcelBaseResult importPrice(PayableListImportPriceReq req) {
-        return payableListImportPriceExe.execute(req);
+    public ExcelBaseResult importPrice(ImportExcelDTO dto) {
+        return payableListImportPriceExe.execute(dto);
     }
 
     @Override

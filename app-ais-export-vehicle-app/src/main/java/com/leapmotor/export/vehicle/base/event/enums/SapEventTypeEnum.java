@@ -12,7 +12,12 @@ public enum SapEventTypeEnum implements BizEventType {
     /**
      * SO 订单同步 SAP
      */
-    SYNC_SAP("SYNC_SAP", "SO订单同步SAP");
+    SYNC_SAP("SYNC_SAP", "SO订单同步SAP"),
+
+    /**
+     * 应付清单提交至SAP
+     */
+    PAYABLE_LIST_SYNC_SAP_SUBMIT("PAYABLE_LIST_SYNC_SAP_SUBMIT", "应付清单同步SAP");
 
     private final String type;
     private final String desc;

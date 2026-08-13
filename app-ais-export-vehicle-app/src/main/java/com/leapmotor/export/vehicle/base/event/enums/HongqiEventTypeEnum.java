@@ -18,6 +18,11 @@ public enum HongqiEventTypeEnum implements BizEventType {
      * 车辆生产信息同步红旗（VDO53003）
      */
     PRODUCTION_NODE_SYNC("PRODUCTION_NODE_SYNC", "车辆生产信息同步红旗"),
+
+    /**
+     * 应付清单提交至红旗
+     */
+    PAYABLE_LIST_SYNC_HQ_SUBMIT("PAYABLE_LIST_SYNC_HQ_SUBMIT", "应付清单提交至红旗"),
     ;
 
     private final String type;

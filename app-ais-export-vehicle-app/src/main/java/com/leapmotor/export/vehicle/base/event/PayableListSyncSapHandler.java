@@ -60,7 +60,7 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
         log.info("应付清单同步SAP结果: bizNo={}, result={}", task.getBizNo(), result);
 
         // 失败抛异常，触发重试
-        if (result == null || result.getCode() != 200) {
+        if (result == null) {
             throw new BizException("应付清单同步SAP失败: " + JSON.toJSONString(result));
         }
 

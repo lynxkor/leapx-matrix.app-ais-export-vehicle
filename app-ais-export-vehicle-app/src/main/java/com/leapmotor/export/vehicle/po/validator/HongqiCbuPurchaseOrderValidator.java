@@ -39,8 +39,8 @@ public class HongqiCbuPurchaseOrderValidator {
     private static final Pattern MATERIAL_CODE = Pattern.compile("^[A-Za-z0-9]{18}$");
     /** 期望下线日期：YYYYMMDD */
     private static final Pattern OFFLINE_DATE = Pattern.compile("^\\d{8}$");
-    /** VIN码年份：空 或 YYYY */
-    private static final Pattern VIN_YEAR = Pattern.compile("^(|\\d{4})$");
+    /** VIN码年份后4位：YYYY（实际入参为 D-出口-WMP-2026 这类串，校验时取末尾4位） */
+    private static final Pattern VIN_YEAR = Pattern.compile("^\\d{4}$");
 
     private static final DateTimeFormatter BASIC_DATE = DateTimeFormatter.BASIC_ISO_DATE;
 
@@ -135,12 +135,14 @@ public class HongqiCbuPurchaseOrderValidator {
                 }
             }
 
-            // VIN码年份（可空）
+            // VIN码年份（可空）：实际入参为 D-出口-WMP-2026 这类串，只取末尾4位作为年份。
+            // 字段为空则放行；长度不足4位（无法截取）或末尾4位非YYYY年份则报错。
             if (notBlank(d.getVinYear())) {
-                if (d.getVinYear().length() > 10) {
-                    errors.add(row + "[VIN码年份]长度不能超过10");
-                } else if (!VIN_YEAR.matcher(d.getVinYear()).matches()) {
-                    errors.add(row + "[VIN码年份]格式错误，应为YYYY，当前值: " + d.getVinYear());
+                String rawVinYear = d.getVinYear();
+                if (rawVinYear.length() < 4) {
+                    errors.add(row + "[VIN码年份]格式错误，长度不足无法截取年份(后4位)，当前值: " + rawVinYear);
+                } else if (!VIN_YEAR.matcher(rawVinYear.substring(rawVinYear.length() - 4)).matches()) {
+                    errors.add(row + "[VIN码年份]格式错误，后4位应为YYYY年份，当前值: " + rawVinYear);
                 }
             }
 

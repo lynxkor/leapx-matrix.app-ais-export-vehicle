@@ -139,9 +139,10 @@ public class HongqiCbuPurchaseOrderValidator {
             // 字段为空则放行；长度不足4位（无法截取）或末尾4位非YYYY年份则报错。
             if (notBlank(d.getVinYear())) {
                 String rawVinYear = d.getVinYear();
+                String vinYear = normalizeVinYear(rawVinYear);
                 if (rawVinYear.length() < 4) {
                     errors.add(row + "[VIN码年份]格式错误，长度不足无法截取年份(后4位)，当前值: " + rawVinYear);
-                } else if (!VIN_YEAR.matcher(rawVinYear.substring(rawVinYear.length() - 4)).matches()) {
+                } else if (!VIN_YEAR.matcher(vinYear).matches()) {
                     errors.add(row + "[VIN码年份]格式错误，后4位应为YYYY年份，当前值: " + rawVinYear);
                 }
             }
@@ -161,6 +162,19 @@ public class HongqiCbuPurchaseOrderValidator {
 
     private static boolean notBlank(String s) {
         return s != null && !s.trim().isEmpty();
+    }
+
+    /**
+     * VIN码年份归一化：入参形如 "D-出口-WMP-2026"，统一取末尾4位 YYYY。
+     * 仅截取、不校验合法性；为 null 或长度不足4位时原样返回（合法性交由 {@link #validateDetails} 报错）。
+     * 保存路径（{@code ExportVehicleCbuPoCmdExe#buildDetails}）同样调用本方法，
+     * 确保落库的始终是4位年份而非原始长串（避免超出字段长度、保持下游口径一致）。
+     */
+    public static String normalizeVinYear(String rawVinYear) {
+        if (rawVinYear == null || rawVinYear.length() < 4) {
+            return rawVinYear;
+        }
+        return rawVinYear.substring(rawVinYear.length() - 4);
     }
 
     /** yyyyMMdd 是否为真实合法日期（拦截 20261332 这类伪日期） */

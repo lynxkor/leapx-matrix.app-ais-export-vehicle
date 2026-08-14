@@ -4,6 +4,7 @@ import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 
 import java.util.List;
@@ -59,10 +60,10 @@ public interface PayableListService {
     /**
      * 导入最新价格
      *
-     * @param req 导入请求
+     * @param dto 导入请求
      * @return 导入结果
      */
-    ExcelBaseResult importPrice(PayableListImportPriceReq req);
+    ExcelBaseResult importPrice(ImportExcelDTO dto);
 
     /**
      * 删除应付清单

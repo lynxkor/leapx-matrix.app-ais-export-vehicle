@@ -7,8 +7,8 @@ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-import com.leapmotor.export.vehicle.payablelist.req.PayableListImportPriceReq;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
@@ -46,42 +46,51 @@ public class PayableListImportPriceExe {
     /**
      * 导入最新价格
      *
-     * @param req 导入请求
+     * @param dto 导入请求
      * @return 导入结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public ExcelBaseResult execute(PayableListImportPriceReq req) {
+    public ExcelBaseResult execute(ImportExcelDTO dto) {
         ExcelBaseResult result = new ExcelBaseResult();
 
         // 1. 基础校验
-        if (req == null || StrUtil.isBlank(req.getExcel())) {
+        if (dto == null || StrUtil.isBlank(dto.getExcel())) {
             result.setSuccessNum(0);
             result.setFailNum(0);
             return result;
         }
 
         // 2. 解析Excel数据
-        List<PayableListImportPriceDto> importList = JSONObject.parseArray(req.getExcel(), PayableListImportPriceDto.class);
+        List<PayableListImportPriceDto> importList = JSONObject.parseArray(dto.getExcel(), PayableListImportPriceDto.class);
         if (CollectionUtils.isEmpty(importList)) {
             result.setSuccessNum(0);
             result.setFailNum(0);
             return result;
         }
 
+        // 2.1 解析业务参数（datacenter透传的 businessParams JSON）
+        String payableListId = null;
+        Integer version = null;
+        if (StrUtil.isNotBlank(dto.getBusinessParams())) {
+            JSONObject bizParams = JSONObject.parseObject(dto.getBusinessParams());
+            payableListId = bizParams.getString("payableListId");
+            version = bizParams.getInteger("version");
+        }
+
         // 3. 查询应付清单并校验
-        PayableListDo db = payableListGateway.getPayableListById(req.getPayableListId());
+        PayableListDo db = payableListGateway.getPayableListById(payableListId);
         if (db == null) {
             throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
         }
         // 乐观锁校验
-        if (db.getVersion() == null || !db.getVersion().equals(req.getVersion())) {
+        if (db.getVersion() == null || !db.getVersion().equals(version)) {
             throw new BizException(ResultEnum.BAD_REQUEST, "数据已被他人修改，请刷新后重试");
         }
         // 状态前置校验
         PayableListStatusChecker.checkEditable(db);
 
         // 4. 查询当前清单明细，构建VIN映射
-        List<PayableListDetailDo> details = payableListDetailGateway.listByPayableListId(req.getPayableListId());
+        List<PayableListDetailDo> details = payableListDetailGateway.listByPayableListId(payableListId);
         Map<String, PayableListDetailDo> vinMap = details.stream()
                 .collect(Collectors.toMap(PayableListDetailDo::getVin, Function.identity(), (a, b) -> a));
 
@@ -150,7 +159,7 @@ public class PayableListImportPriceExe {
         }
 
         // 8. 重算汇总
-        List<PayableListDetailDo> updatedDetails = payableListDetailGateway.listByPayableListId(req.getPayableListId());
+        List<PayableListDetailDo> updatedDetails = payableListDetailGateway.listByPayableListId(payableListId);
         BigDecimal totalAmount = updatedDetails.stream()
                 .map(PayableListDetailDo::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -159,7 +168,7 @@ public class PayableListImportPriceExe {
         db.setVersion(db.getVersion() + 1);
         payableListGateway.updatePayableList(db);
 
-        log.info("导入最新价格完成，payableListId={}, total={}, fail={}", req.getPayableListId(), validList.size(), failList.size());
+        log.info("导入最新价格完成，payableListId={}, total={}, fail={}", payableListId, validList.size(), failList.size());
 
         // 9. 成功返回
         result.setSuccessNum(validList.size());

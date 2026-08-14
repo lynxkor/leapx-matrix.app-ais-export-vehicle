@@ -5,6 +5,7 @@ import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
@@ -89,8 +90,8 @@ public class PayableListManagementController {
     @Operation(summary = "导入最新价格")
     @ResourcePermission(value = "web:payableList:payableListManagement:importPrice", desc = "导入最新价格")
     @PostMapping("/importPrice")
-    public AjaxResult<ExcelBaseResult> importPrice(@RequestBody @Validated PayableListImportPriceReq req) {
-        return AjaxResult.success(payableListService.importPrice(req));
+    public AjaxResult<ExcelBaseResult> importPrice(@RequestBody @Validated ImportExcelDTO dto) {
+        return AjaxResult.success(payableListService.importPrice(dto));
     }
 
     @Operation(summary = "删除应付清单")

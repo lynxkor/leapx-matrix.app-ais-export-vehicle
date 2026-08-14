@@ -424,8 +424,15 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
         letterGuaranteeService.freeze(buildFreezeReq(custId, "CBU", new BigDecimal("150000.00"), poNo));
 
         SapResult failResult = new SapResult();
-        failResult.setCode(500);
+        failResult.setCode("500");
         failResult.setMessage("SAP 异常");
+        failResult.setSuccess(false);
+        SapResult.Body body = new SapResult.Body();
+        SapResult.SapRet esRet = new SapResult.SapRet();
+        esRet.setRetCode("E");
+        esRet.setRetReason("SAP 异常");
+        body.setEsRet(esRet);
+        failResult.setBody(body);
         when(sapGateway.syncSap(any())).thenReturn(failResult);
 
         service.receiveProductionStatus(List.of(buildStatusReq(soNo, 5, vin)));

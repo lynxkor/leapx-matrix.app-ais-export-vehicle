@@ -1,16 +1,17 @@
 package com.leapmotor.export.vehicle.basic.model;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 
 /**
- *
  * 保函交易明细领域对象
+ *
  * @author wangkai2527148
  * @since 2026-07-02
  */
@@ -148,9 +149,12 @@ public class ExportVehicleLetterGuaranteeRecordDo extends LpBaseModel implements
     private BigDecimal conversionRatio;
 
     /**
-     * 换算订单额度(可用订单金额)
+     * (可用订单金额)
      */
     private BigDecimal availableAmount;
-
+    /**
+     * 换算订单额度
+     */
+    private BigDecimal conversionAmount;
 
 }

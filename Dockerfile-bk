@@ -3,7 +3,7 @@ LABEL maintainer="xiao_yan3@leapmotor.com"
 
 # 接入opentelmetry全链路，阿里云环境会覆盖该配置，使用arms监控
 ENV JAVA_TOOL_OPTIONS="-javaagent:/app/opentelemetry-javaagent.jar \
-                        -Dotel.resource.attributes=service.name=ais-dataprocess-sit,service.version=v0.1.0,deployment.environment=sit \
+                        -Dotel.resource.attributes=service.name=ais-export-nexus,service.version=v0.1.0,deployment.environment=sit \
                         -Dotel.exporter.otlp.protocol=http/protobuf \
                         -Dotel.exporter.otlp.traces.endpoint=http://tracing-analysis-dc-hz-internal.aliyuncs.com/adapt_dfs9qx949t@c92d55d100e5caf_dfs9qx949t@53df7ad2afe8301/api/otlp/traces \
                         -Dotel.exporter.otlp.metrics.endpoint=http://cn-hangzhou-intranet.arms.aliyuncs.com/opentelemetry/ff773a127556541345cb79aaca945622/1364811500910305/78csobta2x/cn-hangzhou/api/v1/metrics \

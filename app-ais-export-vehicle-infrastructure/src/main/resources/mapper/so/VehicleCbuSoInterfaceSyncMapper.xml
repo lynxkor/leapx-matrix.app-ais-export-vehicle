@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoInterfaceSyncMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap"
+               type="com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSoInterfaceSync">
+        <id column="id" property="id"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modifier_name" property="modifierName"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_status" property="deleteStatus"/>
+        <result column="status" property="status"/>
+        <result column="so_id" property="soId"/>
+        <result column="interface_type" property="interfaceType"/>
+        <result column="interface_desc" property="interfaceDesc"/>
+        <result column="call_time" property="callTime"/>
+        <result column="request_info" property="requestInfo"/>
+        <result column="result_status" property="resultStatus"/>
+        <result column="response_info" property="responseInfo"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, so_id, interface_type, interface_desc, call_time, request_info, result_status, response_info, remark
+    </sql>
+
+</mapper>

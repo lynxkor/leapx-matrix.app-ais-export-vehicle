@@ -1,0 +1,10 @@
+# 仅用于本地集成测试的 profile
+# 排除 Redis 自动装配,避免本机无 Redis 时 Spring 上下文启动失败
+# 通过 @ActiveProfiles({"dev", "test"}) 激活
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.client.lettuce.LettuceConnectionConfiguration
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2

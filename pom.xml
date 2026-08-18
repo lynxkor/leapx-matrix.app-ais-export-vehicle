@@ -3,7 +3,7 @@
   <parent>
     <groupId>com.leapmotor.platform</groupId>
     <artifactId>ais-parent</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.10</version>
   </parent>
   <artifactId>app-ais-export-vehicle</artifactId>
   <groupId>com.leapmotor</groupId>
@@ -12,6 +12,7 @@
   <properties>
     <version>1.0.0-SNAPSHOT</version>
     <app-account-api.version>2.2.50.RELEASE</app-account-api.version>
+    <app-ais-export-nexus-client.version>1.0.0-SNAPSHOT</app-ais-export-nexus-client.version>
   </properties>
   <dependencies>
     <dependency>
@@ -69,6 +70,13 @@
             <groupId>com.leapmotor</groupId>
           </exclusion>
         </exclusions>
+      </dependency>
+
+      <!-- nexus 主数据（客户）Feign client -->
+      <dependency>
+        <groupId>com.leapmotor</groupId>
+        <artifactId>app-ais-export-nexus-client</artifactId>
+        <version>${app-ais-export-nexus-client.version}</version>
       </dependency>
 
       <!-- leapx jDK 17版本 -->

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportVehicleCbuPoDetailMapper">
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPoDetail">
+    <id column="id" property="id" />
+    <result column="po_no" property="poNo" />
+    <result column="po_detail_no" property="poDetailNo" />
+    <result column="order_detail_number" property="orderDetailNumber" />
+    <result column="material_code" property="materialCode" />
+    <result column="sync_material_code" property="syncMaterialCode" />
+    <result column="material_description" property="materialDescription" />
+    <result column="sales_market" property="salesMarket" />
+    <result column="model_year" property="modelYear" />
+    <result column="optional_package" property="optionalPackage" />
+    <result column="demand_quantity" property="demandQuantity" />
+    <result column="expected_offline_date" property="expectedOfflineDate" />
+    <result column="vin_year" property="vinYear" />
+    <result column="production_remark" property="productionRemark" />
+    <result column="unit_price" property="unitPrice" />
+    <result column="total_amount" property="totalAmount" />
+    <result column="creator" property="creator" />
+    <result column="creator_name" property="creatorName" />
+    <result column="create_time" property="createTime" />
+    <result column="modifier" property="modifier" />
+    <result column="modifier_name" property="modifierName" />
+    <result column="update_time" property="updateTime" />
+    <result column="delete_status" property="deleteStatus" />
+    <result column="status" property="status" />
+    <result column="status_desc" property="statusDesc" />
+    <result column="owner_user_id" property="ownerUserId" />
+    <result column="owner_org_id" property="ownerOrgId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, po_no, po_detail_no, order_detail_number, material_code, sync_material_code, material_description, sales_market, model_year, optional_package, demand_quantity, expected_offline_date, vin_year, production_remark, unit_price, total_amount, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, status_desc, owner_user_id, owner_org_id
+    </sql>
+
+    <!-- 明细 + 主表(客户/订单状态) 联查结果映射,继承明细列再加主表三个虚拟字段 -->
+    <resultMap id="DetailWithMainResultMap" type="com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPoDetail" extends="BaseResultMap">
+        <result column="customer_code" property="customerCode"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="order_status" property="orderStatus"/>
+    </resultMap>
+
+    <!--
+        明细分页查询(LEFT JOIN 主表):明细列 + 主表客户编码/客户名称/订单状态一次取回;
+        订单状态/客户编码在主表,明细子表没有,通过 JOIN 跨表过滤,避开 EXISTS 拼接的跨表失效问题;
+        poNo / 物料编码 / 物料描述 均支持 单条模糊 + 批量精确(对齐 PO 单号口径).
+    -->
+    <select id="pageDetailWithMain" resultMap="DetailWithMainResultMap">
+        SELECT
+            d.id, d.po_no, d.po_detail_no, d.order_detail_number, d.material_code, d.sync_material_code,
+            d.material_description, d.sales_market, d.model_year, d.optional_package, d.demand_quantity,
+            d.expected_offline_date, d.vin_year, d.production_remark, d.unit_price, d.total_amount,
+            d.creator, d.creator_name, d.create_time, d.modifier, d.modifier_name, d.update_time,
+            d.delete_status, d.status, d.status_desc, d.owner_user_id, d.owner_org_id,
+            p.customer_code AS customer_code,
+            p.customer_name AS customer_name,
+            p.order_status   AS order_status
+        FROM export_vehicle_cbu_po_detail d
+        LEFT JOIN export_vehicle_cbu_po p ON p.po_no = d.po_no AND p.delete_status = 0
+        WHERE d.delete_status = 0
+        <if test="query.poNoLike != null and query.poNoLike != ''">
+            AND d.po_no LIKE CONCAT('%', #{query.poNoLike}, '%')
+        </if>
+        <if test="query.poNos != null and query.poNos.size() &gt; 0">
+            AND d.po_no IN
+            <foreach collection="query.poNos" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.customerCode != null and query.customerCode != ''">
+            AND p.customer_code = #{query.customerCode}
+        </if>
+        <if test="query.orderStatuses != null and query.orderStatuses.size() &gt; 0">
+            AND p.order_status IN
+            <foreach collection="query.orderStatuses" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.materialCodeLike != null and query.materialCodeLike != ''">
+            AND d.material_code LIKE CONCAT('%', #{query.materialCodeLike}, '%')
+        </if>
+        <if test="query.materialCodes != null and query.materialCodes.size() &gt; 0">
+            AND d.material_code IN
+            <foreach collection="query.materialCodes" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.materialDescriptionLike != null and query.materialDescriptionLike != ''">
+            AND d.material_description LIKE CONCAT('%', #{query.materialDescriptionLike}, '%')
+        </if>
+        <if test="query.materialDescriptions != null and query.materialDescriptions.size() &gt; 0">
+            AND d.material_description IN
+            <foreach collection="query.materialDescriptions" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.salesMarketList != null and query.salesMarketList.size() &gt; 0">
+            AND d.sales_market IN
+            <foreach collection="query.salesMarketList" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.modelYearList != null and query.modelYearList.size() &gt; 0">
+            AND d.model_year IN
+            <foreach collection="query.modelYearList" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.optionalPackageList != null and query.optionalPackageList.size() &gt; 0">
+            AND d.optional_package IN
+            <foreach collection="query.optionalPackageList" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="query.createTimeStart != null">
+            AND d.create_time &gt;= #{query.createTimeStart}
+        </if>
+        <if test="query.createTimeEnd != null">
+            AND d.create_time &lt;= #{query.createTimeEnd}
+        </if>
+        ORDER BY d.create_time DESC, d.id DESC
+    </select>
+
+</mapper>

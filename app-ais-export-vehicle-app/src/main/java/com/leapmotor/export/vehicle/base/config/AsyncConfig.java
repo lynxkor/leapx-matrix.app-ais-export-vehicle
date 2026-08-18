@@ -45,4 +45,22 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * SO 下发生产专用线程池（不复用 taskExecutor，避免共享池污染与 CallerRunsPolicy 反噬 HTTP 线程）。
+     * AbortPolicy：超量任务直接失败计入 failItems，不反噬提交线程。池参数压测后调整。
+     */
+    @Bean("soIssueExecutor")
+    public TaskExecutor soIssueExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(500);
+        executor.setKeepAliveSeconds(60);
+        executor.setThreadGroupName("so-issue");
+        executor.setThreadNamePrefix("SoIssue:");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        executor.initialize();
+        return executor;
+    }
 }

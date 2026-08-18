@@ -25,6 +25,11 @@
             <groupId>com.leapmotor.platform</groupId>
             <artifactId>ais-mybatis</artifactId>
         </dependency>
+        <!-- nexus 主数据（客户）Feign client -->
+        <dependency>
+            <groupId>com.leapmotor</groupId>
+            <artifactId>app-ais-export-nexus-client</artifactId>
+        </dependency>
         <!-- ais-common components -->
 
         <!-- 二方包依赖 开始 -->

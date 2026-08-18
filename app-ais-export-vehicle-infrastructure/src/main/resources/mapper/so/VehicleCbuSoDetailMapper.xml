@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.so.mapper.VehicleCbuSoDetailMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.so.entity.VehicleCbuSoDetail">
+        <id column="id" property="id"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modifier_name" property="modifierName"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_status" property="deleteStatus"/>
+        <result column="status" property="status"/>
+        <result column="so_no" property="soNo"/>
+        <result column="internal_vehicle_no" property="internalVehicleNo"/>
+        <result column="production_identify_code" property="productionIdentifyCode"/>
+        <result column="vin" property="vin"/>
+        <result column="material_code" property="materialCode"/>
+        <result column="material_description" property="materialDescription"/>
+        <result column="sales_market" property="salesMarket"/>
+        <result column="model_year" property="modelYear"/>
+        <result column="optional_package" property="optionalPackage"/>
+        <result column="plan_offline_date" property="planOfflineDate"/>
+        <result column="schedule_time" property="scheduleTime"/>
+        <result column="barcode_print_time" property="barcodePrintTime"/>
+        <result column="body_in_time" property="bodyInTime"/>
+        <result column="paint_in_time" property="paintInTime"/>
+        <result column="assembly_in_time" property="assemblyInTime"/>
+        <result column="assembly_out_time" property="assemblyOutTime"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, creator, creator_name, create_time, modifier, modifier_name, update_time, delete_status, status, so_no, internal_vehicle_no, production_identify_code, vin, material_code, material_description, sales_market, model_year, optional_package, plan_offline_date, schedule_time, barcode_print_time, body_in_time, paint_in_time, assembly_in_time, assembly_out_time, remark
+    </sql>
+
+</mapper>

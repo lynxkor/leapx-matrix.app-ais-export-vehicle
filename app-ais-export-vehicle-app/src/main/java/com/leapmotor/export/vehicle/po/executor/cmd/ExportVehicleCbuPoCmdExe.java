@@ -179,7 +179,8 @@ public class ExportVehicleCbuPoCmdExe {
             detail.setSyncMaterialCode(d.getMaterialCode());
             detail.setDemandQuantity(d.getDemandQuantity());
             detail.setExpectedOfflineDate(parseDate(d.getExpectedOfflineDate()));
-            detail.setVinYear(d.getVinYear());
+            // 落库前归一化：原始入参形如 "D-出口-WMP-2026"，统一截取末尾4位 YYYY 后存储
+            detail.setVinYear(HongqiCbuPurchaseOrderValidator.normalizeVinYear(d.getVinYear()));
             // 生产备注：接口不传，草稿态业务填，留空
 
             // 物料匹配（18位同步物料编码 → 整编主数据）

@@ -1,28 +1,32 @@
 package com.leapmotor.export.vehicle.basic.service.impl;
 
-import com.leapmotor.paltform.ais.common.model.response.PageResult;
-import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.export.vehicle.basic.convertor.ExportVehicleLetterGuaranteeRecordDTOStructMapper;
 import com.leapmotor.export.vehicle.basic.executor.cmd.ExportVehicleLetterGuaranteeRecordCmdExe;
 import com.leapmotor.export.vehicle.basic.executor.query.ExportVehicleLetterGuaranteeRecordQryExe;
-import com.leapmotor.export.vehicle.basic.convertor.ExportVehicleLetterGuaranteeRecordDTOStructMapper;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
+import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRecordGateway;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeDo;
-import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeRecordParam;
-import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeRecordQo;
 import com.leapmotor.export.vehicle.basic.model.ExportVehicleLetterGuaranteeRecordDo;
-import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeRecordResp;
+import com.leapmotor.export.vehicle.basic.query.ExportVehicleLetterGuaranteeRecordQo;
 import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeRecordAddOrUpdateReq;
-import com.leapmotor.export.vehicle.cache.CustomerInfoCache;
-import lombok.AllArgsConstructor;
+import com.leapmotor.export.vehicle.basic.req.ExportVehicleLetterGuaranteeRecordParam;
+import com.leapmotor.export.vehicle.basic.resp.ExportVehicleLetterGuaranteeRecordResp;
 import com.leapmotor.export.vehicle.basic.service.ExportVehicleLetterGuaranteeRecordService;
+import com.leapmotor.export.vehicle.cache.CustomerInfoCache;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.response.PageResult;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeRecordGateway;
+
 /**
  * <p>
  * 保函交易明细 服务实现类
@@ -51,8 +55,8 @@ public class ExportVehicleLetterGuaranteeRecordServiceImpl implements ExportVehi
 
     @Override
     public List<ExportVehicleLetterGuaranteeRecordResp> listExportVehicleLetterGuaranteeRecord(ExportVehicleLetterGuaranteeRecordParam exportVehicleLetterGuaranteeRecordParam) {
-    ExportVehicleLetterGuaranteeRecordQo exportVehicleLetterGuaranteeRecordQo = ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.paramToQuery(exportVehicleLetterGuaranteeRecordParam);
-        List<ExportVehicleLetterGuaranteeRecordDo> exportVehicleLetterGuaranteeRecordDoList =  exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(exportVehicleLetterGuaranteeRecordQo);
+        ExportVehicleLetterGuaranteeRecordQo exportVehicleLetterGuaranteeRecordQo = ExportVehicleLetterGuaranteeRecordDTOStructMapper.INSTANCE.paramToQuery(exportVehicleLetterGuaranteeRecordParam);
+        List<ExportVehicleLetterGuaranteeRecordDo> exportVehicleLetterGuaranteeRecordDoList = exportVehicleLetterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(exportVehicleLetterGuaranteeRecordQo);
         fillMainTableFields(exportVehicleLetterGuaranteeRecordDoList);
         return ExportVehicleLetterGuaranteeRecordRespsWithCustomer(exportVehicleLetterGuaranteeRecordDoList);
     }
@@ -126,6 +130,11 @@ public class ExportVehicleLetterGuaranteeRecordServiceImpl implements ExportVehi
         rec.setTotalAmount(main.getTotalAmount());
         rec.setConversionRatio(main.getConversionRatio());
         rec.setAvailableAmount(main.getAvailableAmount());
+        BigDecimal totalAmount = main.getTotalAmount();
+        BigDecimal conversionRatio = main.getConversionRatio();
+        if (totalAmount != null && conversionRatio != null) {
+            rec.setConversionAmount(totalAmount.divide(conversionRatio, 2, RoundingMode.HALF_UP));
+        }
     }
 
     // ============== 冗余字段填充(客户名称) ==============

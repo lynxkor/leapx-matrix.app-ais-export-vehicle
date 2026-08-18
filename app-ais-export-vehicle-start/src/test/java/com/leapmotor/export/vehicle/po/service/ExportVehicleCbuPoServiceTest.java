@@ -80,6 +80,24 @@ public class ExportVehicleCbuPoServiceTest extends BaseServiceTest<ExportVehicle
         assertThrows(BizException.class, () -> service.createFromHongqi(req));
     }
 
+    @Test
+    @DisplayName("createFromHongqi - VIN码年份长串截取后4位落库(非原样存)")
+    public void testCreate_vinYearTruncated() {
+        HongqiCbuPurchaseOrderReq req = buildCreateReq(uniquePoNo());
+        // 模拟真实入参 D-出口-WMP-2026，落库应只存末尾4位 2026
+        req.getOrderDetailList().get(0).setVinYear("D-出口-WMP-2026");
+        service.createFromHongqi(req);
+        ExportVehicleCbuPoDetailQo qo = new ExportVehicleCbuPoDetailQo();
+        qo.setPoNo(req.getPoNo());
+        List<ExportVehicleCbuPoDetailDo> details = purchaseOrderDetailGateway.listExportVehicleCbuPoDetail(qo);
+        String stored = details.stream()
+                .filter(d -> "0001".equals(d.getOrderDetailNumber()))
+                .findFirst()
+                .map(ExportVehicleCbuPoDetailDo::getVinYear)
+                .orElse(null);
+        assertEquals("2026", stored);
+    }
+
     // ==================== save ====================
 
     @Test

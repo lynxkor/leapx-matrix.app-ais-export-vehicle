@@ -1,24 +1,25 @@
 package com.leapmotor.export.vehicle.basic.resp;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
-import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.ApprovalStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgStatusEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.LgTypeEnum;
 import com.leapmotor.export.vehicle.letterGuarantee.enums.OrderTypeEnum;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseModel;
+import com.leapmotor.paltform.ais.common.model.enums.StatusEnum;
 import com.leapmotor.platform.ais.common.web.serializer.BigDecimalFormat;
 import com.leapmotor.platform.ais.common.web.serializer.DictEnumType;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.EqualsAndHashCode;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
- *
  * 保函主表值对象
+ *
  * @author wangkai2527148
  * @since 2026-07-02
  */
@@ -122,5 +123,6 @@ public class ExportVehicleLetterGuaranteeResp extends LpBaseModel implements Ser
     @Schema(description = "归属门店ID(组织ID),数据权限归属到本组织以及本下级")
     private Long ownerOrgId;
 
-
+    @Schema(description = "转换金额")
+    private BigDecimal conversionAmount;
 }

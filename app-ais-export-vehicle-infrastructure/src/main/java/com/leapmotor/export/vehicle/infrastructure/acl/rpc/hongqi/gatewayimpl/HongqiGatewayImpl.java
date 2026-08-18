@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotifyReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
@@ -56,6 +57,21 @@ public class HongqiGatewayImpl implements HongqiGateway {
         } catch (Exception e) {
             log.error("红旗车辆生产信息同步异常：{}", e.getMessage());
             throw new BizException("红旗车辆生产信息同步异常：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public HongqiResult syncPayableList(PayableListSyncHqReq req) {
+        try {
+            log.info("应付清单同步红旗, request:{}", req);
+            HongqiResult result = hongqiClientApi.syncPayableList(req);
+            log.info("应付清单同步红旗, request:{}, response:{}", req, result);
+            return result;
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("应付清单同步红旗异常：{}", e.getMessage());
+            throw new BizException("应付清单同步红旗异常：" + e.getMessage());
         }
     }
 }

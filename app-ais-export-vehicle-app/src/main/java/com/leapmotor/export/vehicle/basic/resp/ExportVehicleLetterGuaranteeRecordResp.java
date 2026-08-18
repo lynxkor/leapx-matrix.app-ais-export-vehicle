@@ -129,5 +129,8 @@ public class ExportVehicleLetterGuaranteeRecordResp extends LpBaseModel implemen
     @BigDecimalFormat(pattern = "#.##")
     private BigDecimal availableAmount;
 
+    @Schema(description = "转换金额")
+    @BigDecimalFormat(pattern = "#.##")
+    private BigDecimal conversionAmount;
 
 }

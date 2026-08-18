@@ -5,7 +5,7 @@ spring:
     nacos:
       discovery:
         server-addr: https://leapx-nacos-test.leapmotor.com
-        namespace: 483de891-cc67-4c6b-80b6-53727bba98db
+        namespace: ais-zwy
         enabled: true
         heart-beat-interval: 5000
         heart-beat-timeout: 15000

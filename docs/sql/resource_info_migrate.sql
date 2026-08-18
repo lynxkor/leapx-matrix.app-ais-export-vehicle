@@ -160,6 +160,13 @@ INSERT INTO resource_info (resourceName, resourceUri, componentUri, resourceTag,
 VALUES ('保函主表批量作废', NULL, NULL, 'AISEP-exportVehicleLetterGuarantee-batchCancel', 'AISEP-exportVehicleLetterGuarantee-batchCancel', NULL, '2026-07-10 10:05:11', NULL, '0', '1', '2', '0', CONCAT(CONCAT(CONCAT(@sales_id, ',', @id_AISEX00001), ',', @id_AISEX00001002), ',', @id_AISEP_exportVehicleLetterGuarantee), @id_AISEP_exportVehicleLetterGuarantee, 5, 0, 0, NULL, 1, '', 1, '', NULL, NULL, NULL, 'web:basic:exportVehicleLetterGuarantee:cancel', NULL, 1);
 SET @id_AISEP_exportVehicleLetterGuarantee_batchCancel = LAST_INSERT_ID();
 
+
+-- 保函主表提前失效 (AISEP-exportVehicleLetterGuarantee-expireEarly)
+INSERT INTO resource_info (resourceName, resourceUri, componentUri, resourceTag, resourceDesc, creator, createTime, updateTime, enabled, resourceType, resourceCate, showStatus, path, parentId, grade, sort, version, logo, redirectType, redirectApi, hasToken, redirectUrl, iosUrl, androidUrl, prompt, permission, lightLogo, systemTag)
+VALUES ('保函主表提前失效', NULL, NULL, 'AISEP-exportVehicleLetterGuarantee-expireEarly', 'AISEP-exportVehicleLetterGuarantee-batchCancel', NULL, '2026-07-10 10:05:11', NULL, '0', '1', '2', '0', CONCAT(CONCAT(CONCAT(@sales_id, ',', @id_AISEX00001), ',', @id_AISEX00001002), ',', @id_AISEP_exportVehicleLetterGuarantee), @id_AISEP_exportVehicleLetterGuarantee, 5, 0, 0, NULL, 1, '', 1, '', NULL, NULL, NULL, 'web:basic:exportVehicleLetterGuarantee:expireEarly', NULL, 1);
+SET @id_AISEP_exportVehicleLetterGuarantee_expireEarly = LAST_INSERT_ID();
+
+
 -- 保函主表审计日志 (AISEP-exportVehicleLetterGuarantee-auditLog)
 INSERT INTO resource_info (resourceName, resourceUri, componentUri, resourceTag, resourceDesc, creator, createTime, updateTime, enabled, resourceType, resourceCate, showStatus, path, parentId, grade, sort, version, logo, redirectType, redirectApi, hasToken, redirectUrl, iosUrl, androidUrl, prompt, permission, lightLogo, systemTag)
 VALUES ('保函主表审计日志', NULL, NULL, 'AISEP-exportVehicleLetterGuarantee-auditLog', 'AISEP-exportVehicleLetterGuarantee-auditLog', NULL, '2026-07-10 10:05:11', NULL, '0', '1', '2', '0', CONCAT(CONCAT(CONCAT(@sales_id, ',', @id_AISEX00001), ',', @id_AISEX00001002), ',', @id_AISEP_exportVehicleLetterGuarantee), @id_AISEP_exportVehicleLetterGuarantee, 5, 0, 0, NULL, 1, '', 1, '', NULL, NULL, NULL, 'web:basic:exportVehicleLetterGuarantee:auditLog', NULL, 1);

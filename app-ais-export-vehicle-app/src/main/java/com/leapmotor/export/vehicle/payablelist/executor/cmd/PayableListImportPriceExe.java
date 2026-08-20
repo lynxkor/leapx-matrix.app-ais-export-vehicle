@@ -7,7 +7,7 @@ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;

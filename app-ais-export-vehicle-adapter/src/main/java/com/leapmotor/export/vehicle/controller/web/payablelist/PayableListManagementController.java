@@ -2,9 +2,9 @@ package com.leapmotor.export.vehicle.controller.web.payablelist;
 
 import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
-import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;

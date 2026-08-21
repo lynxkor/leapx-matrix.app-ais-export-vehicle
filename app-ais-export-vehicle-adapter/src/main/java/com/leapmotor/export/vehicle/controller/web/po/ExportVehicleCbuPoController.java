@@ -65,15 +65,21 @@ public class ExportVehicleCbuPoController {
     @Operation(summary = "PO订单主表详情信息")
     @ResourcePermission(value="web:po:exportVehicleCbuPo:get",desc="PO订单主表详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody String id) {
-        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(id));
+    public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(param.getId()));
     }
 
     @Operation(summary = "PO订单主子表联查详情（主表 + 明细 + 保函关联）")
     @ResourcePermission(value="web:po:exportVehicleCbuPo:detail",desc="PO订单主子表联查详情")
     @PostMapping(value = "/detail")
-    public AjaxResult<ExportVehicleCbuPoDetailFullResp> detail(@RequestBody String id) {
-        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoDetailById(id));
+    public AjaxResult<ExportVehicleCbuPoDetailFullResp> detail(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoDetailById(param.getId()));
     }
 
     @Operation(summary = "PO订单主表删除")

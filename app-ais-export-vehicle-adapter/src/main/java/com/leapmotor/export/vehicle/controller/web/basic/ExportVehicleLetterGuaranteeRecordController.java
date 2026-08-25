@@ -57,8 +57,11 @@ public class ExportVehicleLetterGuaranteeRecordController {
     @Operation(summary = "保函交易明细详情信息")
     @ResourcePermission(value = "web:basic:exportVehicleLetterGuaranteeRecord:get", desc = "保函交易明细详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<ExportVehicleLetterGuaranteeRecordResp> getExportVehicleLetterGuaranteeRecordById(@RequestBody String id) {
-        return AjaxResult.success(exportVehicleLetterGuaranteeRecordService.getExportVehicleLetterGuaranteeRecordById(id));
+    public AjaxResult<ExportVehicleLetterGuaranteeRecordResp> getExportVehicleLetterGuaranteeRecordById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(exportVehicleLetterGuaranteeRecordService.getExportVehicleLetterGuaranteeRecordById(param.getId()));
     }
 
     @Operation(summary = "保函交易明细新增/编辑")

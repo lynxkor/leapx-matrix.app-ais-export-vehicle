@@ -56,8 +56,11 @@ public class VehicleCbuSoInterfaceSyncController {
     @Operation(summary = "SO接口同步记录表详情信息")
     @ResourcePermission(value = "web:so:vehicleCbuSoInterfaceSync:get", desc = "SO接口同步记录表详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<VehicleCbuSoInterfaceSyncResp> getVehicleCbuSoInterfaceSyncById(@RequestBody String id) {
-        return AjaxResult.success(vehicleCbuSoInterfaceSyncService.getVehicleCbuSoInterfaceSyncById(id));
+    public AjaxResult<VehicleCbuSoInterfaceSyncResp> getVehicleCbuSoInterfaceSyncById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(vehicleCbuSoInterfaceSyncService.getVehicleCbuSoInterfaceSyncById(param.getId()));
     }
 
     @Operation(summary = "SO接口同步记录表新增/编辑")

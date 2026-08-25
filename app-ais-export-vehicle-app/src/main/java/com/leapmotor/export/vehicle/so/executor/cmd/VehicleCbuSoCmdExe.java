@@ -388,7 +388,7 @@ public class VehicleCbuSoCmdExe {
                                              VehicleCbuSoDetailDo detail) {
         BlockLock lock;
         try {
-            lock = distributedLockTemplate.blockLock("so:issue:" + so.getId(), 60000, 3000);
+            lock = distributedLockTemplate.blockLock("so:issue:" + so.getId(), 30000, 60000);
         } catch (Exception e) {
             return IssueItemResult.fail(so.getSoNo(), "获取锁失败:" + e.getMessage());
         }
@@ -410,7 +410,7 @@ public class VehicleCbuSoCmdExe {
                     + (e.getMessage() != null ? ": " + e.getMessage() : "");
             return IssueItemResult.fail(so.getSoNo(), reason);
         } finally {
-            lock.close();
+            closeLock(lock, "so:issue:" + so.getId());
         }
     }
 
@@ -612,7 +612,7 @@ public class VehicleCbuSoCmdExe {
                 }
             }
         } finally {
-            locks.forEach(BlockLock::close);
+            locks.forEach(l -> closeLock(l, "so:cancel:po"));
         }
         result.setTotalCount(soList.size());
         result.setFailCount(result.getFailItems().size());
@@ -635,9 +635,9 @@ public class VehicleCbuSoCmdExe {
         List<BlockLock> locks = new ArrayList<>();
         for (String poNo : poNos) {
             try {
-                locks.add(distributedLockTemplate.blockLock("so:cancel:po:" + poNo, 60000, 3000));
+                locks.add(distributedLockTemplate.blockLock("so:cancel:po:" + poNo, 30000, 60000));
             } catch (Exception e) {
-                locks.forEach(BlockLock::close);
+                locks.forEach(l -> closeLock(l, "so:cancel:po"));
                 throw new BizException("作废获取锁失败，请稍后重试");
             }
         }
@@ -938,7 +938,7 @@ public class VehicleCbuSoCmdExe {
         // PO 维度锁：保函转应收共享 PO 关联保函占用，同 PO 串行，锁释放晚于事务提交
         BlockLock lock;
         try {
-            lock = distributedLockTemplate.blockLock("so:qc:po:" + preSo.getPoNo(), 60000, 3000);
+            lock = distributedLockTemplate.blockLock("so:qc:po:" + preSo.getPoNo(), 30000, 60000);
         } catch (Exception e) {
             throw new BizException("质检通过获取锁失败，请稍后重试");
         }
@@ -977,7 +977,7 @@ public class VehicleCbuSoCmdExe {
                 return null;
             });
         } finally {
-            lock.close();
+            closeLock(lock, "so:qc:po:" + preSo.getPoNo());
         }
     }
 
@@ -1327,5 +1327,19 @@ public class VehicleCbuSoCmdExe {
         syncDo.setRemark(reason);
         syncDo.setStatus(1);
         return syncDo;
+    }
+
+    /**
+     * 安全释放锁：锁提前过期时 close() 会抛 ConcurrentModificationException，捕获后仅记日志，不影响主流程。
+     */
+    private void closeLock(BlockLock lock, String lockKey) {
+        if (lock == null) {
+            return;
+        }
+        try {
+            lock.close();
+        } catch (Exception e) {
+            log.warn("释放锁异常, lockKey={}, 可能已提前过期, msg={}", lockKey, e.getMessage());
+        }
     }
 }

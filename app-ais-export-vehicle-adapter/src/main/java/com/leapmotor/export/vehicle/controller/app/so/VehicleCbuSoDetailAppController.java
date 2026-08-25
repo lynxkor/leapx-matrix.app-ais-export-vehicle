@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.controller.app.so;
 
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoDetailResp;
 import com.leapmotor.export.vehicle.so.service.VehicleCbuSoDetailService;
 import org.springframework.web.bind.annotation.*;
 import lombok.AllArgsConstructor;
+import java.util.Objects;
 
 /**
  * SO车辆明细表 移动端接口控制器
@@ -36,8 +38,11 @@ public class VehicleCbuSoDetailAppController {
     @Operation(summary = "SO车辆明细表详情信息")
     @ResourcePermission("app:so:vehicleCbuSoDetail:get")
     @PostMapping(value = "/get")
-    public AjaxResult<VehicleCbuSoDetailResp> getVehicleCbuSoDetailById(@RequestBody String id) {
-        return AjaxResult.success(vehicleCbuSoDetailService.getVehicleCbuSoDetailById(id));
+    public AjaxResult<VehicleCbuSoDetailResp> getVehicleCbuSoDetailById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(vehicleCbuSoDetailService.getVehicleCbuSoDetailById(param.getId()));
     }
 
 }

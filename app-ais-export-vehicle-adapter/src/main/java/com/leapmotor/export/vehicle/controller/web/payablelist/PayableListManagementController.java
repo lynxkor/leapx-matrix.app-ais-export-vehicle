@@ -4,6 +4,7 @@ import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
@@ -16,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 应付清单管理 PC端接口
@@ -41,8 +43,11 @@ public class PayableListManagementController {
     @Operation(summary = "应付清单详情查询")
     @ResourcePermission(value = "web:payableList:payableListManagement:get", desc = "应付清单详情查询")
     @PostMapping("/get")
-    public AjaxResult<PayableListResp> get(@RequestBody String id) {
-        return AjaxResult.success(payableListService.getPayableListById(id));
+    public AjaxResult<PayableListResp> get(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(payableListService.getPayableListById(param.getId()));
     }
 
     @Operation(summary = "提交应付清单")

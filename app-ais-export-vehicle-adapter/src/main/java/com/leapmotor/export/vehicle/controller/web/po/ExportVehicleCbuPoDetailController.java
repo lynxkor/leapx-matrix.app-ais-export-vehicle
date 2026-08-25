@@ -54,8 +54,11 @@ public class ExportVehicleCbuPoDetailController {
     @Operation(summary = "PO订单明细表详情信息")
     @ResourcePermission(value="web:po:exportVehicleCbuPoDetail:get",desc="PO订单明细表详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<ExportVehicleCbuPoDetailResp> getExportVehicleCbuPoDetailById(@RequestBody String id) {
-        return AjaxResult.success(purchaseOrderDetailService.getExportVehicleCbuPoDetailById(id));
+    public AjaxResult<ExportVehicleCbuPoDetailResp> getExportVehicleCbuPoDetailById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(purchaseOrderDetailService.getExportVehicleCbuPoDetailById(param.getId()));
     }
 
     @Operation(summary = "PO订单明细表新增/编辑")

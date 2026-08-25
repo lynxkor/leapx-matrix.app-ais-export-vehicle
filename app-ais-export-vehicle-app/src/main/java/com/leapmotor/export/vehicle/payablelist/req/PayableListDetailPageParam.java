@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 应付清单明细分页查询参数
@@ -22,6 +23,39 @@ public class PayableListDetailPageParam extends LpBaseParam implements Serializa
 
     @Schema(description = "关联应付清单ID")
     private String payableListId;
+
+    @Schema(description = "客户编码")
+    private String customerCode;
+
+    @Schema(description = "应付清单编号")
+    private List<String> payableListNoList;
+
+    @Schema(description = "单据状态")
+    private String billStatus;
+
+    @Schema(description = "生成月份，yyyyMM 格式，如 202608")
+    private String generateMonth;
+
+    @Schema(description = "VIN号列表")
+    private List<String> vinList;
+
+    @Schema(description = "创建日期开始，格式 yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTimeStart;
+
+    @Schema(description = "创建日期结束，格式 yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTimeEnd;
+
+    @Schema(description = "提交日期开始，格式 yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime submitTimeStart;
+
+    @Schema(description = "提交日期结束，格式 yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime submitTimeEnd;
+
+    @Schema(description = "确认日期开始，格式 yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime confirmTimeStart;
+
+    @Schema(description = "确认日期结束，格式 yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime confirmTimeEnd;
 
     @Schema(description = "SO订单号")
     private String soNo;

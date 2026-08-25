@@ -27,12 +27,25 @@ public class PayableListDetailDaoImpl extends ServiceImpl<PayableListDetailMappe
         QueryWrapper<PayableListDetail> queryWrapper = PayableListDetailDao.super.buildBasicQueryWrapper(query);
         queryWrapper.lambda()
                 .eq(StringUtils.isNotBlank(query.getPayableListId()), PayableListDetail::getPayableListId, query.getPayableListId())
+                .in(query.getPayableListIds() != null && !query.getPayableListIds().isEmpty(),
+                        PayableListDetail::getPayableListId, query.getPayableListIds())
                 .eq(StringUtils.isNotBlank(query.getSoNo()), PayableListDetail::getSoNo, query.getSoNo())
                 .eq(StringUtils.isNotBlank(query.getPoNo()), PayableListDetail::getPoNo, query.getPoNo())
                 .eq(StringUtils.isNotBlank(query.getVin()), PayableListDetail::getVin, query.getVin())
+                .in(query.getVinList() != null && !query.getVinList().isEmpty(),
+                        PayableListDetail::getVin, query.getVinList())
+                .eq(StringUtils.isNotBlank(query.getCustomerCode()), PayableListDetail::getCustomerCode, query.getCustomerCode())
+                .eq(StringUtils.isNotBlank(query.getBillStatus()), PayableListDetail::getBillStatus, query.getBillStatus())
+                .eq(StringUtils.isNotBlank(query.getGenerateMonth()), PayableListDetail::getGenerateMonth, query.getGenerateMonth())
                 .eq(Objects.nonNull(query.getIsReceived()), PayableListDetail::getIsReceived, query.getIsReceived())
                 .like(StringUtils.isNotBlank(query.getVinLike()), PayableListDetail::getVin, query.getVinLike())
                 .like(StringUtils.isNotBlank(query.getSoNoLike()), PayableListDetail::getSoNo, query.getSoNoLike())
+                .ge(Objects.nonNull(query.getCreateTimeStart()), PayableListDetail::getCreateTime, query.getCreateTimeStart())
+                .le(Objects.nonNull(query.getCreateTimeEnd()), PayableListDetail::getCreateTime, query.getCreateTimeEnd())
+                .ge(Objects.nonNull(query.getSubmitTimeStart()), PayableListDetail::getSubmitDate, query.getSubmitTimeStart())
+                .le(Objects.nonNull(query.getSubmitTimeEnd()), PayableListDetail::getSubmitDate, query.getSubmitTimeEnd())
+                .ge(Objects.nonNull(query.getConfirmTimeStart()), PayableListDetail::getConfirmTime, query.getConfirmTimeStart())
+                .le(Objects.nonNull(query.getConfirmTimeEnd()), PayableListDetail::getConfirmTime, query.getConfirmTimeEnd())
                 .ge(Objects.nonNull(query.getQcPassTimeStart()), PayableListDetail::getQcPassTime, query.getQcPassTimeStart())
                 .le(Objects.nonNull(query.getQcPassTimeEnd()), PayableListDetail::getQcPassTime, query.getQcPassTimeEnd())
         ;

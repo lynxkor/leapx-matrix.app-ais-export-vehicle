@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.payablelist.mapper.PayableListDetailMapper">
+
+    <!-- 明细分页查询动态条件（JOIN 清单头表，支持按清单编号检索） -->
+    <sql id="Detail_With_ListNo_Where_Clause">
+        <where>
+            d.delete_status = 0
+            <if test="qo.payableListId != null and qo.payableListId != ''">
+                AND d.payable_list_id = #{qo.payableListId}
+            </if>
+            <if test="qo.payableListNoList != null and qo.payableListNoList.size() > 0">
+                AND p.payable_list_no IN
+                <foreach collection="qo.payableListNoList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.soNo != null and qo.soNo != ''">
+                AND d.so_no = #{qo.soNo}
+            </if>
+            <if test="qo.poNo != null and qo.poNo != ''">
+                AND d.po_no = #{qo.poNo}
+            </if>
+            <if test="qo.vin != null and qo.vin != ''">
+                AND d.vin = #{qo.vin}
+            </if>
+            <if test="qo.vinList != null and qo.vinList.size() > 0">
+                AND d.vin IN
+                <foreach collection="qo.vinList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.customerCode != null and qo.customerCode != ''">
+                AND d.customer_code = #{qo.customerCode}
+            </if>
+            <if test="qo.billStatus != null and qo.billStatus != ''">
+                AND d.bill_status = #{qo.billStatus}
+            </if>
+            <if test="qo.generateMonth != null and qo.generateMonth != ''">
+                AND d.generate_month = #{qo.generateMonth}
+            </if>
+            <if test="qo.isReceived != null">
+                AND d.is_received = #{qo.isReceived}
+            </if>
+            <if test="qo.vinLike != null and qo.vinLike != ''">
+                AND d.vin LIKE CONCAT('%', #{qo.vinLike}, '%')
+            </if>
+            <if test="qo.soNoLike != null and qo.soNoLike != ''">
+                AND d.so_no LIKE CONCAT('%', #{qo.soNoLike}, '%')
+            </if>
+            <if test="qo.createTimeStart != null">
+                AND d.create_time &gt;= #{qo.createTimeStart}
+            </if>
+            <if test="qo.createTimeEnd != null">
+                AND d.create_time &lt;= #{qo.createTimeEnd}
+            </if>
+            <if test="qo.submitTimeStart != null">
+                AND d.submit_date &gt;= #{qo.submitTimeStart}
+            </if>
+            <if test="qo.submitTimeEnd != null">
+                AND d.submit_date &lt;= #{qo.submitTimeEnd}
+            </if>
+            <if test="qo.confirmTimeStart != null">
+                AND d.confirm_time &gt;= #{qo.confirmTimeStart}
+            </if>
+            <if test="qo.confirmTimeEnd != null">
+                AND d.confirm_time &lt;= #{qo.confirmTimeEnd}
+            </if>
+            <if test="qo.qcPassTimeStart != null">
+                AND d.qc_pass_time &gt;= #{qo.qcPassTimeStart}
+            </if>
+            <if test="qo.qcPassTimeEnd != null">
+                AND d.qc_pass_time &lt;= #{qo.qcPassTimeEnd}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 明细分页查询：JOIN 清单头表带出清单编号，支持按编号多选检索 -->
+    <select id="pageDetailWithListNo" resultType="com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo">
+        SELECT d.*, p.payable_list_no
+        FROM export_vehicle_payable_list_detail d
+        INNER JOIN export_vehicle_payable_list p ON d.payable_list_id = p.id AND p.delete_status = 0
+        <include refid="Detail_With_ListNo_Where_Clause"/>
+        ORDER BY d.status DESC, d.create_time DESC, d.id DESC
+    </select>
+
+</mapper>

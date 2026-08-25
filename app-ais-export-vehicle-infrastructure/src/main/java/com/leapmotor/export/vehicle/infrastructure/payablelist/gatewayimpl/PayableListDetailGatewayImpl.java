@@ -87,10 +87,9 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
 
     @Override
     public PageResult<PayableListDetailDo> pagePayableListDetail(PayableListDetailQo qo) {
-        Page<PayableListDetail> page = new Page<>(qo.getPageNum(), qo.getPageSize());
-        QueryWrapper<PayableListDetail> queryWrapper = payableListDetailDao.buildQueryWrapper(qo);
-        Page<PayableListDetail> result = payableListDetailMapper.selectPage(page, queryWrapper);
-        return PageUtils.transferPage(PayableListDetailStructMapper.INSTANCE::dataObjectsToDomains, result);
+        Page<PayableListDetailDo> page = new Page<>(qo.getPageNum(), qo.getPageSize());
+        Page<PayableListDetailDo> result = payableListDetailMapper.pageDetailWithListNo(page, qo);
+        return PageUtils.transferPage(r -> r, result);
     }
 
     @Override

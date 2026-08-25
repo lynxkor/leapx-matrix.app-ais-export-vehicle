@@ -1,8 +1,12 @@
 package com.leapmotor.export.vehicle.infrastructure.payablelist.mapper;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.entity.PayableListDetail;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
+import com.leapmotor.export.vehicle.payablelist.query.PayableListDetailQo;
 import com.leapmotor.platform.ais.common.mybatis.support.LpBaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 应付清单明细表 Mapper 接口
@@ -13,4 +17,12 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface PayableListDetailMapper extends LpBaseMapper<PayableListDetail> {
 
+    /**
+     * 分页查询明细（JOIN 清单头表，支持按清单编号多选检索并带出清单编号）
+     *
+     * @param page 分页参数
+     * @param qo   查询条件
+     * @return 分页结果
+     */
+    Page<PayableListDetailDo> pageDetailWithListNo(Page<PayableListDetailDo> page, @Param("qo") PayableListDetailQo qo);
 }

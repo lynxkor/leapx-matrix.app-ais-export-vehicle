@@ -1,5 +1,8 @@
 package com.leapmotor.export.vehicle.payablelist.executor.cmd;
 
+import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
+import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
+import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
@@ -30,6 +33,7 @@ public class PayableListBatchSubmitExe {
 
     private PayableListGateway payableListGateway;
     private PayableListDetailGateway payableListDetailGateway;
+    private EventHandlerHelper eventHandlerHelper;
 
     @Transactional(rollbackFor = Exception.class)
     public List<String> execute(PayableListBatchSubmitReq req) {
@@ -67,6 +71,15 @@ public class PayableListBatchSubmitExe {
                         PayableListStatusEnum.SUBMITTED.getCode(),
                         submitTime,
                         null
+                );
+
+                // 发布红旗同步事件（异步，事务提交后执行）
+                // 第4个参数必须强转 Object 以命中带 afterCommit 保护的 data 重载（null 字面量会命中 String relatedNo 重载，事务回滚后事件仍会消费）
+                eventHandlerHelper.publishAsync(
+                        ThirdTargetPlatformEnum.HONGQI,
+                        HongqiEventTypeEnum.PAYABLE_LIST_SYNC_HQ_SUBMIT,
+                        payableList.getPayableListNo(),
+                        (Object) null
                 );
 
                 successIds.add(item.getId());

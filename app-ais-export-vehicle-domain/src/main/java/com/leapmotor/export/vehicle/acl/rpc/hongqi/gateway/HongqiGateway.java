@@ -5,7 +5,7 @@ import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotif
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 
 import java.util.List;
 
@@ -41,5 +41,5 @@ public interface HongqiGateway {
      * @param req 应付清单同步请求
      * @return 红旗返回
      */
-    HongqiResult syncPayableList(PayableListSyncHqReq req);
+    HongqiResult syncPayableList(PayableListSyncHqRecordReq req);
 }

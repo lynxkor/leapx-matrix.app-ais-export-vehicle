@@ -80,7 +80,7 @@ public class SoOrderForPayableDto implements Serializable {
     /**
      * 质检通过时间
      */
-    private LocalDateTime qcResultTime;
+    private LocalDateTime qcPassTime;
 
     /**
      * PO创建时间

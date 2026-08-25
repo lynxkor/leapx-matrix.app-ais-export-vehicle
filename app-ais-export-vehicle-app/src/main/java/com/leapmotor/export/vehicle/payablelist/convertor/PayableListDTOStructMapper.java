@@ -1,11 +1,9 @@
 package com.leapmotor.export.vehicle.payablelist.convertor;
 
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListPageParam;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
-import com.leapmotor.export.vehicle.payablelist.resp.PayableListDetailResp;
 import com.leapmotor.paltform.ais.common.model.response.LpOptionalResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import org.mapstruct.Mapper;
@@ -70,28 +68,4 @@ public interface PayableListDTOStructMapper {
      * 领域对象列表转下拉选项列表
      */
     List<LpOptionalResult> domainsToOptionals(List<PayableListResp> sources);
-
-    // ==================== 明细转换 ====================
-
-    /**
-     * 明细领域对象转响应对象
-     */
-    PayableListDetailResp detailDomainToResp(PayableListDetailDo source);
-
-    /**
-     * 明细领域对象列表转响应对象列表
-     */
-    List<PayableListDetailResp> detailDomainToResps(List<PayableListDetailDo> sources);
-
-    /**
-     * 分页明细领域对象转分页响应对象
-     */
-    PageResult<PayableListDetailResp> detailDomainsToRespPage(PageResult<PayableListDetailDo> sources);
-
-    /**
-     * 分页明细领域对象转分页响应对象（别名方法）
-     */
-    default PageResult<PayableListDetailResp> detailPageDoToResp(PageResult<PayableListDetailDo> source) {
-        return detailDomainsToRespPage(source);
-    }
 }

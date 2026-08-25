@@ -74,12 +74,12 @@ public interface PayableListService {
     boolean deletePayableListByIds(List<String> ids);
 
     /**
-     * 查询可添加车辆
+     * 查询可添加车辆（分页）
      *
      * @param req 查询请求
-     * @return 可添加车辆列表
+     * @return 可添加车辆分页结果
      */
-    List<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req);
+    PageResult<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req);
 
     /**
      * 添加车辆

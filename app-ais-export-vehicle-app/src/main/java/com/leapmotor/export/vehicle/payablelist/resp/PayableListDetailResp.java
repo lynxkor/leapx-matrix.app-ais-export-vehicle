@@ -63,7 +63,7 @@ public class PayableListDetailResp extends LpBaseModel implements Serializable {
     private LocalDateTime qcPassTime;
 
     @Schema(description = "是否收款")
-    @DictEnumType(prefix = "YesNoEnum")
+    @DictEnumType(prefix = "IsReceivedEnum")
     private Integer isReceived;
 
     @Schema(description = "收款时间")

@@ -11,9 +11,7 @@ import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListImportPr
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListUpdateExe;
 import com.leapmotor.export.vehicle.payablelist.executor.query.PayableListAvailableVehicleQryExe;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListAddVehiclesReq;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListBatchSubmitReq;
@@ -47,7 +45,6 @@ import java.util.List;
 public class PayableListServiceImpl implements PayableListService {
 
     private PayableListGateway payableListGateway;
-    private PayableListDetailGateway payableListDetailGateway;
     private PayableListImportPriceExe payableListImportPriceExe;
     private PayableListAddVehiclesExe payableListAddVehiclesExe;
     private PayableListUpdateExe payableListUpdateExe;
@@ -61,6 +58,8 @@ public class PayableListServiceImpl implements PayableListService {
         qo.setPageNum(param.getPageNum());
         qo.setPageSize(param.getPageSize());
         qo.setPayableListNo(param.getPayableListNo());
+        qo.setPayableListNoLike(param.getPayableListNoLike());
+        qo.setPayableListNos(param.getPayableListNos());
         qo.setBillStatusList(param.getBillStatusList());
         qo.setCustomerCode(param.getCustomerCode());
         qo.setCustomerNameLike(param.getCustomerName());
@@ -84,14 +83,8 @@ public class PayableListServiceImpl implements PayableListService {
             throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
         }
 
-        // 查询明细列表
-        List<PayableListDetailDo> detailDoList = payableListDetailGateway.listByPayableListId(id);
-
-        // 转换为响应对象
-        PayableListResp resp = PayableListDTOStructMapper.INSTANCE.domainToResp(payableListDo);
-        resp.setDetailList(PayableListDTOStructMapper.INSTANCE.detailDomainToResps(detailDoList));
-
-        return resp;
+        // 车辆明细由明细分页接口单独查询，详情接口不再组装返回
+        return PayableListDTOStructMapper.INSTANCE.domainToResp(payableListDo);
     }
 
     @Override
@@ -146,7 +139,7 @@ public class PayableListServiceImpl implements PayableListService {
     }
 
     @Override
-    public List<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req) {
+    public PageResult<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req) {
         return payableListAvailableVehicleQryExe.execute(req);
     }
 

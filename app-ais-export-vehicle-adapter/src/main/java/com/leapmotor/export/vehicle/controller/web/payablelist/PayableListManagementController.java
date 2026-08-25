@@ -69,7 +69,7 @@ public class PayableListManagementController {
     @Operation(summary = "查询可添加车辆")
     @ResourcePermission(value = "web:payableList:payableListManagement:queryAvailableVehicles", desc = "查询可添加车辆")
     @PostMapping("/queryAvailableVehicles")
-    public AjaxResult<List<SoOrderForPayableDto>> queryAvailableVehicles(@RequestBody PayableListQueryAvailableVehiclesReq req) {
+    public AjaxResult<PageResult<SoOrderForPayableDto>> queryAvailableVehicles(@RequestBody PayableListQueryAvailableVehiclesReq req) {
         return AjaxResult.success(payableListService.queryAvailableVehicles(req));
     }
 

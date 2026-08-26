@@ -31,7 +31,7 @@ public class PayableListDetailQo extends LpBaseQo implements Serializable {
     private String customerCode;
 
     /**
-     * 应付清单编号（多选，经清单表转换为ID后过滤）
+     * 应付清单编号
      */
     private List<String> payableListNoList;
 

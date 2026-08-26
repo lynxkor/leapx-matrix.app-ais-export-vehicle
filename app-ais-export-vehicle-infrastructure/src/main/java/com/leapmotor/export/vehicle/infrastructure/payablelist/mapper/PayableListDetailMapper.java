@@ -18,7 +18,7 @@ import org.apache.ibatis.annotations.Param;
 public interface PayableListDetailMapper extends LpBaseMapper<PayableListDetail> {
 
     /**
-     * 分页查询明细（JOIN 清单头表，支持按清单编号多选检索并带出清单编号）
+     * 分页查询明细
      *
      * @param page 分页参数
      * @param qo   查询条件

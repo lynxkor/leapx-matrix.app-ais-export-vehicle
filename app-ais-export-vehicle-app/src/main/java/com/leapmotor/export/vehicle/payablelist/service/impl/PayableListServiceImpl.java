@@ -1,5 +1,8 @@
 package com.leapmotor.export.vehicle.payablelist.service.impl;
 
+import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
+import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
+import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.payablelist.convertor.PayableListDTOStructMapper;
 import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
@@ -45,6 +48,7 @@ import java.util.List;
 public class PayableListServiceImpl implements PayableListService {
 
     private PayableListGateway payableListGateway;
+    private EventHandlerHelper eventHandlerHelper;
     private PayableListImportPriceExe payableListImportPriceExe;
     private PayableListAddVehiclesExe payableListAddVehiclesExe;
     private PayableListUpdateExe payableListUpdateExe;
@@ -107,7 +111,14 @@ public class PayableListServiceImpl implements PayableListService {
         // 保存
         payableListGateway.updatePayableList(payableList);
 
-        // TODO: 同步红旗系统
+        // 发布红旗同步事件（异步，事务提交后执行）
+        // 第4参必须强转 Object 以命中带 afterCommit 保护的 data 重载（null 字面量会命中 String relatedNo 重载，事务回滚后事件仍会消费）
+        eventHandlerHelper.publishAsync(
+                ThirdTargetPlatformEnum.HONGQI,
+                HongqiEventTypeEnum.PAYABLE_LIST_SYNC_HQ_SUBMIT,
+                payableList.getPayableListNo(),
+                (Object) null
+        );
 
         return payableList.getId();
     }

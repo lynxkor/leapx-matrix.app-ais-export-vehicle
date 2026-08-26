@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotifyReq;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
@@ -61,7 +61,7 @@ public class HongqiGatewayImpl implements HongqiGateway {
     }
 
     @Override
-    public HongqiResult syncPayableList(PayableListSyncHqReq req) {
+    public HongqiResult syncPayableList(PayableListSyncHqRecordReq req) {
         try {
             log.info("应付清单同步红旗, request:{}", req);
             HongqiResult result = hongqiClientApi.syncPayableList(req);

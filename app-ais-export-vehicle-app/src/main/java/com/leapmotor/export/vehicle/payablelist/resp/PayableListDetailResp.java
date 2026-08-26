@@ -25,6 +25,9 @@ public class PayableListDetailResp extends LpBaseModel implements Serializable {
     @Schema(description = "关联应付清单ID")
     private String payableListId;
 
+    @Schema(description = "应付清单编号")
+    private String payableListNo;
+
     @Schema(description = "明细编号")
     private String detailNo;
 

@@ -5,7 +5,7 @@ import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotif
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,5 +41,5 @@ public interface HongqiClientApi {
      * 应付清单同步红旗（契约待红旗提供，先占位）
      */
     @PostMapping("/payable/list/sync")
-    HongqiResult syncPayableList(@RequestBody PayableListSyncHqReq request);
+    HongqiResult syncPayableList(@RequestBody PayableListSyncHqRecordReq request);
 }

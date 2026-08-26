@@ -2,11 +2,14 @@ package com.leapmotor.export.vehicle.base.event;
 
 import com.alibaba.fastjson2.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.base.event.enums.HongqiEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
-import com.leapmotor.export.vehicle.payablelist.dto.PayableListForHqDto;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;
 import com.leapmotor.paltform.ais.common.event.core.base.ThirdTargetPlatform;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
@@ -15,10 +18,10 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 应付清单同步红旗事件处理器
@@ -32,7 +35,14 @@ import java.util.stream.Collectors;
 public class PayableListSyncHqHandler extends AbstractEventHandler {
 
     private HongqiGateway hongqiGateway;
+    private PayableListGateway payableListGateway;
+    private PayableListDetailGateway payableListDetailGateway;
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    /**
+     * sync_hq_message 字段长度上限
+     */
+    private static final int SYNC_HQ_MESSAGE_MAX_LENGTH = 2000;
 
     @Override
     protected BizEventType getSupportEvent() {
@@ -46,77 +56,103 @@ public class PayableListSyncHqHandler extends AbstractEventHandler {
 
     @Override
     protected void handle(EventNotifyTask task) {
-        log.info("应付清单同步红旗-开始, bizNo={}", task.getBizNo());
+        String bizNo = task.getBizNo();
+        log.info("应付清单同步红旗-开始, bizNo={}", bizNo);
 
-        // 反序列化业务数据
-        PayableListForHqDto dto = JSON.parseObject(task.getDataParam(), PayableListForHqDto.class);
-        if (dto == null) {
-            throw new BizException("应付清单同步红旗失败: 业务数据为空");
+        // 根据应付清单编号实时查询清单及明细
+        PayableListDo payableList = payableListGateway.getPayableListByNo(bizNo);
+        if (payableList == null) {
+            throw new BizException("应付清单同步红旗失败: 应付清单不存在, bizNo=" + bizNo);
         }
+        List<PayableListDetailDo> detailList = payableListDetailGateway.listByPayableListId(payableList.getId());
 
         // 构建请求参数
-        PayableListSyncHqReq req = buildRequest(dto);
+        PayableListSyncHqRecordReq req = buildRequest(payableList, detailList);
 
         // 调用红旗接口
         HongqiResult result = hongqiGateway.syncPayableList(req);
-        log.info("应付清单同步红旗结果: bizNo={}, result={}", task.getBizNo(), result);
+        log.info("应付清单同步红旗结果: bizNo={}, result={}", bizNo, result);
 
-        // 失败抛异常，触发重试
+        // 回写同步结果
+        String message = result == null ? null : JSON.toJSONString(result);
         if (result == null || result.getCode() != 200) {
+            updateSyncResult(payableList, "FAIL", message);
             throw new BizException("应付清单同步红旗失败: " + JSON.toJSONString(result));
         }
+        updateSyncResult(payableList, "SUCCESS", message);
 
-        log.info("应付清单同步红旗成功, bizNo={}", task.getBizNo());
+        log.info("应付清单同步红旗成功, bizNo={}", bizNo);
     }
 
     @Override
     public Object buildRequest(EventNotifyTask task) {
-        PayableListForHqDto dto = JSON.parseObject(task.getDataParam(), PayableListForHqDto.class);
-        if (dto == null) {
-            return null;
-        }
-        return buildRequest(dto);
+        // 事件不预构建 payload，消费时根据编号实时查库组装
+        return null;
     }
 
     /**
      * 构建红旗请求参数
      */
-    private PayableListSyncHqReq buildRequest(PayableListForHqDto dto) {
-        PayableListSyncHqReq req = new PayableListSyncHqReq();
-        req.setPayableListNo(dto.getPayableListNo());
-        req.setCustomerCode(dto.getCustomerCode());
-        req.setCustomerName(dto.getCustomerName());
-        req.setGenerateMonth(dto.getGenerateMonth());
-        req.setTotalVehicles(dto.getTotalVehicles());
-        req.setTotalAmount(dto.getTotalAmount());
+    private PayableListSyncHqRecordReq buildRequest(PayableListDo payableList, List<PayableListDetailDo> detailList) {
+        PayableListSyncHqRecordReq req = new PayableListSyncHqRecordReq();
+        if (detailList == null || detailList.isEmpty()) {
+            return req;
+        }
 
-        // 转换明细列表
-        List<PayableListSyncHqReq.Detail> details = convertDetails(dto.getDetails());
-        req.setDetails(details);
-
+        List<PayableListSyncHqRecordReq.Record> records = new ArrayList<>(detailList.size());
+        for (PayableListDetailDo detail : detailList) {
+            PayableListSyncHqRecordReq.Record record = new PayableListSyncHqRecordReq.Record();
+            // 清单头信息
+            record.setPayableListNo(payableList.getPayableListNo());
+            record.setCustomerCode(payableList.getCustomerCode());
+            record.setTotalVehicles(payableList.getTotalVehicles());
+            record.setTotalAmount(payableList.getTotalAmount());
+            record.setGenerateMonth(payableList.getGenerateMonth());
+            record.setVersion(payableList.getVersion());
+            // 明细信息
+            record.setPoNo(detail.getPoNo());
+            record.setPoCreateTime(formatDateTime(detail.getPoCreateTime()));
+            record.setSoNo(detail.getSoNo());
+            record.setVin(detail.getVin());
+            record.setMaterialCode(detail.getMaterialCode());
+            record.setPrice(detail.getPrice());
+            record.setQcPassTime(formatDateTime(detail.getQcPassTime()));
+            records.add(record);
+        }
+        req.setRecords(records);
         return req;
     }
 
     /**
-     * 转换明细列表
+     * LocalDateTime 转 String（yyyy-MM-dd HH:mm:ss）
      */
-    private List<PayableListSyncHqReq.Detail> convertDetails(List<PayableListForHqDto.PayableListDetailForHqDto> dtoDetails) {
-        if (dtoDetails == null || dtoDetails.isEmpty()) {
-            return Collections.emptyList();
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return null;
         }
+        return dateTime.format(DATE_TIME_FORMATTER);
+    }
 
-        return dtoDetails.stream().map(dto -> {
-            PayableListSyncHqReq.Detail detail = new PayableListSyncHqReq.Detail();
-            detail.setSoNo(dto.getSoNo());
-            detail.setPoNo(dto.getPoNo());
-            detail.setVin(dto.getVin());
-            detail.setMaterialCode(dto.getMaterialCode());
-            detail.setPrice(dto.getPrice());
-            // LocalDateTime 转 String
-            if (dto.getQcPassTime() != null) {
-                detail.setQcPassTime(dto.getQcPassTime().format(DATE_TIME_FORMATTER));
-            }
-            return detail;
-        }).collect(Collectors.toList());
+    /**
+     * 回写同步红旗结果到应付清单表
+     */
+    private void updateSyncResult(PayableListDo payableList, String result, String message) {
+        payableList.setSyncHqTime(LocalDateTime.now());
+        payableList.setSyncHqResult(result);
+        payableList.setSyncHqMessage(truncateMessage(message));
+        payableListGateway.updatePayableList(payableList);
+    }
+
+    /**
+     * 截断同步报文至字段长度上限，防止落库异常
+     */
+    private String truncateMessage(String message) {
+        if (message == null) {
+            return null;
+        }
+        if (message.length() > SYNC_HQ_MESSAGE_MAX_LENGTH) {
+            return message.substring(0, SYNC_HQ_MESSAGE_MAX_LENGTH);
+        }
+        return message;
     }
 }

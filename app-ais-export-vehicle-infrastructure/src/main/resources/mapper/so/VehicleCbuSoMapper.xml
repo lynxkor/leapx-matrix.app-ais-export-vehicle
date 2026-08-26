@@ -159,6 +159,15 @@
                     #{item}
                 </foreach>
             </if>
+            <if test="qo.qcResult != null">
+                AND m.qc_result = #{qo.qcResult}
+            </if>
+            <if test="qo.excludeIds != null and qo.excludeIds.size() > 0">
+                AND m.id NOT IN
+                <foreach collection="qo.excludeIds" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
             <if test="qo.soNos != null and qo.soNos.size() > 0">
                 AND m.so_no IN
                 <foreach collection="qo.soNos" item="item" open="(" separator="," close=")">

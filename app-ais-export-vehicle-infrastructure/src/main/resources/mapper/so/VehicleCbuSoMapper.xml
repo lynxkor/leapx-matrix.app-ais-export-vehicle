@@ -116,6 +116,7 @@
         <result column="sync_customer_result" property="syncCustomerResult"/>
         <result column="sync_customer_time" property="syncCustomerTime"/>
         <result column="sync_customer_response_info" property="syncCustomerResponseInfo"/>
+        <result column="receive_order_time" property="receiveOrderTime"/>
     </resultMap>
 
     <!-- SO 主表 LEFT JOIN 车辆明细表查询列 -->
@@ -128,7 +129,7 @@
         d.internal_vehicle_no, d.production_identify_code, d.vin, d.material_code, d.material_description, d.sales_market, d.model_year,
         d.optional_package, d.plan_offline_date, d.schedule_time, d.barcode_print_time, d.body_in_time, d.paint_in_time, d.assembly_in_time, d.assembly_out_time,
         d.sync_aps_result, d.sync_aps_time, d.sync_aps_response_info, d.sync_sap_result, d.sync_sap_time, d.sync_sap_response_info,
-        d.sync_customer_result, d.sync_customer_time, d.sync_customer_response_info
+        d.sync_customer_result, d.sync_customer_time, d.sync_customer_response_info,m.receive_order_time
     </sql>
 
     <!-- 列表/分页查询动态条件 -->

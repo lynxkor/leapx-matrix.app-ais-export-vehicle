@@ -142,7 +142,7 @@ public interface ExportVehicleLetterGuaranteeGateway {
      * receivable -= amount(核销完毕,保函不补回)
      * <p>操作人由内部通过 {@code LoginUserUtils.getCurrentUser()} 获取
      */
-    boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String reason);
+    boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String reason,String vin);
 
     /**
      * 列出指定客户+订单类型下满足资金校验条件的保函。

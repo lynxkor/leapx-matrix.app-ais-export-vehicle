@@ -394,7 +394,7 @@ public class ExportVehicleLetterGuaranteeCmdExe {
             BigDecimal amount = e.getValue();
             if (amount.compareTo(BigDecimal.ZERO) <= 0) continue;
             boolean ok = exportVehicleLetterGuaranteeGateway.releaseReceivable(lgId, amount, req.getOrderId(),
-                    req.getPoNo(), req.getSoNo(), req.getReason());
+                    req.getPoNo(), req.getSoNo(), req.getReason(), null);
             if (!ok) {
                 throw new BizException("保函应收释放失败: lgId=" + lgId);
             }

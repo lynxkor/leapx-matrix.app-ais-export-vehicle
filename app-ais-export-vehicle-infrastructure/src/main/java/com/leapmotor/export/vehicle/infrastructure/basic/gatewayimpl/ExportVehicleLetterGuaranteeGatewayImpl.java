@@ -354,7 +354,7 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
     }
 
     @Override
-    public boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String reason) {
+    public boolean releaseReceivable(String lgId, BigDecimal amount, String orderId, String poNo, String soNo, String reason,String vin) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BizException("应收释放金额必须大于 0");
         }
@@ -382,11 +382,11 @@ public class ExportVehicleLetterGuaranteeGatewayImpl implements ExportVehicleLet
             if (LgStatusEnum.EFFECTIVE.getCode().equals(lg.getLgStatus())) {
                 writeRecord(lg, RecordTypeEnum.RELEASE_RECEIVABLE.getCode(), amount,
                         beforeAvailable, afterAvailable, null, null, beforeReceivable, afterReceivable, // 可用加 占用未变 应收减
-                        poNo, soNo, null, reason);
+                        poNo, soNo, vin, reason);
             } else {
                 writeRecord(lg, RecordTypeEnum.RELEASE_RECEIVABLE.getCode(), amount,
                         null, null, null, null, beforeReceivable, afterReceivable, // 可用未变 占用未变 应收减
-                        poNo, soNo, null, reason);
+                        poNo, soNo, vin, reason);
             }
 
 

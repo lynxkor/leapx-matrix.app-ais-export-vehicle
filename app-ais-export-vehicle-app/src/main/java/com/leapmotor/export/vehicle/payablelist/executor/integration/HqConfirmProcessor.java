@@ -11,11 +11,13 @@ import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
+import com.leapmotor.platform.ais.common.redis.BlockLock;
+import com.leapmotor.platform.ais.common.redis.DistributedLockTemplate;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,22 +37,52 @@ public class HqConfirmProcessor {
     private PayableListGateway payableListGateway;
     private PayableListDetailGateway payableListDetailGateway;
     private EventHandlerHelper eventHandlerHelper;
+    private DistributedLockTemplate distributedLockTemplate;
+    private TransactionTemplate transactionTemplate;
 
-    @Transactional(rollbackFor = Exception.class)
     public void process(String payableListNo, String confirmResult, LocalDateTime confirmTime, String confirmRemark) {
+        // 按清单单号加分布式锁：
+        // 同一清单的并发确认/驳回串行化，锁释放晚于事务提交
+        String lockKey = "hq:confirm:" + payableListNo;
+        BlockLock lock;
+        try {
+            lock = distributedLockTemplate.blockLock(lockKey, 30000, 60000);
+        } catch (Exception e) {
+            throw new BizException(ResultEnum.BAD_REQUEST, "获取锁失败，请稍后重试：" + e.getMessage());
+        }
+        try {
+            transactionTemplate.execute(status -> {
+                doConfirm(payableListNo, confirmResult, confirmTime, confirmRemark);
+                return null;
+            });
+        } finally {
+            closeLock(lock, lockKey);
+        }
+    }
+
+    /**
+     * 锁内执行确认/驳回（独立事务）：先幂等判断，再进行状态迁移
+     */
+    private void doConfirm(String payableListNo, String confirmResult, LocalDateTime confirmTime, String confirmRemark) {
         PayableListDo db = payableListGateway.getPayableListByNo(payableListNo);
         if (db == null) {
-            throw new BizException(ResultEnum.NO_DATA, "应付清单不存在");
-        }
-        // 已确认状态不允许再同步
-        if (PayableListStatusEnum.CONFIRMED.getCode().equals(db.getBillStatus())) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "不允许已确认之后再同步");
+            throw new BizException("应付清单不存在");
         }
 
         if (PayableListStatusEnum.REJECTED.getCode().equals(confirmResult)) {
             // 驳回
-            if(StringUtils.isBlank(confirmRemark)){
-                throw new BizException(ResultEnum.BAD_REQUEST, "驳回原因不能为空");
+            if (StringUtils.isBlank(confirmRemark)) {
+                throw new BizException("驳回原因不能为空");
+            }
+            // 幂等：已是驳回状态，重复回调直接成功
+            if (PayableListStatusEnum.REJECTED.getCode().equals(db.getBillStatus())) {
+                log.info("红旗驳回幂等跳过：payableListNo={}，状态已是驳回", payableListNo);
+                return;
+            }
+            // 状态机校验：仅已提交待确认的清单可驳回
+            if (!PayableListStatusEnum.SUBMITTED.getCode().equals(db.getBillStatus())) {
+                log.info("当前状态不允许驳回: billStatus={}", db.getBillStatus());
+                throw new BizException("当前状态不允许驳回");
             }
             db.setConfirmTime(confirmTime);
             db.setConfirmRemark(confirmRemark);
@@ -59,6 +91,16 @@ public class HqConfirmProcessor {
             log.info("红旗驳回，payableListNo={}", payableListNo);
         } else if (PayableListStatusEnum.CONFIRMED.getCode().equals(confirmResult)) {
             // 确认
+            // 幂等：已是确认状态，重复回调直接成功，不再重复发布 SAP 事件
+            if (PayableListStatusEnum.CONFIRMED.getCode().equals(db.getBillStatus())) {
+                log.info("红旗确认幂等跳过：payableListNo={}，状态已是确认", payableListNo);
+                return;
+            }
+            // 状态机校验：仅已提交待确认的清单可确认
+            if (!PayableListStatusEnum.SUBMITTED.getCode().equals(db.getBillStatus())) {
+                log.info("当前状态不允许确认: billStatus={}", db.getBillStatus());
+                throw new BizException("当前状态不允许确认");
+            }
             db.setConfirmTime(confirmTime);
             db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.CONFIRMED.getCode());
@@ -74,7 +116,21 @@ public class HqConfirmProcessor {
 
             log.info("红旗确认通过，payableListNo={}，已发布SAP同步事件", payableListNo);
         } else {
-            throw new BizException(ResultEnum.BAD_REQUEST, "无效的确认结果：" + confirmResult);
+            throw new BizException("无效的确认结果：" + confirmResult);
+        }
+    }
+
+    /**
+     * 释放分布式锁
+     */
+    private void closeLock(BlockLock lock, String lockKey) {
+        if (lock == null) {
+            return;
+        }
+        try {
+            lock.close();
+        } catch (Exception e) {
+            log.warn("释放锁异常, lockKey={}, 可能已提前过期, msg={}", lockKey, e.getMessage());
         }
     }
 

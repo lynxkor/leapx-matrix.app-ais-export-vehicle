@@ -14,6 +14,9 @@
                     #{item}
                 </foreach>
             </if>
+            <if test="qo.payableListNoLike != null and qo.payableListNoLike != ''">
+                AND p.payable_list_no LIKE CONCAT('%', #{qo.payableListNoLike}, '%')
+            </if>
             <if test="qo.soNo != null and qo.soNo != ''">
                 AND d.so_no = #{qo.soNo}
             </if>
@@ -32,8 +35,11 @@
             <if test="qo.customerCode != null and qo.customerCode != ''">
                 AND d.customer_code = #{qo.customerCode}
             </if>
-            <if test="qo.billStatus != null and qo.billStatus != ''">
-                AND d.bill_status = #{qo.billStatus}
+            <if test="qo.billStatusList != null and qo.billStatusList.size() > 0">
+                AND d.bill_status IN
+                <foreach collection="qo.billStatusList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
             </if>
             <if test="qo.generateMonth != null and qo.generateMonth != ''">
                 AND d.generate_month = #{qo.generateMonth}

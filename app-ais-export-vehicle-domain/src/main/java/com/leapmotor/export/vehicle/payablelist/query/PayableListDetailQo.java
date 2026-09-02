@@ -36,9 +36,14 @@ public class PayableListDetailQo extends LpBaseQo implements Serializable {
     private List<String> payableListNoList;
 
     /**
-     * 单据状态
+     * 应付清单编号（单条模糊查询）
      */
-    private String billStatus;
+    private String payableListNoLike;
+
+    /**
+     * 单据状态列表（多选）
+     */
+    private List<String> billStatusList;
 
     /**
      * 生成月份 yyyyMM

@@ -35,7 +35,8 @@ public class PayableListDetailDaoImpl extends ServiceImpl<PayableListDetailMappe
                 .in(query.getVinList() != null && !query.getVinList().isEmpty(),
                         PayableListDetail::getVin, query.getVinList())
                 .eq(StringUtils.isNotBlank(query.getCustomerCode()), PayableListDetail::getCustomerCode, query.getCustomerCode())
-                .eq(StringUtils.isNotBlank(query.getBillStatus()), PayableListDetail::getBillStatus, query.getBillStatus())
+                .in(query.getBillStatusList() != null && !query.getBillStatusList().isEmpty(),
+                        PayableListDetail::getBillStatus, query.getBillStatusList())
                 .eq(StringUtils.isNotBlank(query.getGenerateMonth()), PayableListDetail::getGenerateMonth, query.getGenerateMonth())
                 .eq(Objects.nonNull(query.getIsReceived()), PayableListDetail::getIsReceived, query.getIsReceived())
                 .like(StringUtils.isNotBlank(query.getVinLike()), PayableListDetail::getVin, query.getVinLike())

@@ -30,8 +30,11 @@ public class PayableListDetailPageParam extends LpBaseParam implements Serializa
     @Schema(description = "应付清单编号")
     private List<String> payableListNoList;
 
-    @Schema(description = "单据状态")
-    private String billStatus;
+    @Schema(description = "应付清单编号（单条模糊查询）")
+    private String payableListNoLike;
+
+    @Schema(description = "单据状态列表（多选）")
+    private List<String> billStatusList;
 
     @Schema(description = "生成月份，yyyyMM 格式，如 202608")
     private String generateMonth;
@@ -65,6 +68,9 @@ public class PayableListDetailPageParam extends LpBaseParam implements Serializa
 
     @Schema(description = "VIN号")
     private String vin;
+
+    @Schema(description = "VIN号（单条模糊查询）")
+    private String vinLike;
 
     @Schema(description = "是否收款：0=否/1=是")
     private Integer isReceived;

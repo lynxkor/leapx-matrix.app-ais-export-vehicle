@@ -25,6 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -106,6 +107,7 @@ public class HqConfirmProcessorTest {
         assertNotNull(payload.getDetails(), "事件载荷应携带明细列表");
         assertEquals(2, payload.getDetails().size(), "事件载荷明细数量应与清单明细一致");
         assertEquals("SO0001", payload.getDetails().get(0).getSoNo(), "事件载荷明细应携带SO单号");
+        assertEquals("PO0001", payload.getDetails().get(0).getPoNo(), "事件载荷明细应携带PO单号");
         assertEquals("LFZ_001", payload.getDetails().get(0).getVin(), "事件载荷明细应携带VIN");
     }
 
@@ -226,6 +228,29 @@ public class HqConfirmProcessorTest {
     }
 
     @Test
+    @DisplayName("确认成功 — 清单无明细时payload明细为空且仍发布SAP事件")
+    public void testProcess_confirmSuccessNoDetails() {
+        PayableListDo db = buildPayableList(PayableListStatusEnum.SUBMITTED.getCode());
+        when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
+        when(payableListDetailGateway.listByPayableListId(db.getId()))
+                .thenReturn(Collections.emptyList());
+
+        processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+                LocalDateTime.of(2026, 8, 20, 10, 30, 0), "确认通过");
+
+        // 事件仍正常发布，payload 不含明细但不抛异常
+        ArgumentCaptor<PayableListForSapDto> payloadCaptor = ArgumentCaptor.forClass(PayableListForSapDto.class);
+        verify(eventHandlerHelper).publishAsync(
+                eq(ThirdTargetPlatformEnum.SAP),
+                eq(SapEventTypeEnum.PAYABLE_LIST_SYNC_SAP_SUBMIT),
+                eq(PAYABLE_LIST_NO),
+                payloadCaptor.capture());
+        PayableListForSapDto payload = payloadCaptor.getValue();
+        assertEquals(PAYABLE_LIST_NO, payload.getPayableListNo(), "事件载荷应携带清单编号");
+        assertNull(payload.getDetails(), "清单无明细时事件载荷明细应为空");
+    }
+
+    @Test
     @DisplayName("获取锁失败 — 应抛出异常且不执行任何更新")
     public void testProcess_lockFail() {
         when(distributedLockTemplate.blockLock(anyString(), anyLong(), anyLong()))
@@ -270,12 +295,14 @@ public class HqConfirmProcessorTest {
         d1.setId("D-001");
         d1.setPayableListId(payableListId);
         d1.setSoNo("SO0001");
+        d1.setPoNo("PO0001");
         d1.setVin("LFZ_001");
         d1.setPrice(new BigDecimal("150000.00"));
         PayableListDetailDo d2 = new PayableListDetailDo();
         d2.setId("D-002");
         d2.setPayableListId(payableListId);
         d2.setSoNo("SO0002");
+        d2.setPoNo("PO0002");
         d2.setVin("LFZ_002");
         d2.setPrice(new BigDecimal("150000.00"));
         return Arrays.asList(d1, d2);

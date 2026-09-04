@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 应付清单同步SAP事件处理器
+ * 应付清单同步SAP事件处理器：
+ * 反序列化 dataParam -> 组装 SAP 契约请求（IV_SYSID + IM_TAB）-> 调 SapGateway
+ * -> ES_RET.RET_CODE != S 抛异常触发重试（SAP 返回成功后，同一清单只传一次）。
  *
  * @author 赵吴涯
  * @since 2026-07-21
@@ -52,15 +54,15 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
             throw new BizException("应付清单同步SAP失败: 业务数据为空");
         }
 
-        // 构建请求参数
+        // 构建SAP请求参数
         PayableListSyncSapReq req = buildRequest(dto);
 
         // 调用SAP接口
         SapResult result = sapGateway.syncPayableList(req);
         log.info("应付清单同步SAP结果: bizNo={}, result={}", task.getBizNo(), result);
 
-        // 失败抛异常，触发重试
-        if (result == null) {
+        // 判断SAP调用结果是否成功
+        if (!isSapSuccess(result)) {
             throw new BizException("应付清单同步SAP失败: " + JSON.toJSONString(result));
         }
 
@@ -77,36 +79,43 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
     }
 
     /**
-     * 构建SAP请求参数
+     * 构建 SAP 契约请求：IV_SYSID 默认 DMS；IM_TAB 每行 = PAYNR(清单编号)/PORDER(红旗PO)/SORDER(销服SO)/VHVIN(VIN)
      */
     private PayableListSyncSapReq buildRequest(PayableListForSapDto dto) {
         PayableListSyncSapReq req = new PayableListSyncSapReq();
-        req.setPayableListNo(dto.getPayableListNo());
-        req.setCustomerCode(dto.getCustomerCode());
-        req.setCustomerName(dto.getCustomerName());
-        req.setTotalAmount(dto.getTotalAmount());
-
-        // 转换明细列表
-        List<PayableListSyncSapReq.Detail> details = convertDetails(dto.getDetails());
-        req.setDetails(details);
-
+        req.setImTab(convertDetails(dto.getPayableListNo(), dto.getDetails()));
         return req;
     }
 
     /**
-     * 转换明细列表
+     * 转换明细列表为 SAP 行项目（清单编号逐行携带）
      */
-    private List<PayableListSyncSapReq.Detail> convertDetails(List<PayableListForSapDto.PayableListDetailForSapDto> dtoDetails) {
+    private List<PayableListSyncSapReq.ImTabItem> convertDetails(String payableListNo,
+            List<PayableListForSapDto.PayableListDetailForSapDto> dtoDetails) {
         if (dtoDetails == null || dtoDetails.isEmpty()) {
             return Collections.emptyList();
         }
 
         return dtoDetails.stream().map(dto -> {
-            PayableListSyncSapReq.Detail detail = new PayableListSyncSapReq.Detail();
-            detail.setSoNo(dto.getSoNo());
-            detail.setVin(dto.getVin());
-            detail.setPrice(dto.getPrice());
-            return detail;
+            PayableListSyncSapReq.ImTabItem item = new PayableListSyncSapReq.ImTabItem();
+            item.setPaynr(payableListNo);
+            item.setPorder(dto.getPoNo());
+            item.setSorder(dto.getSoNo());
+            item.setVhvin(dto.getVin());
+            return item;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 判断 SAP 调用结果是否成功
+     */
+    private boolean isSapSuccess(SapResult result) {
+        if (result == null || !result.isSuccess()) {
+            return false;
+        }
+        if (result.getBody() == null || result.getBody().getEsRet() == null) {
+            return false;
+        }
+        return "S".equals(result.getBody().getEsRet().getRetCode());
     }
 }

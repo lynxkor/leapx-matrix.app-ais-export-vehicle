@@ -27,6 +27,6 @@ public interface SapClientApi {
     /**
      * 应付清单同步 SAP
      */
-    @PostMapping("/payableList/sync")
+    @PostMapping("/rest/sap/v4/ZSD_DMS_G117_PAYLIST")
     SapResult syncPayableList(@RequestBody PayableListSyncSapReq req);
 }

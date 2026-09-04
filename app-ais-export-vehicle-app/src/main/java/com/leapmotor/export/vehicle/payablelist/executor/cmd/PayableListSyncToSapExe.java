@@ -75,6 +75,7 @@ public class PayableListSyncToSapExe {
                 .map(detail -> {
                     PayableListForSapDto.PayableListDetailForSapDto detailDto = new PayableListForSapDto.PayableListDetailForSapDto();
                     detailDto.setSoNo(detail.getSoNo());
+                    detailDto.setPoNo(detail.getPoNo());
                     detailDto.setVin(detail.getVin());
                     detailDto.setPrice(detail.getPrice());
                     return detailDto;

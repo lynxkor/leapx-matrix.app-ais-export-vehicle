@@ -219,6 +219,39 @@ public class SapClearAccountProcessorTest {
                 anyString(), anyString(), anyString(), anyString());
     }
 
+    @Test
+    @DisplayName("无转应收记录 — 仅更新明细/SO状态，不触发保函释放与PO回写")
+    public void testProcess_noTransferRecord() {
+        // 幂等检查(40)与转应收(30)查询均返回空：该SO未占用保函应收
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenReturn(Collections.emptyList());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+
+        // 抬头统计：独立未收款对象，0收款保持原状态
+        PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
+        PayableListDetailDo unpaid = buildDetail();
+        unpaid.setId("D-002");
+        unpaid.setIsReceived(IsReceivedEnum.NO.getCode());
+        when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID))
+                .thenReturn(Arrays.asList(unpaid));
+
+        processor.process(buildReq(LocalDateTime.now()));
+
+        // 明细与SO状态正常更新
+        verify(payableListDetailGateway).updatePayableListDetail(any());
+        verify(vehicleCbuSoGateway).updateVehicleCbuSo(any());
+        // 无资金动作
+        verify(letterGuaranteeGateway, never()).releaseReceivable(anyString(), any(), anyString(),
+                anyString(), anyString(), anyString(), anyString());
+        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        // 锁正常释放
+        verify(blockLock).close();
+    }
+
     // ==================== 异常与失败场景 ====================
 
     @Test
@@ -242,6 +275,34 @@ public class SapClearAccountProcessorTest {
                 () -> processor.process(buildReq(LocalDateTime.now())));
         assertTrue(exception.getMessage().contains("PO关联保函应收不足"),
                 "异常消息应包含 'PO关联保函应收不足'");
+        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        // 事务内异常后锁仍应在 finally 中释放
+        verify(blockLock).close();
+    }
+
+    @Test
+    @DisplayName("PO无关联保函记录 — 回写静默跳过不抛异常")
+    public void testProcess_poNoAssociationEmpty() {
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenReturn(Collections.emptyList())
+                .thenReturn(buildTransferRecords());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
+        // PO 关联表无该保函记录（空列表，走 for 循环不匹配后静默结束）
+        when(purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(any()))
+                .thenReturn(Collections.emptyList());
+
+        PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
+        when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID))
+                .thenReturn(Arrays.asList(detail));
+
+        assertDoesNotThrow(() -> processor.process(buildReq(LocalDateTime.now())));
+        // 释放成功但 PO 无匹配记录时不做回写，不影响后续流程
         verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
     }
 
@@ -382,6 +443,29 @@ public class SapClearAccountProcessorTest {
         verify(payableListGateway, times(1)).updatePayableList(headerCaptor.capture());
         assertEquals(PayableListStatusEnum.RECEIVED.getCode(), headerCaptor.getValue().getBillStatus(),
                 "两明细均收款后抬头状态应为已收款");
+    }
+
+    @Test
+    @DisplayName("抬头不存在 — 状态统计跳过该明细不抛异常")
+    public void testProcess_headerNotExistSkip() {
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenReturn(Collections.emptyList())
+                .thenReturn(buildTransferRecords());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
+        // PO 关联查询返回 null（脏数据场景，走告警分支）
+        when(purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(any()))
+                .thenReturn(null);
+        // 抬头查不到（脏数据）：updateHeaderStatus 中 continue
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(null);
+
+        assertDoesNotThrow(() -> processor.process(buildReq(LocalDateTime.now())));
+        // 抬头不存在时不做任何抬头更新
+        verify(payableListGateway, never()).updatePayableList(any());
     }
 
     @Test

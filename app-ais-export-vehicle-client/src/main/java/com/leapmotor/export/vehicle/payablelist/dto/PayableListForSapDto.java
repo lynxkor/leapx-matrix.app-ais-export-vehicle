@@ -57,6 +57,11 @@ public class PayableListForSapDto implements Serializable {
         private String soNo;
 
         /**
+         * PO单号
+         */
+        private String poNo;
+
+        /**
          * VIN号
          */
         private String vin;

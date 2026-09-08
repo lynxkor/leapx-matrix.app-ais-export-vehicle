@@ -3,7 +3,7 @@ package com.leapmotor.export.vehicle.base.event;
 import com.alibaba.fastjson2.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
-import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
+import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.payablelist.dto.PayableListForSapDto;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -106,21 +106,55 @@ public class PayableListSyncSapHandlerTest {
     }
 
     @Test
-    @DisplayName("处理失败 — RET_CODE=E 时应抛异常触发重试")
+    @DisplayName("处理失败 — RET_CODE=E 时抛异常且提示只携带RET_REASON")
     public void testHandle_sapErrorRetCode() {
         // 框架级成功但业务级失败：SAP 返回 E 表示该清单未接收成功，必须重试
-        when(sapGateway.syncPayableList(any())).thenReturn(buildSapResult("E", "VIN不存在"));
+        when(sapGateway.syncPayableList(any())).thenReturn(buildSapResult("E", "无效的车辆编号LFZJ9X4K8PGH65270U"));
 
         BizException exception = assertThrows(BizException.class,
                 () -> handler.handle(buildTask(buildPayload())));
         assertTrue(exception.getMessage().contains("应付清单同步SAP失败"),
                 "异常消息应包含 '应付清单同步SAP失败'");
+        assertTrue(exception.getMessage().contains("无效的车辆编号LFZJ9X4K8PGH65270U"),
+                "异常消息应携带 SAP 返回的 RET_REASON");
+        assertFalse(exception.getMessage().contains("RET_CODE"),
+                "异常消息不应再打印整段返回 JSON");
+        assertFalse(exception.getMessage().contains("body"),
+                "异常消息不应再打印整段返回 JSON");
+    }
+
+    @Test
+    @DisplayName("处理失败 — RET_REASON为空时仅提示同步失败不打印JSON")
+    public void testHandle_sapErrorNoReason() {
+        // 业务级失败但 RET_REASON 为空：异常消息只提示同步失败，不拼接无信息量内容
+        PayableListSyncSapResult result = buildSapResult("E", null);
+        when(sapGateway.syncPayableList(any())).thenReturn(result);
+
+        BizException exception = assertThrows(BizException.class,
+                () -> handler.handle(buildTask(buildPayload())));
+        assertEquals("应付清单同步SAP失败", exception.getMessage(),
+                "RET_REASON 为空时应仅提示同步失败");
+        assertFalse(exception.getMessage().contains("RET_CODE"),
+                "RET_REASON 为空时不应输出完整返回 JSON");
+    }
+
+    @Test
+    @DisplayName("处理失败 — RET_REASON为空串时仅提示同步失败不打印JSON")
+    public void testHandle_sapErrorBlankReason() {
+        // RET_REASON 为空串 "" 同样视为无有效原因，仅提示同步失败
+        PayableListSyncSapResult result = buildSapResult("E", "");
+        when(sapGateway.syncPayableList(any())).thenReturn(result);
+
+        BizException exception = assertThrows(BizException.class,
+                () -> handler.handle(buildTask(buildPayload())));
+        assertEquals("应付清单同步SAP失败", exception.getMessage(),
+                "RET_REASON 为空串时应仅提示同步失败");
     }
 
     @Test
     @DisplayName("处理失败 — 框架级success=false 时应抛异常触发重试")
     public void testHandle_frameworkFail() {
-        SapResult result = buildSapResult("S", "成功");
+        PayableListSyncSapResult result = buildSapResult("S", "成功");
         result.setSuccess(false);
         when(sapGateway.syncPayableList(any())).thenReturn(result);
 
@@ -138,7 +172,7 @@ public class PayableListSyncSapHandlerTest {
     @Test
     @DisplayName("处理失败 — body/ES_RET为空时应抛异常触发重试")
     public void testHandle_missingEsRet() {
-        SapResult result = new SapResult();
+        PayableListSyncSapResult result = new PayableListSyncSapResult();
         result.setSuccess(true);
         when(sapGateway.syncPayableList(any())).thenReturn(result);
 
@@ -185,15 +219,15 @@ public class PayableListSyncSapHandlerTest {
         return dto;
     }
 
-    private SapResult buildSapResult(String retCode, String retReason) {
-        SapResult result = new SapResult();
+    private PayableListSyncSapResult buildSapResult(String retCode, String retReason) {
+        PayableListSyncSapResult result = new PayableListSyncSapResult();
         result.setSuccess(true);
         result.setCode("0");
         result.setMessage("调用成功");
-        SapResult.SapRet ret = new SapResult.SapRet();
+        PayableListSyncSapResult.EsRet ret = new PayableListSyncSapResult.EsRet();
         ret.setRetCode(retCode);
         ret.setRetReason(retReason);
-        SapResult.Body body = new SapResult.Body();
+        PayableListSyncSapResult.Body body = new PayableListSyncSapResult.Body();
         body.setEsRet(ret);
         result.setBody(body);
         return result;

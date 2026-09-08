@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.client;
 
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
+import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
@@ -28,5 +29,5 @@ public interface SapClientApi {
      * 应付清单同步 SAP
      */
     @PostMapping("/rest/sap/v4/ZSD_DMS_G117_PAYLIST")
-    SapResult syncPayableList(@RequestBody PayableListSyncSapReq req);
+    PayableListSyncSapResult syncPayableList(@RequestBody PayableListSyncSapReq req);
 }

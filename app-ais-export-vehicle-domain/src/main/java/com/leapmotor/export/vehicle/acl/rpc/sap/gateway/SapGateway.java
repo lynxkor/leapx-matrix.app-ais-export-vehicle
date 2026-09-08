@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.acl.rpc.sap.gateway;
 
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
+import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 
 /**
@@ -26,7 +27,7 @@ public interface SapGateway {
      * 应付清单同步 SAP。
      *
      * @param req 应付清单同步请求
-     * @return SAP 返回
+     * @return SAP 返回（应付清单专用：ES_RET 总状态 + RET_TAB 明细状态）
      */
-    SapResult syncPayableList(PayableListSyncSapReq req);
+    PayableListSyncSapResult syncPayableList(PayableListSyncSapReq req);
 }

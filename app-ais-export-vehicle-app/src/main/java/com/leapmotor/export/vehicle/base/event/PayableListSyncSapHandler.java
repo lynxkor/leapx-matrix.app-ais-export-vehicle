@@ -3,7 +3,7 @@ package com.leapmotor.export.vehicle.base.event;
 import com.alibaba.fastjson2.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
-import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
+import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.base.event.enums.SapEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.payablelist.dto.PayableListForSapDto;
@@ -58,7 +58,7 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
         PayableListSyncSapReq req = buildRequest(dto);
 
         // 调用SAP接口
-        SapResult result = sapGateway.syncPayableList(req);
+        PayableListSyncSapResult result = sapGateway.syncPayableList(req);
         log.info("应付清单同步SAP结果: bizNo={}, result={}", task.getBizNo(), result);
 
         // 判断SAP调用结果是否成功
@@ -109,7 +109,7 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
     /**
      * 判断 SAP 调用结果是否成功
      */
-    private boolean isSapSuccess(SapResult result) {
+    private boolean isSapSuccess(PayableListSyncSapResult result) {
         if (result == null || !result.isSuccess()) {
             return false;
         }
@@ -123,7 +123,7 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
      * 组装失败提示后缀：RET_REASON 有内容时拼为 ": +原因" 供提示；
      * RET_REASON 为空（null/空串/body/ES_RET 缺失）时无后缀，仅提示同步失败。
      */
-    private String buildFailReason(SapResult result) {
+    private String buildFailReason(PayableListSyncSapResult result) {
         String retReason = null;
         if (result != null && result.getBody() != null && result.getBody().getEsRet() != null) {
             retReason = result.getBody().getEsRet().getRetReason();

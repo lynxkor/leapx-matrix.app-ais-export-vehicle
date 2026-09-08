@@ -1,38 +1,60 @@
-// package com.leapmotor.export.vehicle.payablelist.service;
-//
-// import com.leapmotor.export.vehicle.base.BaseServiceTest;
-// import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
-// import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-// import com.leapmotor.export.vehicle.payablelist.req.*;
+ package com.leapmotor.export.vehicle.payablelist.service;
+
+ import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
+ import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
+ import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
+ import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
+ import com.leapmotor.export.vehicle.base.BaseServiceTest;
+ import com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.gatewayimpl.SapGatewayImpl;
+ import com.leapmotor.export.vehicle.job.PayableListGenerateJob;
+ import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
+ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
+ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
+ import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
+ import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
+ import com.leapmotor.export.vehicle.payablelist.req.*;
 // import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
-// import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
-// import com.leapmotor.paltform.ais.common.model.exception.BizException;
-// import com.leapmotor.paltform.ais.common.model.response.PageResult;
-// import org.junit.jupiter.api.*;
-// import org.springframework.util.CollectionUtils;
-//
-// import java.math.BigDecimal;
-// import java.time.LocalDateTime;
-// import java.util.ArrayList;
-// import java.util.Arrays;
-// import java.util.List;
-// import java.util.UUID;
-//
-// import static org.junit.jupiter.api.Assertions.*;
-//
-// /**
-//  * 应付清单管理 Service 集成测试
-//  *
-//  * @author 赵吴涯
-//  * @since 2026-08-07
-//  */
-// @DisplayName("应付清单管理 Service 集成测试")
-// @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-// public class PayableListServiceTest extends BaseServiceTest<PayableListService> {
-//
-//     private static String testPayableListId;
-//     private static String testPayableListNo;
-//
+ import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
+ import com.leapmotor.paltform.ais.common.model.exception.BizException;
+ import com.leapmotor.paltform.ais.common.model.response.PageResult;
+ import org.junit.jupiter.api.*;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.util.CollectionUtils;
+
+ import java.math.BigDecimal;
+ import java.time.LocalDateTime;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.List;
+ import java.util.UUID;
+
+ import static org.junit.jupiter.api.Assertions.*;
+
+ /**
+  * 应付清单管理 Service 集成测试
+  *
+  * @author 赵吴涯
+  * @since 2026-08-07
+  */
+ @DisplayName("应付清单管理 Service 集成测试")
+ @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+ public class PayableListServiceTest extends BaseServiceTest<PayableListService> {
+
+     private static String testPayableListId;
+     private static String testPayableListNo;
+
+     @Autowired
+     private PayableListGenerateJob payableListGenerateJob;
+
+     @Autowired
+     private SapGatewayImpl sapGateway;
+
+     @Autowired
+     private PayableListGateway payableListGateway;
+
+     @Autowired
+     private PayableListDetailGateway payableListDetailGateway;
+
 //     @Test
 //     @Order(1)
 //     @DisplayName("分页查询 — 正常查询应返回分页结果")
@@ -428,4 +450,59 @@
 //             );
 //         });
 //     }
-// }
+
+     @Test
+     @Order(1)
+     @DisplayName("定时任务测试")
+     public void testJob() {
+         payableListGenerateJob.execute();
+
+     }
+
+
+     /**
+      * 真实联调：从数据库查询指定应付清单并同步给 SAP。
+      *
+      * <p>数据流：按编号查抬头 {@link PayableListGateway#getPayableListByNo} →
+      * 按抬头ID查明细 {@link PayableListDetailGateway#listByPayableListId} →
+      * 组装 SAP 契约请求（IV_SYSID=DMS，IM_TAB 行项目 PAYNR/PORDER/SORDER/VHVIN）→
+      * {@link SapGatewayImpl#syncPayableList} 真实调用 SAP Feign 接口。
+      */
+     @Test
+     @Order(2)
+     @DisplayName("真实SAP同步 — 数据库查询应付清单并同步给SAP")
+     public void testSapGateway() {
+         String payableListId = "01A041BA-D4F7-7A12-94A8-58FF5DCE2130";
+
+         // 1. 从数据库查询应付清单抬头
+         PayableListDo header = payableListGateway.getPayableListById(payableListId);
+         assertNotNull(header, "数据库中不存在应付清单编号: " + header.getPayableListNo());
+
+         // 2. 查询该清单的全部明细
+         List<PayableListDetailDo> details = payableListDetailGateway.listByPayableListId(payableListId);
+         assertNotNull(details, "明细查询结果不应为 null");
+         assertFalse(details.isEmpty(), "应付清单 " + payableListId + " 无明细数据，无法同步SAP");
+         System.err.println("命中应付清单: payableListNo=" + header.getPayableListNo()
+                 + ", 明细条数=" + details.size());
+
+         // 3. 组装 SAP 契约请求：每行 PAYNR 均为同一清单编号，PORDER/SORDER/VHVIN 取自明细行
+         PayableListSyncSapReq req = new PayableListSyncSapReq();
+         List<PayableListSyncSapReq.ImTabItem> imTab = new ArrayList<>();
+         for (PayableListDetailDo detail : details) {
+             PayableListSyncSapReq.ImTabItem item = new PayableListSyncSapReq.ImTabItem();
+             item.setPaynr(header.getPayableListNo());
+             item.setPorder(detail.getPoNo());
+             item.setSorder(detail.getSoNo());
+             item.setVhvin(detail.getVin());
+             imTab.add(item);
+         }
+         req.setImTab(imTab);
+         printJson(req);
+
+         // 4. 真实调用 SAP 网关（经 Feign 直连 SAP，返回真实处理结果）
+         PayableListSyncSapResult result = sapGateway.syncPayableList(req);
+         printJson(result);
+         assertNotNull(result, "SAP 返回结果不应为 null");
+     }
+
+ }

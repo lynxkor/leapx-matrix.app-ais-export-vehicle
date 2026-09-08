@@ -3,6 +3,7 @@ package com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.gatewayimpl;
 import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
+import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.client.SapClientApi;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -39,10 +40,10 @@ public class SapGatewayImpl implements SapGateway {
     }
 
     @Override
-    public SapResult syncPayableList(PayableListSyncSapReq req) {
+    public PayableListSyncSapResult syncPayableList(PayableListSyncSapReq req) {
         try {
             log.info("应付清单同步SAP, request:{}", req);
-            SapResult result = sapClientApi.syncPayableList(req);
+            PayableListSyncSapResult result = sapClientApi.syncPayableList(req);
             log.info("应付清单同步SAP, request:{}, response:{}", req, result);
             return result;
         } catch (BizException e) {

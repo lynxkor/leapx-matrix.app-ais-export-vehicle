@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 /**
  * 应付清单同步SAP事件处理器：
  * 反序列化 dataParam -> 组装 SAP 契约请求（IV_SYSID + IM_TAB）-> 调 SapGateway
- * -> ES_RET.RET_CODE != S 抛异常触发重试（SAP 返回成功后，同一清单只传一次）。
+ * -> 总状态 ES_RET.RET_CODE != S 抛异常触发重试（SAP 返回成功后，同一清单只传一次）。
+ * 失败提示：总状态报错时具体原因在 RET_TAB 明细失败行上，优先汇总明细行 RET_REASON。
  *
  * @author 赵吴涯
  * @since 2026-07-21
@@ -107,7 +108,8 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
     }
 
     /**
-     * 判断 SAP 调用结果是否成功
+     * 判断 SAP 调用结果是否成功：只看总状态 ES_RET.RET_CODE = S；
+     * 总状态成功时无需解析 RET_TAB 明细状态。
      */
     private boolean isSapSuccess(PayableListSyncSapResult result) {
         if (result == null || !result.isSuccess()) {
@@ -120,17 +122,43 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
     }
 
     /**
-     * 组装失败提示后缀：RET_REASON 有内容时拼为 ": +原因" 供提示；
-     * RET_REASON 为空（null/空串/body/ES_RET 缺失）时无后缀，仅提示同步失败。
+     * 组装失败提示后缀（仅在总状态失败时调用）：
+     *
+     * 优先汇总 RET_TAB 明细失败行（RET_CODE != S）的 RET_REASON——总状态报错时具体原因在明细上；
+     * 明细缺失或无失败原因时回退总状态 ES_RET.RET_REASON（兼容无明细返回）；
+     *  均为空（null/空串/body/ES_RET 缺失）时无后缀，仅提示同步失败。
+     *
      */
     private String buildFailReason(PayableListSyncSapResult result) {
-        String retReason = null;
-        if (result != null && result.getBody() != null && result.getBody().getEsRet() != null) {
-            retReason = result.getBody().getEsRet().getRetReason();
+        if (result != null && result.getBody() != null) {
+            String detailReason = buildDetailFailReason(result.getBody().getRetTab());
+            if (detailReason != null) {
+                return ": " + detailReason;
+            }
+            if (result.getBody().getEsRet() != null) {
+                String retReason = result.getBody().getEsRet().getRetReason();
+                if (retReason != null && !retReason.isEmpty()) {
+                    return ": " + retReason;
+                }
+            }
         }
-        if (retReason == null || retReason.isEmpty()) {
-            return "";
+        return "";
+    }
+
+    /**
+     * 汇总明细失败原因：收集 RET_TAB 中失败行（RET_CODE != S）的消息文本，去空去重后分号拼接；
+     * 无失败行或失败行均无消息文本时返回 null，便于上层回退。
+     */
+    private String buildDetailFailReason(List<PayableListSyncSapResult.RetTabItem> retTab) {
+        if (retTab == null || retTab.isEmpty()) {
+            return null;
         }
-        return ": " + retReason;
+        String joined = retTab.stream()
+                .filter(item -> item != null && !"S".equals(item.getRetCode()))
+                .map(PayableListSyncSapResult.RetTabItem::getRetReason)
+                .filter(reason -> reason != null && !reason.isEmpty())
+                .distinct()
+                .collect(Collectors.joining("; "));
+        return joined.isEmpty() ? null : joined;
     }
 }

@@ -190,6 +190,50 @@ public class PayableListSyncSapHandlerTest {
                 "异常消息应包含 '业务数据为空'");
     }
 
+    @Test
+    @DisplayName("处理失败 — 总状态E时提示应取RET_TAB明细失败行RET_REASON")
+    public void testHandle_sapErrorReasonOnDetailRows() {
+        // 总状态报错，具体原因在明细行上：ES_RET 只有总状态，明细失败行携带逐车原因
+        PayableListSyncSapResult result = buildSapResultWithRetTab("E", "存在错误明细",
+                buildRetTabItem("E", "无效的车辆编号LFZJ9X4K8PGH65270U"),
+                buildRetTabItem("S", "成功"));
+        when(sapGateway.syncPayableList(any())).thenReturn(result);
+
+        BizException exception = assertThrows(BizException.class,
+                () -> handler.handle(buildTask(buildPayload())));
+        assertTrue(exception.getMessage().contains("无效的车辆编号LFZJ9X4K8PGH65270U"),
+                "异常消息应携带明细失败行的 RET_REASON");
+        assertFalse(exception.getMessage().contains("存在错误明细"),
+                "有明细失败原因时不应再提示总状态文本");
+        assertFalse(exception.getMessage().contains("成功"),
+                "明细成功行原因不应出现在失败提示中");
+    }
+
+    @Test
+    @DisplayName("处理失败 — 明细失败行无RET_REASON时应回退总状态RET_REASON")
+    public void testHandle_sapErrorDetailBlankReasonFallbackEsRet() {
+        // 明细失败行原因为空时回退总状态文本（兼容只有总状态原因的返回）
+        PayableListSyncSapResult result = buildSapResultWithRetTab("E", "无效的车辆编号LFZJ9X4K8PGH65270U",
+                buildRetTabItem("E", ""));
+        when(sapGateway.syncPayableList(any())).thenReturn(result);
+
+        BizException exception = assertThrows(BizException.class,
+                () -> handler.handle(buildTask(buildPayload())));
+        assertEquals("应付清单同步SAP失败: 无效的车辆编号LFZJ9X4K8PGH65270U", exception.getMessage(),
+                "明细无原因时应回退总状态 RET_REASON");
+    }
+
+    @Test
+    @DisplayName("处理成功 — 总状态S时不解析明细，即使明细存在失败行也不抛异常")
+    public void testHandle_sapSuccessIgnoreRetTabDetail() {
+        // 总状态成功即整体成功，明细状态无需逐行判定
+        PayableListSyncSapResult result = buildSapResultWithRetTab("S", "成功",
+                buildRetTabItem("E", "无效的车辆编号LFZJ9X4K8PGH65270U"));
+        when(sapGateway.syncPayableList(any())).thenReturn(result);
+
+        assertDoesNotThrow(() -> handler.handle(buildTask(buildPayload())));
+    }
+
     // ==================== 辅助方法 ====================
 
     private EventNotifyTask buildTask(PayableListForSapDto payload) {
@@ -217,6 +261,25 @@ public class PayableListSyncSapHandlerTest {
         d2.setPrice(new BigDecimal("150000.00"));
         dto.setDetails(Arrays.asList(d1, d2));
         return dto;
+    }
+
+    /**
+     * 构造带 RET_TAB 明细行的 SAP 返回（总状态 + 逐行明细状态）
+     */
+    private PayableListSyncSapResult buildSapResultWithRetTab(String esRetCode, String esRetReason,
+            PayableListSyncSapResult.RetTabItem... retTabItems) {
+        PayableListSyncSapResult result = buildSapResult(esRetCode, esRetReason);
+        if (retTabItems.length > 0) {
+            result.getBody().setRetTab(Arrays.asList(retTabItems));
+        }
+        return result;
+    }
+
+    private PayableListSyncSapResult.RetTabItem buildRetTabItem(String retCode, String retReason) {
+        PayableListSyncSapResult.RetTabItem item = new PayableListSyncSapResult.RetTabItem();
+        item.setRetCode(retCode);
+        item.setRetReason(retReason);
+        return item;
     }
 
     private PayableListSyncSapResult buildSapResult(String retCode, String retReason) {

@@ -8,6 +8,7 @@
  import com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.gatewayimpl.SapGatewayImpl;
  import com.leapmotor.export.vehicle.job.PayableListGenerateJob;
  import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
+ import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListSyncToSapExe;
  import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
  import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
  import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
@@ -54,6 +55,9 @@
 
      @Autowired
      private PayableListDetailGateway payableListDetailGateway;
+
+     @Autowired
+     private PayableListSyncToSapExe payableListSyncToSapExe;
 
 //     @Test
 //     @Order(1)
@@ -503,6 +507,15 @@
          PayableListSyncSapResult result = sapGateway.syncPayableList(req);
          printJson(result);
          assertNotNull(result, "SAP 返回结果不应为 null");
+     }
+
+
+     @Test
+     @Order(2)
+     @DisplayName("真实SAP同步 — 数据库查询应付清单并同步给SAP")
+     public void testSapGateway2() {
+         String payableListId = "01A041BA-D4F7-7A12-94A8-58FF5DCE2130";
+         payableListSyncToSapExe.execute(payableListId);
      }
 
  }

@@ -63,7 +63,7 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
 
         // 判断SAP调用结果是否成功
         if (!isSapSuccess(result)) {
-            throw new BizException("应付清单同步SAP失败: " + JSON.toJSONString(result));
+            throw new BizException("应付清单同步SAP失败" + buildFailReason(result));
         }
 
         log.info("应付清单同步SAP成功, bizNo={}", task.getBizNo());
@@ -117,5 +117,20 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
             return false;
         }
         return "S".equals(result.getBody().getEsRet().getRetCode());
+    }
+
+    /**
+     * 组装失败提示后缀：RET_REASON 有内容时拼为 ": +原因" 供提示；
+     * RET_REASON 为空（null/空串/body/ES_RET 缺失）时无后缀，仅提示同步失败。
+     */
+    private String buildFailReason(SapResult result) {
+        String retReason = null;
+        if (result != null && result.getBody() != null && result.getBody().getEsRet() != null) {
+            retReason = result.getBody().getEsRet().getRetReason();
+        }
+        if (retReason == null || retReason.isEmpty()) {
+            return "";
+        }
+        return ": " + retReason;
     }
 }

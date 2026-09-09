@@ -75,6 +75,7 @@ public class PayableListServiceImpl implements PayableListService {
         qo.setSubmitTimeEnd(param.getSubmitTimeEnd());
         qo.setConfirmTimeStart(param.getConfirmTimeStart());
         qo.setConfirmTimeEnd(param.getConfirmTimeEnd());
+        qo.setIds(param.getIds());
 
         PageResult<PayableListDo> result = payableListGateway.pagePayableList(qo);
         return PayableListDTOStructMapper.INSTANCE.domainsToRespPage(result);

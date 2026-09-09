@@ -5,6 +5,12 @@
     <sql id="Detail_With_ListNo_Where_Clause">
         <where>
             d.delete_status = 0
+            <if test="qo.ids != null and qo.ids.size() > 0">
+                AND d.id IN
+                <foreach collection="qo.ids" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
             <if test="qo.payableListId != null and qo.payableListId != ''">
                 AND d.payable_list_id = #{qo.payableListId}
             </if>

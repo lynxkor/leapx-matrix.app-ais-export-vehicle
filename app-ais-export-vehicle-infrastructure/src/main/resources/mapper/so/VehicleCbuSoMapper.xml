@@ -169,6 +169,12 @@
                     #{item}
                 </foreach>
             </if>
+            <if test="qo.ids != null and qo.ids.size() > 0">
+                AND m.id IN
+                <foreach collection="qo.ids" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
             <if test="qo.soNos != null and qo.soNos.size() > 0">
                 AND m.so_no IN
                 <foreach collection="qo.soNos" item="item" open="(" separator="," close=")">

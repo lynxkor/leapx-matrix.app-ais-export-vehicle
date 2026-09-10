@@ -22,17 +22,17 @@ public class HqConfirmReq implements Serializable {
     private String payableListNo;
 
     /**
-     * 确认结果：30=确认/40=驳回
+     * 确认结果：A确认/R驳回
      */
-    private String confirmResult;
+    private String status;
 
     /**
      * 确认时间
      */
-    private LocalDateTime confirmTime;
+    private LocalDateTime operateTime;
 
     /**
      * 确认说明
      */
-    private String confirmRemark;
+    private String remark;
 }

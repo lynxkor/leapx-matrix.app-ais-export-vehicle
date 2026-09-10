@@ -69,7 +69,7 @@ public class HqConfirmProcessor {
             throw new BizException("应付清单不存在");
         }
 
-        if (PayableListStatusEnum.REJECTED.getCode().equals(confirmResult)) {
+        if ("R".equals(confirmResult)) {
             // 驳回
             if (StringUtils.isBlank(confirmRemark)) {
                 throw new BizException("驳回原因不能为空");
@@ -89,7 +89,7 @@ public class HqConfirmProcessor {
             db.setBillStatus(PayableListStatusEnum.REJECTED.getCode());
             payableListGateway.updatePayableList(db);
             log.info("红旗驳回，payableListNo={}", payableListNo);
-        } else if (PayableListStatusEnum.CONFIRMED.getCode().equals(confirmResult)) {
+        } else if ("A".equals(confirmResult)) {
             // 确认
             // 幂等：已是确认状态，重复回调直接成功，不再重复发布 SAP 事件
             if (PayableListStatusEnum.CONFIRMED.getCode().equals(db.getBillStatus())) {

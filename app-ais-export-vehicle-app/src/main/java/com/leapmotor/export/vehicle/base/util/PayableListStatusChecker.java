@@ -3,7 +3,6 @@ package com.leapmotor.export.vehicle.base.util;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 
 /**
  * 应付清单状态校验工具类
@@ -18,13 +17,13 @@ public class PayableListStatusChecker {
      */
     public static void checkCanSubmit(PayableListDo payableList) {
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         String status = payableList.getBillStatus();
         if (!PayableListStatusEnum.DRAFT.getCode().equals(status)
                 && !PayableListStatusEnum.REJECTED.getCode().equals(status)) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "仅草稿/驳回状态的单据可提交");
+            throw new BizException("仅草稿/驳回状态的单据可提交");
         }
     }
 
@@ -33,13 +32,13 @@ public class PayableListStatusChecker {
      */
     public static void checkCanEdit(PayableListDo payableList) {
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         String status = payableList.getBillStatus();
         if (!PayableListStatusEnum.DRAFT.getCode().equals(status)
                 && !PayableListStatusEnum.REJECTED.getCode().equals(status)) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "仅草稿/驳回状态的单据可编辑");
+            throw new BizException("仅草稿/驳回状态的单据可编辑");
         }
     }
 
@@ -52,15 +51,30 @@ public class PayableListStatusChecker {
     }
 
     /**
+     * 校验是否可删除（仅草稿/驳回状态可删除）
+     */
+    public static void checkCanDelete(PayableListDo payableList) {
+        if (payableList == null) {
+            throw new BizException("应付清单不存在");
+        }
+
+        String status = payableList.getBillStatus();
+        if (!PayableListStatusEnum.DRAFT.getCode().equals(status)
+                && !PayableListStatusEnum.REJECTED.getCode().equals(status)) {
+            throw new BizException("此应付清单状态不为草稿或驳回，不允许删除，请刷新页面检查");
+        }
+    }
+
+    /**
      * 校验版本号（乐观锁）
      */
     public static void checkVersion(PayableListDo payableList, Integer reqVersion) {
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         if (reqVersion == null || !reqVersion.equals(payableList.getVersion())) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "数据已被他人修改，请刷新后重试");
+            throw new BizException("数据已被他人修改，请刷新后重试");
         }
     }
 }

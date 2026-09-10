@@ -99,11 +99,4 @@ public class PayableListManagementController {
         return AjaxResult.success(payableListService.importPrice(dto));
     }
 
-    @Operation(summary = "删除应付清单")
-    @ResourcePermission(value = "web:payableList:payableListManagement:delete", desc = "删除应付清单")
-    @PostMapping("/delete")
-    public AjaxResult<Void> delete(@RequestBody List<String> ids) {
-        payableListService.deletePayableListByIds(ids);
-        return AjaxResult.success();
-    }
 }

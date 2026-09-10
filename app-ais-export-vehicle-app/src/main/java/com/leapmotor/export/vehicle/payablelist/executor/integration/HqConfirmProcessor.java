@@ -10,7 +10,6 @@ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.platform.ais.common.redis.BlockLock;
 import com.leapmotor.platform.ais.common.redis.DistributedLockTemplate;
 import lombok.AllArgsConstructor;
@@ -48,7 +47,7 @@ public class HqConfirmProcessor {
         try {
             lock = distributedLockTemplate.blockLock(lockKey, 30000, 60000);
         } catch (Exception e) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "获取锁失败，请稍后重试：" + e.getMessage());
+            throw new BizException("获取锁失败，请稍后重试：" + e.getMessage());
         }
         try {
             transactionTemplate.execute(status -> {

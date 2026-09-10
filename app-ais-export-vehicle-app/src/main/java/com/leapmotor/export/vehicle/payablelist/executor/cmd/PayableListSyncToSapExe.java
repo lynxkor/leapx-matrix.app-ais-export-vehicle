@@ -10,7 +10,6 @@ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -38,11 +37,11 @@ public class PayableListSyncToSapExe {
     public boolean execute(String payableListId) {
         PayableListDo db = payableListGateway.getPayableListById(payableListId);
         if (db == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
         // 仅已确认状态可推送 SAP
         if (!PayableListStatusEnum.CONFIRMED.getCode().equals(db.getBillStatus())) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "仅已确认状态的单据可推送SAP");
+            throw new BizException("仅已确认状态的单据可推送SAP");
         }
 
         // 发布 SAP 同步事件（异步，事务提交后执行）

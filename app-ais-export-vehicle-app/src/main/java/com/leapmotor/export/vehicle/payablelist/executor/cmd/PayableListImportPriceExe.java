@@ -12,7 +12,6 @@ import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,11 +79,11 @@ public class PayableListImportPriceExe {
         // 3. 查询应付清单并校验
         PayableListDo db = payableListGateway.getPayableListById(payableListId);
         if (db == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
         // 乐观锁校验
         if (db.getVersion() == null || !db.getVersion().equals(version)) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "数据已被他人修改，请刷新后重试");
+            throw new BizException("数据已被他人修改，请刷新后重试");
         }
         // 状态前置校验
         PayableListStatusChecker.checkEditable(db);

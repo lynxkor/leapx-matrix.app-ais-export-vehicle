@@ -1253,13 +1253,13 @@ public class VehicleCbuSoCmdExe {
         head.setPorder(so.getPoNo());
         head.setErdat(so.getReceiveOrderTime() != null
                 ? so.getReceiveOrderTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
-        head.setLstatus("77");
+        head.setLstatus("77-质检通过");
         head.setLsdatum(so.getQcResultTime() != null
                 ? so.getQcResultTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
         head.setBukrs(so.getSalesCompanyCode());
         head.setKunnr(so.getCustomerCode());
         head.setRecordType(convertOrderTypeToRecordType(so.getOrderType()));
-        head.setOrderWay("100");
+        head.setOrderWay("100-红旗CBU订单");
         req.setIsHead(head);
 
         SapOrderSyncReq.ImTabItem item = new SapOrderSyncReq.ImTabItem();

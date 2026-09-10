@@ -13,7 +13,6 @@ import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListSubmitReq;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -42,11 +41,11 @@ public class PayableListSubmitExe {
     public String execute(PayableListSubmitReq req) {
         PayableListDo db = payableListGateway.getPayableListById(req.getId());
         if (db == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
         // 乐观锁校验
         if (db.getVersion() == null || !db.getVersion().equals(req.getVersion())) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "数据已被他人修改，请刷新后重试");
+            throw new BizException("数据已被他人修改，请刷新后重试");
         }
         // 状态前置校验
         PayableListStatusChecker.checkEditable(db);

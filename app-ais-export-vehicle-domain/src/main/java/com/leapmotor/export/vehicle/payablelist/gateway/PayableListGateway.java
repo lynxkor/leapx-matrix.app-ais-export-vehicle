@@ -88,11 +88,4 @@ public interface PayableListGateway {
      */
     int updateBatchByIds(Collection<String> ids, PayableListDo update);
 
-    /**
-     * 根据ID删除
-     *
-     * @param id 主键ID
-     * @return 影响行数
-     */
-    int deleteById(String id);
 }

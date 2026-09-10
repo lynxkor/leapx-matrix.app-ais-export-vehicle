@@ -27,7 +27,6 @@ import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
 import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import lombok.AllArgsConstructor;
@@ -85,7 +84,7 @@ public class PayableListServiceImpl implements PayableListService {
     public PayableListResp getPayableListById(String id) {
         PayableListDo payableListDo = payableListGateway.getPayableListById(id);
         if (payableListDo == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         // 车辆明细由明细分页接口单独查询，详情接口不再组装返回
@@ -137,18 +136,6 @@ public class PayableListServiceImpl implements PayableListService {
         return payableListImportPriceExe.execute(dto);
     }
 
-    @Override
-    public boolean deletePayableListByIds(List<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return false;
-        }
-
-        // 批量软删除
-        for (String id : ids) {
-            payableListGateway.deleteById(id);
-        }
-        return true;
-    }
 
     @Override
     public PageResult<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req) {

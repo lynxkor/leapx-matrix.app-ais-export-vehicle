@@ -65,13 +65,6 @@ public interface PayableListService {
      */
     ExcelBaseResult importPrice(ImportExcelDTO dto);
 
-    /**
-     * 删除应付清单
-     *
-     * @param ids ID列表
-     * @return 结果
-     */
-    boolean deletePayableListByIds(List<String> ids);
 
     /**
      * 查询可添加车辆（分页）

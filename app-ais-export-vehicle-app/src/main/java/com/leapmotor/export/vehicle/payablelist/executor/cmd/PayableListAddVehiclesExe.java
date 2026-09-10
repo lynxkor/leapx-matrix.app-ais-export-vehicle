@@ -10,7 +10,6 @@ import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoQcResultEnum;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import lombok.AllArgsConstructor;
@@ -42,7 +41,7 @@ public class PayableListAddVehiclesExe {
         // 查询应付清单
         PayableListDo payableList = payableListGateway.getPayableListById(req.getPayableListId());
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         // 校验状态（只有草稿或驳回状态可以添加）
@@ -60,7 +59,7 @@ public class PayableListAddVehiclesExe {
         List<VehicleCbuSoDo> soOrders = vehicleCbuSoGateway.listSoList(qo);
 
         if (soOrders.isEmpty()) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "所选车辆均已绑定到其他应付清单");
+            throw new BizException("所选车辆均已绑定到其他应付清单");
         }
 
         // 创建应付清单明细

@@ -4,7 +4,6 @@ import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListUpdateReq;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +27,7 @@ public class PayableListUpdateExe {
     public String execute(PayableListUpdateReq req) {
         PayableListDo db = payableListGateway.getPayableListById(req.getId());
         if (db == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
         // 状态前置校验：仅草稿/驳回状态可编辑
         PayableListStatusChecker.checkEditable(db);

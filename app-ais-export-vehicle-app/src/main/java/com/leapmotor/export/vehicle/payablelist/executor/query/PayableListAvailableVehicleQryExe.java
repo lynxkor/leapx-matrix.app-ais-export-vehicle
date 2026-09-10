@@ -10,7 +10,6 @@ import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +43,7 @@ public class PayableListAvailableVehicleQryExe {
         // 查询应付清单
         PayableListDo payableList = payableListGateway.getPayableListById(req.getPayableListId());
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         // 查询所有已绑定到应付清单的SO订单ID（SQL 层排除）

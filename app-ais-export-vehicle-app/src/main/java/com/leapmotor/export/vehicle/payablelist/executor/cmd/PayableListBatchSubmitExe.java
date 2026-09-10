@@ -10,7 +10,6 @@ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListBatchSubmitReq;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -98,8 +97,7 @@ public class PayableListBatchSubmitExe {
 
         // 如果有失败的项，抛出异常回滚整个事务
         if (!failedItems.isEmpty()) {
-            throw new BizException(ResultEnum.BAD_REQUEST,
-                    "批量提交失败，失败的项: " + String.join("; ", failedItems));
+            throw new BizException("批量提交失败，失败的项: " + String.join("; ", failedItems));
         }
 
         log.info("批量提交应付清单成功，成功数量={}", successIds.size());

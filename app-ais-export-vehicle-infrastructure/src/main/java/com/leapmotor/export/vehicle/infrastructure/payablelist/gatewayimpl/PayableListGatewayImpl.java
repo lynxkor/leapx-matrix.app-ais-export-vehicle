@@ -109,8 +109,5 @@ public class PayableListGatewayImpl implements PayableListGateway {
         return payableListMapper.update(entity, updateWrapper);
     }
 
-    @Override
-    public int deleteById(String id) {
-        return payableListMapper.deleteById(id);
-    }
+
 }

@@ -59,7 +59,7 @@ public class HongqiOpenController {
     @Operation(summary = "应付清单红旗确认结果反馈")
     @PostMapping("/payableList/confirmCallback")
     public AjaxResult<Void> confirmCallback(@RequestBody HqConfirmReq req) {
-        hqConfirmProcessor.process(req.getPayableListNo(), req.getConfirmResult(), req.getConfirmTime(), req.getConfirmRemark());
+        hqConfirmProcessor.process(req.getPayableListNo(), req.getStatus(), req.getOperateTime(), req.getRemark());
         return AjaxResult.success();
     }
 }

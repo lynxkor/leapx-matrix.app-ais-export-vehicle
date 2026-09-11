@@ -84,6 +84,17 @@ public class HqConfirmProcessorTest {
     // ==================== 确认场景 ====================
 
     @Test
+    @DisplayName("应付清单编号为空 — 应抛出明确提示且不进入锁与事务")
+    public void testProcess_blankPayableListNo() {
+        BizException exception = assertThrows(BizException.class,
+                () -> processor.process(null, CONFIRM_RESULT_APPROVE, LocalDateTime.now(), "确认"));
+
+        assertTrue(exception.getMessage().contains("应付清单编号不能为空"),
+                "异常消息应明确提示清单编号缺失");
+        verifyNoInteractions(distributedLockTemplate);
+    }
+
+    @Test
     @DisplayName("确认成功 — 已提交状态确认后变为已确认并发布SAP同步事件")
     public void testProcess_confirmSuccess() {
         PayableListDo db = buildPayableList(PayableListStatusEnum.SUBMITTED.getCode());

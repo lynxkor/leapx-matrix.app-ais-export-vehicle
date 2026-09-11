@@ -87,6 +87,9 @@ public class HqConfirmProcessor {
             db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.REJECTED.getCode());
             payableListGateway.updatePayableList(db);
+            // 同步明细表字段（单据状态、确认时间）
+            payableListDetailGateway.updateBillStatusByPayableListId(
+                    db.getId(), PayableListStatusEnum.REJECTED.getCode(), null, confirmTime);
             log.info("红旗驳回，payableListNo={}", payableListNo);
         } else if ("A".equals(confirmResult)) {
             // 确认
@@ -104,6 +107,9 @@ public class HqConfirmProcessor {
             db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.CONFIRMED.getCode());
             payableListGateway.updatePayableList(db);
+            // 同步明细表字段（单据状态、确认时间）
+            payableListDetailGateway.updateBillStatusByPayableListId(
+                    db.getId(), PayableListStatusEnum.CONFIRMED.getCode(), null, confirmTime);
             // 发布 SAP 同步事件（异步，事务提交后执行）
             PayableListForSapDto sapPayload = buildSapPayload(db);
             eventHandlerHelper.publishAsync(

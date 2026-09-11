@@ -7,6 +7,8 @@ import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.base.event.enums.SapEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
 import com.leapmotor.export.vehicle.payablelist.dto.PayableListForSapDto;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.event.core.base.BizEventType;
 import com.leapmotor.paltform.ais.common.event.core.base.ThirdTargetPlatform;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
@@ -15,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +37,17 @@ import java.util.stream.Collectors;
 public class PayableListSyncSapHandler extends AbstractEventHandler {
 
     private SapGateway sapGateway;
+    private PayableListGateway payableListGateway;
+
+    /**
+     * 同步结果：成功
+     */
+    private static final String SYNC_RESULT_SUCCESS = "SUCCESS";
+
+    /**
+     * 同步结果：失败
+     */
+    private static final String SYNC_RESULT_FAIL = "FAIL";
 
     @Override
     protected BizEventType getSupportEvent() {
@@ -62,11 +76,17 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
         PayableListSyncSapResult result = sapGateway.syncPayableList(req);
         log.info("应付清单同步SAP结果: bizNo={}, result={}", task.getBizNo(), result);
 
+        // 返回报文：无返回值时留空，避免把字符串 "null" 落库
+        String message = result == null ? null : JSON.toJSONString(result);
+
         // 判断SAP调用结果是否成功
         if (!isSapSuccess(result)) {
+            // 失败结果先落库再抛异常触发重试
+            updateSyncResult(dto.getPayableListNo(), SYNC_RESULT_FAIL, message);
             throw new BizException("应付清单同步SAP失败" + buildFailReason(result));
         }
 
+        updateSyncResult(dto.getPayableListNo(), SYNC_RESULT_SUCCESS, message);
         log.info("应付清单同步SAP成功, bizNo={}", task.getBizNo());
     }
 
@@ -143,6 +163,24 @@ public class PayableListSyncSapHandler extends AbstractEventHandler {
             }
         }
         return "";
+    }
+
+    /**
+     * 回写同步SAP结果到应付清单表
+     *
+     * 回写异常仅告警不阻断同步主流程：避免结果落库异常导致"已成功的推送被重试重复执行"。
+     */
+    private void updateSyncResult(String payableListNo, String result, String message) {
+        try {
+            PayableListDo payableList = payableListGateway.getPayableListByNo(payableListNo);
+            if (payableList == null) {
+                log.warn("应付清单同步SAP结果回写：应付清单不存在, payableListNo={}", payableListNo);
+                return;
+            }
+            payableListGateway.updateSyncSapResultById(payableList.getId(), LocalDateTime.now(), result, message);
+        } catch (Exception e) {
+            log.error("应付清单同步SAP结果回写异常, payableListNo={}", payableListNo, e);
+        }
     }
 
     /**

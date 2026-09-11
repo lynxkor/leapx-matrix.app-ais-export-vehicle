@@ -120,17 +120,15 @@ public class SapClearAccountProcessorTest {
         // 抬头状态统计：仅1条明细且已收款 → 全部收款
         PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
         when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
-        when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Arrays.asList(detail));
+        PayableListDetailDo received = buildDetail();
+        received.setIsReceived(IsReceivedEnum.YES.getCode());
+        when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Arrays.asList(received));
 
         processor.process(buildReq(LocalDateTime.of(2026, 8, 20, 15, 0, 0)));
 
-        // 1. 明细更新：是否收款=是 + 收款时间
-        ArgumentCaptor<PayableListDetailDo> detailCaptor = ArgumentCaptor.forClass(PayableListDetailDo.class);
-        verify(payableListDetailGateway).updatePayableListDetail(detailCaptor.capture());
-        assertEquals(IsReceivedEnum.YES.getCode(), detailCaptor.getValue().getIsReceived(),
-                "明细是否收款应更新为是");
-        assertEquals(LocalDateTime.of(2026, 8, 20, 15, 0, 0), detailCaptor.getValue().getReceiveTime(),
-                "明细收款时间应记录");
+        // 1. 明细更新：只写收款状态与收款时间（条件 SET，不覆盖其它列）
+        verify(payableListDetailGateway).updateReceiveStatusById("D-001", IsReceivedEnum.YES.getCode(),
+                LocalDateTime.of(2026, 8, 20, 15, 0, 0));
 
         // 2. SO 状态更新为已收款
         ArgumentCaptor<VehicleCbuSoDo> soCaptor = ArgumentCaptor.forClass(VehicleCbuSoDo.class);
@@ -151,11 +149,12 @@ public class SapClearAccountProcessorTest {
         assertEquals(new BigDecimal("50000"), poCaptor.getValue().getPoCurrentReceivableAmount(),
                 "PO累计应收应扣减变动金额");
 
-        // 5. 抬头状态：全部收款 → 已收款
-        ArgumentCaptor<PayableListDo> headerCaptor = ArgumentCaptor.forClass(PayableListDo.class);
-        verify(payableListGateway).updatePayableList(headerCaptor.capture());
-        assertEquals(PayableListStatusEnum.RECEIVED.getCode(), headerCaptor.getValue().getBillStatus(),
-                "全部收款后抬头状态应为已收款");
+        // 5. 抬头状态：全部收款 → 已收款（单调前进更新，不做全量回写）
+        verify(payableListGateway).advanceBillStatus(PAYABLE_LIST_ID, PayableListStatusEnum.RECEIVED.getCode());
+
+        // 6. 明细冗余单据状态同步（同样只前进不回退）
+        verify(payableListDetailGateway).advanceBillStatusByPayableListId(
+                PAYABLE_LIST_ID, PayableListStatusEnum.RECEIVED.getCode());
     }
 
     @Test
@@ -189,32 +188,44 @@ public class SapClearAccountProcessorTest {
     // ==================== 幂等与跳过场景 ====================
 
     @Test
-    @DisplayName("重复清账 — 已存在释放流水应幂等跳过，不做任何更新")
-    public void testProcess_idempotentSkip() {
-        // 幂等检查命中：存在 type=40 流水
+    @DisplayName("重复清账 — 同一(lgId,poNo)已释放流水应跳过资金动作，状态更新幂等执行")
+    public void testProcess_sameRecordAlreadyReleasedSkip() {
+        // 已释放流水与转应收记录同属 (LG-001, PO0001)：资金动作全部跳过
         when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
-                .thenReturn(Arrays.asList(buildTransferRecord(LG_ID, PO_NO, new BigDecimal("50000"))));
+                .thenReturn(buildTransferRecords());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        // 抬头统计：该明细已收款 → 已收款
+        PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
+        PayableListDetailDo received = buildDetail();
+        received.setIsReceived(IsReceivedEnum.YES.getCode());
+        when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Arrays.asList(received));
 
         processor.process(buildReq(LocalDateTime.now()));
 
-        verify(payableListDetailGateway, never()).updatePayableListDetail(any());
-        verify(vehicleCbuSoGateway, never()).updateVehicleCbuSo(any());
+        // 资金动作全部跳过（不重复扣减）
         verify(letterGuaranteeGateway, never()).releaseReceivable(anyString(), any(), anyString(),
                 anyString(), anyString(), anyString(), anyString());
         verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        // 收款状态与抬头状态仍幂等更新，保证历史脏数据可被纠正
+        verify(payableListDetailGateway).updateReceiveStatusById(eq("D-001"),
+                eq(IsReceivedEnum.YES.getCode()), any());
+        verify(payableListGateway).advanceBillStatus(PAYABLE_LIST_ID, PayableListStatusEnum.RECEIVED.getCode());
     }
 
     @Test
     @DisplayName("明细不存在 — SO不在清单明细中应跳过处理")
     public void testProcess_detailNotExistSkip() {
-        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
-                .thenReturn(Collections.emptyList());
         when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(null);
 
         processor.process(buildReq(LocalDateTime.now()));
 
-        verify(payableListDetailGateway, never()).updatePayableListDetail(any());
+        verify(payableListDetailGateway, never()).updateReceiveStatusById(any(), any(), any());
         verify(vehicleCbuSoGateway, never()).updateVehicleCbuSo(any());
+        verify(letterGuaranteeRecordGateway, never()).listExportVehicleLetterGuaranteeRecord(any());
         verify(letterGuaranteeGateway, never()).releaseReceivable(anyString(), any(), anyString(),
                 anyString(), anyString(), anyString(), anyString());
     }
@@ -241,13 +252,17 @@ public class SapClearAccountProcessorTest {
 
         processor.process(buildReq(LocalDateTime.now()));
 
-        // 明细与SO状态正常更新
-        verify(payableListDetailGateway).updatePayableListDetail(any());
+        // 明细收款字段与SO状态正常更新
+        verify(payableListDetailGateway).updateReceiveStatusById(eq("D-001"),
+                eq(IsReceivedEnum.YES.getCode()), any());
         verify(vehicleCbuSoGateway).updateVehicleCbuSo(any());
         // 无资金动作
         verify(letterGuaranteeGateway, never()).releaseReceivable(anyString(), any(), anyString(),
                 anyString(), anyString(), anyString(), anyString());
         verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        // 0收款时抬头与明细状态均不更新
+        verify(payableListGateway, never()).advanceBillStatus(any(), any());
+        verify(payableListDetailGateway, never()).advanceBillStatusByPayableListId(any(), any());
         // 锁正常释放
         verify(blockLock).close();
     }
@@ -307,8 +322,8 @@ public class SapClearAccountProcessorTest {
     }
 
     @Test
-    @DisplayName("保函释放失败 — 返回false时应告警且不回写PO")
-    public void testProcess_releaseFailNoPoWriteback() {
+    @DisplayName("保函释放失败 — 应抛出异常回滚SO事务，避免留下部分释放状态")
+    public void testProcess_releaseFailRollback() {
         when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
                 .thenReturn(Collections.emptyList())
                 .thenReturn(buildTransferRecords());
@@ -319,10 +334,15 @@ public class SapClearAccountProcessorTest {
         when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
                 anyString(), anyString(), anyString())).thenReturn(false);
 
-        processor.process(buildReq(LocalDateTime.now()));
-
+        BizException exception = assertThrows(BizException.class,
+                () -> processor.process(buildReq(LocalDateTime.now())));
+        assertTrue(exception.getMessage().contains("保函应收释放失败"),
+                "异常消息应包含 '保函应收释放失败'");
+        // 释放失败时不回写PO累计应收，整个SO事务回滚后由SAP重推重放
         verify(purchaseOrderGuaranteeGateway, never()).listExportVehicleCbuPoGuarantee(any());
         verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        // 锁仍应在 finally 中释放
+        verify(blockLock).close();
     }
 
     @Test
@@ -377,20 +397,23 @@ public class SapClearAccountProcessorTest {
                 .thenReturn(Arrays.asList(buildPoGuarantee(new BigDecimal("100000"))));
 
         // 抬头下共 2 条明细：1 条已收款 + 1 条未收款 → 部分收款
+        PayableListDetailDo received = buildDetail();
+        received.setIsReceived(IsReceivedEnum.YES.getCode());
         PayableListDetailDo unpaid = buildDetail();
         unpaid.setId("D-002");
         unpaid.setIsReceived(IsReceivedEnum.NO.getCode());
         PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
         when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
         when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID))
-                .thenReturn(Arrays.asList(detail, unpaid));
+                .thenReturn(Arrays.asList(received, unpaid));
 
         processor.process(buildReq(LocalDateTime.now()));
 
-        ArgumentCaptor<PayableListDo> headerCaptor = ArgumentCaptor.forClass(PayableListDo.class);
-        verify(payableListGateway).updatePayableList(headerCaptor.capture());
-        assertEquals(PayableListStatusEnum.PARTIAL_RECEIVED.getCode(), headerCaptor.getValue().getBillStatus(),
-                "部分收款后抬头状态应为部分收款");
+        // 部分收款 → 抬头与明细状态单调前进到部分收款
+        verify(payableListGateway).advanceBillStatus(PAYABLE_LIST_ID,
+                PayableListStatusEnum.PARTIAL_RECEIVED.getCode());
+        verify(payableListDetailGateway).advanceBillStatusByPayableListId(PAYABLE_LIST_ID,
+                PayableListStatusEnum.PARTIAL_RECEIVED.getCode());
     }
 
     @Test
@@ -427,22 +450,23 @@ public class SapClearAccountProcessorTest {
 
         SapClearAccountReq req = new SapClearAccountReq();
         SapClearAccountReq.SapClearAccountItem item1 = new SapClearAccountReq.SapClearAccountItem();
-        item1.setSoNo("SO0001");
-        item1.setVin(VIN);
-        item1.setReceiveTime(LocalDateTime.now());
+        item1.setSorder("SO0001");
+        item1.setVhvin(VIN);
+        item1.setAugdt(LocalDateTime.now());
         SapClearAccountReq.SapClearAccountItem item2 = new SapClearAccountReq.SapClearAccountItem();
-        item2.setSoNo("SO0002");
-        item2.setVin(VIN);
-        item2.setReceiveTime(LocalDateTime.now());
+        item2.setSorder("SO0002");
+        item2.setVhvin(VIN);
+        item2.setAugdt(LocalDateTime.now());
         req.setClearAccountList(Arrays.asList(item1, item2));
 
         processor.process(req);
 
         // 同一抬头只统计并更新一次（去重）
-        ArgumentCaptor<PayableListDo> headerCaptor = ArgumentCaptor.forClass(PayableListDo.class);
-        verify(payableListGateway, times(1)).updatePayableList(headerCaptor.capture());
-        assertEquals(PayableListStatusEnum.RECEIVED.getCode(), headerCaptor.getValue().getBillStatus(),
-                "两明细均收款后抬头状态应为已收款");
+        verify(payableListGateway, times(1)).advanceBillStatus(PAYABLE_LIST_ID,
+                PayableListStatusEnum.RECEIVED.getCode());
+        // 明细冗余单据状态同步同样按抬头去重，只同步一次
+        verify(payableListDetailGateway, times(1)).advanceBillStatusByPayableListId(
+                PAYABLE_LIST_ID, PayableListStatusEnum.RECEIVED.getCode());
     }
 
     @Test
@@ -464,8 +488,9 @@ public class SapClearAccountProcessorTest {
         when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(null);
 
         assertDoesNotThrow(() -> processor.process(buildReq(LocalDateTime.now())));
-        // 抬头不存在时不做任何抬头更新
-        verify(payableListGateway, never()).updatePayableList(any());
+        // 抬头不存在时不做任何抬头/明细状态更新
+        verify(payableListGateway, never()).advanceBillStatus(any(), any());
+        verify(payableListDetailGateway, never()).advanceBillStatusByPayableListId(any(), any());
     }
 
     @Test
@@ -477,6 +502,10 @@ public class SapClearAccountProcessorTest {
 
         PayableListDetailDo detail = buildDetail();
         when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        // 资金动作正常完成，本用例只关注抬头统计结果
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
 
         PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
         when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
@@ -489,10 +518,95 @@ public class SapClearAccountProcessorTest {
 
         processor.process(buildReq(LocalDateTime.now()));
 
-        ArgumentCaptor<PayableListDo> headerCaptor = ArgumentCaptor.forClass(PayableListDo.class);
-        verify(payableListGateway).updatePayableList(headerCaptor.capture());
-        assertEquals(PayableListStatusEnum.CONFIRMED.getCode(), headerCaptor.getValue().getBillStatus(),
-                "0收款时抬头状态应保持不变");
+        // 0收款时抬头与明细状态均保持不变（不做任何状态更新）
+        verify(payableListGateway, never()).advanceBillStatus(any(), any());
+        verify(payableListDetailGateway, never()).advanceBillStatusByPayableListId(any(), any());
+    }
+
+    @Test
+    @DisplayName("抬头驳回态 — 前置校验拦截，不允许被清账推进收款状态")
+    public void testProcess_rejectedHeaderNotPromoted() {
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenReturn(Collections.emptyList())
+                .thenReturn(buildTransferRecords());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        // 资金动作正常完成，本用例只关注状态推进被前置校验拦住
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
+        when(purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(any()))
+                .thenReturn(Arrays.asList(buildPoGuarantee(new BigDecimal("100000"))));
+
+        // 抬头处于驳回(40)：编码比较 40 < 50/60，若无前置校验会被单调前进直接推成已收款
+        PayableListDo header = buildHeader(PayableListStatusEnum.REJECTED.getCode());
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
+
+        processor.process(buildReq(LocalDateTime.now()));
+
+        // 明细收款状态仍更新（资金链路不受状态校验影响）
+        verify(payableListDetailGateway).updateReceiveStatusById(eq("D-001"),
+                eq(IsReceivedEnum.YES.getCode()), any());
+        // 抬头与明细冗余状态均不推进
+        verify(payableListGateway, never()).advanceBillStatus(any(), any());
+        verify(payableListDetailGateway, never()).advanceBillStatusByPayableListId(any(), any());
+    }
+
+    @Test
+    @DisplayName("部分已释放 — 仅补齐未释放的转应收记录，已释放记录不重复扣减")
+    public void testProcess_partialReleasedOnlyReleaseRemaining() {
+        // 已释放流水仅含 (LG-001, PO0001)；转应收记录有两条：(LG-001,PO0001) 与 (LG-002,PO0002)
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenAnswer(invocation -> isReleaseReceivableQuery(invocation.getArgument(0))
+                        ? Arrays.asList(buildTransferRecord("LG-001", PO_NO, new BigDecimal("30000")))
+                        : Arrays.asList(
+                                buildTransferRecord("LG-001", PO_NO, new BigDecimal("30000")),
+                                buildTransferRecord("LG-002", "PO0002", new BigDecimal("20000"))));
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
+        when(purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(any()))
+                .thenReturn(Arrays.asList(buildPoGuarantee("PG-002", "LG-002", "PO0002", new BigDecimal("200000"))));
+
+        processor.process(buildReq(LocalDateTime.now()));
+
+        // 只补齐未释放的 LG-002，已释放的 LG-001 不重复释放
+        ArgumentCaptor<String> lgCaptor = ArgumentCaptor.forClass(String.class);
+        verify(letterGuaranteeGateway, times(1)).releaseReceivable(lgCaptor.capture(), any(), anyString(),
+                eq("PO0002"), anyString(), anyString(), anyString());
+        assertEquals("LG-002", lgCaptor.getValue(), "仅应释放未释放过的保函记录");
+        verify(purchaseOrderGuaranteeGateway, times(1)).updateExportVehicleCbuPoGuarantee(any());
+    }
+
+    @Test
+    @DisplayName("抬头下无明细 — 统计跳过，不更新任何状态")
+    public void testProcess_headerEmptyDetailsSkip() {
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenReturn(Collections.emptyList())
+                .thenReturn(buildTransferRecords());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
+        when(purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(any()))
+                .thenReturn(Arrays.asList(buildPoGuarantee(new BigDecimal("100000"))));
+
+        PayableListDo header = buildHeader(PayableListStatusEnum.CONFIRMED.getCode());
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID)).thenReturn(header);
+        // 脏数据场景：抬头下明细为空，不得因 0==0 被误判为"全部收款"
+        when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID))
+                .thenReturn(Collections.emptyList());
+
+        processor.process(buildReq(LocalDateTime.now()));
+
+        verify(payableListGateway, never()).advanceBillStatus(any(), any());
+        verify(payableListDetailGateway, never()).advanceBillStatusByPayableListId(any(), any());
     }
 
     // ==================== 辅助方法 ====================
@@ -500,9 +614,9 @@ public class SapClearAccountProcessorTest {
     private SapClearAccountReq buildReq(LocalDateTime receiveTime) {
         SapClearAccountReq req = new SapClearAccountReq();
         SapClearAccountReq.SapClearAccountItem item = new SapClearAccountReq.SapClearAccountItem();
-        item.setSoNo(SO_NO);
-        item.setVin(VIN);
-        item.setReceiveTime(receiveTime);
+        item.setSorder(SO_NO);
+        item.setVhvin(VIN);
+        item.setAugdt(receiveTime);
         req.setClearAccountList(Arrays.asList(item));
         return req;
     }

@@ -5,6 +5,8 @@ import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
 import com.leapmotor.export.vehicle.acl.rpc.sap.req.PayableListSyncSapReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.PayableListSyncSapResult;
 import com.leapmotor.export.vehicle.payablelist.dto.PayableListForSapDto;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.event.core.model.EventNotifyTask;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,14 +39,17 @@ public class PayableListSyncSapHandlerTest {
 
     @Mock
     private SapGateway sapGateway;
+    @Mock
+    private PayableListGateway payableListGateway;
 
     private PayableListSyncSapHandler handler;
 
     private static final String PAYABLE_LIST_NO = "YF202606000001";
+    private static final String PAYABLE_LIST_ID = "PL-001";
 
     @BeforeEach
     public void setUp() {
-        handler = new PayableListSyncSapHandler(sapGateway);
+        handler = new PayableListSyncSapHandler(sapGateway, payableListGateway);
     }
 
     // ==================== 请求组装场景 ====================
@@ -234,7 +240,54 @@ public class PayableListSyncSapHandlerTest {
         assertDoesNotThrow(() -> handler.handle(buildTask(buildPayload())));
     }
 
+    // ==================== 同步结果回写场景 ====================
+
+    @Test
+    @DisplayName("结果回写 — 成功后落库SUCCESS与报文")
+    public void testHandle_successWriteSyncResult() {
+        when(sapGateway.syncPayableList(any())).thenReturn(buildSapResult("S", "成功"));
+        when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(buildPayableList());
+
+        handler.handle(buildTask(buildPayload()));
+
+        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(payableListGateway).updateSyncSapResultById(eq(PAYABLE_LIST_ID), any(LocalDateTime.class),
+                eq("SUCCESS"), messageCaptor.capture());
+        // 报文按 SAP 契约字段名序列化，总状态落在 ES_RET.RET_CODE
+        assertTrue(messageCaptor.getValue().contains("RET_CODE"), "应落库SAP返回报文");
+    }
+
+    @Test
+    @DisplayName("结果回写 — 失败时先落库FAIL再抛异常触发重试")
+    public void testHandle_failWriteSyncResultBeforeThrow() {
+        when(sapGateway.syncPayableList(any())).thenReturn(buildSapResult("E", "无效的车辆编号"));
+        when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(buildPayableList());
+
+        assertThrows(BizException.class, () -> handler.handle(buildTask(buildPayload())));
+
+        verify(payableListGateway).updateSyncSapResultById(eq(PAYABLE_LIST_ID), any(LocalDateTime.class),
+                eq("FAIL"), anyString());
+    }
+
+    @Test
+    @DisplayName("结果回写 — 应付清单不存在时跳过回写但不阻断同步主流程")
+    public void testHandle_payableListNotExistSkipWrite() {
+        when(sapGateway.syncPayableList(any())).thenReturn(buildSapResult("S", "成功"));
+        when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(null);
+
+        assertDoesNotThrow(() -> handler.handle(buildTask(buildPayload())));
+
+        verify(payableListGateway, never()).updateSyncSapResultById(any(), any(), any(), any());
+    }
+
     // ==================== 辅助方法 ====================
+
+    private PayableListDo buildPayableList() {
+        PayableListDo payableList = new PayableListDo();
+        payableList.setId(PAYABLE_LIST_ID);
+        payableList.setPayableListNo(PAYABLE_LIST_NO);
+        return payableList;
+    }
 
     private EventNotifyTask buildTask(PayableListForSapDto payload) {
         EventNotifyTask task = mock(EventNotifyTask.class);

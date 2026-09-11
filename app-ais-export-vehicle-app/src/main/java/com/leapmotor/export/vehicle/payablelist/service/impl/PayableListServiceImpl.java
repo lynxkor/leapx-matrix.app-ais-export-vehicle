@@ -13,6 +13,7 @@ import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListDeleteVe
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListImportPriceExe;
 import com.leapmotor.export.vehicle.payablelist.executor.cmd.PayableListUpdateExe;
 import com.leapmotor.export.vehicle.payablelist.executor.query.PayableListAvailableVehicleQryExe;
+import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.query.PayableListQo;
@@ -47,6 +48,7 @@ import java.util.List;
 public class PayableListServiceImpl implements PayableListService {
 
     private PayableListGateway payableListGateway;
+    private PayableListDetailGateway payableListDetailGateway;
     private EventHandlerHelper eventHandlerHelper;
     private PayableListImportPriceExe payableListImportPriceExe;
     private PayableListAddVehiclesExe payableListAddVehiclesExe;
@@ -105,11 +107,20 @@ public class PayableListServiceImpl implements PayableListService {
 
         // 更新状态和提交时间
         payableList.setBillStatus(PayableListStatusEnum.SUBMITTED.getCode());
-        payableList.setSubmitTime(LocalDateTime.now());
+        LocalDateTime submitTime = LocalDateTime.now();
+        payableList.setSubmitTime(submitTime);
         payableList.setVersion(payableList.getVersion() + 1);
 
         // 保存
         payableListGateway.updatePayableList(payableList);
+
+        // 同步明细表冗余字段（单据状态、提交日期）
+        payableListDetailGateway.updateBillStatusByPayableListId(
+                payableList.getId(),
+                PayableListStatusEnum.SUBMITTED.getCode(),
+                submitTime,
+                null
+        );
 
         // 发布红旗同步事件（异步，事务提交后执行）
         // 第4参必须强转 Object 以命中带 afterCommit 保护的 data 重载（null 字面量会命中 String relatedNo 重载，事务回滚后事件仍会消费）

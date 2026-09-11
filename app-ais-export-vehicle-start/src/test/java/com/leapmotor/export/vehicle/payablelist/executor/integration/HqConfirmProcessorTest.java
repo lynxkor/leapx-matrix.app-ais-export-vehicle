@@ -62,6 +62,13 @@ public class HqConfirmProcessorTest {
 
     private static final String PAYABLE_LIST_NO = "YF202606000001";
 
+    /**
+     * 红旗确认结果值域（HqConfirmReq.status）：A=确认 / R=驳回。
+     * 与单据状态码（PayableListStatusEnum：30/40）不同域，勿混用。
+     */
+    private static final String CONFIRM_RESULT_APPROVE = "A";
+    private static final String CONFIRM_RESULT_REJECT = "R";
+
     @BeforeEach
     public void setUp() {
         processor = new HqConfirmProcessor(payableListGateway, payableListDetailGateway,
@@ -85,7 +92,7 @@ public class HqConfirmProcessorTest {
                 .thenReturn(buildDetails(db.getId()));
 
         LocalDateTime confirmTime = LocalDateTime.of(2026, 8, 20, 10, 30, 0);
-        processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(), confirmTime, "确认通过");
+        processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE, confirmTime, "确认通过");
 
         // 状态更新并落库
         ArgumentCaptor<PayableListDo> updateCaptor = ArgumentCaptor.forClass(PayableListDo.class);
@@ -93,6 +100,10 @@ public class HqConfirmProcessorTest {
         assertEquals(PayableListStatusEnum.CONFIRMED.getCode(), updateCaptor.getValue().getBillStatus(),
                 "确认后单据状态应为已确认");
         assertEquals(confirmTime, updateCaptor.getValue().getConfirmTime(), "确认时间应记录");
+
+        // 明细表冗余字段同步（单据状态 + 确认时间；提交日期不回写）
+        verify(payableListDetailGateway).updateBillStatusByPayableListId(
+                eq(db.getId()), eq(PayableListStatusEnum.CONFIRMED.getCode()), isNull(), eq(confirmTime));
 
         // SAP 同步事件发布（payload 带抬头与明细信息）
         ArgumentCaptor<PayableListForSapDto> payloadCaptor = ArgumentCaptor.forClass(PayableListForSapDto.class);
@@ -117,11 +128,12 @@ public class HqConfirmProcessorTest {
         PayableListDo db = buildPayableList(PayableListStatusEnum.CONFIRMED.getCode());
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
 
-        processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+        processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                 LocalDateTime.now(), "重复确认");
 
         verify(payableListGateway, never()).updatePayableList(any());
         verify(eventHandlerHelper, never()).publishAsync(any(), any(), any(), any());
+        verify(payableListDetailGateway, never()).updateBillStatusByPayableListId(any(), any(), any(), any());
     }
 
     @Test
@@ -131,7 +143,7 @@ public class HqConfirmProcessorTest {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
 
         BizException exception = assertThrows(BizException.class,
-                () -> processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+                () -> processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                         LocalDateTime.now(), "确认"));
         assertTrue(exception.getMessage().contains("当前状态不允许确认"),
                 "异常消息应包含 '当前状态不允许确认'");
@@ -148,7 +160,7 @@ public class HqConfirmProcessorTest {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
 
         LocalDateTime confirmTime = LocalDateTime.of(2026, 8, 20, 11, 0, 0);
-        processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.REJECTED.getCode(), confirmTime, "信息有误");
+        processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_REJECT, confirmTime, "信息有误");
 
         ArgumentCaptor<PayableListDo> updateCaptor = ArgumentCaptor.forClass(PayableListDo.class);
         verify(payableListGateway).updatePayableList(updateCaptor.capture());
@@ -156,6 +168,10 @@ public class HqConfirmProcessorTest {
                 "驳回后单据状态应为驳回");
         assertEquals("信息有误", updateCaptor.getValue().getConfirmRemark(), "驳回原因应记录");
         assertEquals(confirmTime, updateCaptor.getValue().getConfirmTime(), "驳回时间应记录");
+
+        // 明细表冗余字段同步（单据状态 + 确认时间）
+        verify(payableListDetailGateway).updateBillStatusByPayableListId(
+                eq(db.getId()), eq(PayableListStatusEnum.REJECTED.getCode()), isNull(), eq(confirmTime));
 
         // 驳回不发布 SAP 事件
         verify(eventHandlerHelper, never()).publishAsync(any(), any(), any(), any());
@@ -167,10 +183,11 @@ public class HqConfirmProcessorTest {
         PayableListDo db = buildPayableList(PayableListStatusEnum.REJECTED.getCode());
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
 
-        processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.REJECTED.getCode(),
+        processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_REJECT,
                 LocalDateTime.now(), "再次驳回");
 
         verify(payableListGateway, never()).updatePayableList(any());
+        verify(payableListDetailGateway, never()).updateBillStatusByPayableListId(any(), any(), any(), any());
     }
 
     @Test
@@ -180,7 +197,7 @@ public class HqConfirmProcessorTest {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
 
         BizException exception = assertThrows(BizException.class,
-                () -> processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.REJECTED.getCode(),
+                () -> processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_REJECT,
                         LocalDateTime.now(), "  "));
         assertTrue(exception.getMessage().contains("驳回原因不能为空"),
                 "异常消息应包含 '驳回原因不能为空'");
@@ -194,7 +211,7 @@ public class HqConfirmProcessorTest {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
 
         BizException exception = assertThrows(BizException.class,
-                () -> processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.REJECTED.getCode(),
+                () -> processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_REJECT,
                         LocalDateTime.now(), "驳回"));
         assertTrue(exception.getMessage().contains("当前状态不允许驳回"),
                 "异常消息应包含 '当前状态不允许驳回'");
@@ -209,7 +226,7 @@ public class HqConfirmProcessorTest {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(null);
 
         BizException exception = assertThrows(BizException.class,
-                () -> processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+                () -> processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                         LocalDateTime.now(), "确认"));
         assertTrue(exception.getMessage().contains("应付清单不存在"),
                 "异常消息应包含 '应付清单不存在'");
@@ -235,7 +252,7 @@ public class HqConfirmProcessorTest {
         when(payableListDetailGateway.listByPayableListId(db.getId()))
                 .thenReturn(Collections.emptyList());
 
-        processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+        processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                 LocalDateTime.of(2026, 8, 20, 10, 30, 0), "确认通过");
 
         // 事件仍正常发布，payload 不含明细但不抛异常
@@ -258,7 +275,7 @@ public class HqConfirmProcessorTest {
 
         // BizException(ResultEnum, String) 的 getMessage 返回 ResultEnum 默认消息，故仅断言异常类型
         assertThrows(BizException.class,
-                () -> processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+                () -> processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                         LocalDateTime.now(), "确认"));
         verify(payableListGateway, never()).getPayableListByNo(anyString());
         verify(payableListGateway, never()).updatePayableList(any());
@@ -271,7 +288,7 @@ public class HqConfirmProcessorTest {
 
         // 事务回调内抛 BizException（清单不存在），验证锁仍被释放
         assertThrows(BizException.class,
-                () -> processor.process(PAYABLE_LIST_NO, PayableListStatusEnum.CONFIRMED.getCode(),
+                () -> processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                         LocalDateTime.now(), "确认"));
 
         verify(blockLock).close();

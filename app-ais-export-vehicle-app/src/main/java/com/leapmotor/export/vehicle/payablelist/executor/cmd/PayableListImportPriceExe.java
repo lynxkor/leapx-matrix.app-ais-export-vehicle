@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -113,11 +114,14 @@ public class PayableListImportPriceExe {
                 failMsg.append("VIN不能为空；");
             }
 
-            // 价格校验
+            // 价格校验：先四舍五入保留2位小数，再校验大于0
             if (item.getPrice() == null) {
                 failMsg.append("价格不能为空；");
-            } else if (item.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-                failMsg.append("价格必须大于0；");
+            } else {
+                item.setPrice(item.getPrice().setScale(2, RoundingMode.HALF_UP));
+                if (item.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                    failMsg.append("价格必须大于0；");
+                }
             }
 
             // VIN是否在清单明细中
@@ -147,10 +151,10 @@ public class PayableListImportPriceExe {
             // 更新明细价格
             detail.setPrice(item.getPrice());
             payableListDetailGateway.updatePayableListDetail(detail);
-            // 同步更新 SO 车辆售价
+            // 同步更新 SO 车辆售价（以更新后的明细价格为权威来源）
             VehicleCbuSoDo soDo = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getSoId());
             if (soDo != null) {
-                soDo.setVehiclePrice(item.getPrice());
+                soDo.setVehiclePrice(detail.getPrice());
                 vehicleCbuSoGateway.updateVehicleCbuSo(soDo);
             } else {
                 log.warn("导入价格：SO主表不存在，soId={}", detail.getSoId());

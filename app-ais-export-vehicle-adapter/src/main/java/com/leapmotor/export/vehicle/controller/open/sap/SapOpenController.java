@@ -1,6 +1,6 @@
 package com.leapmotor.export.vehicle.controller.open.sap;
 
-import com.leapmotor.export.vehicle.payablelist.dto.SapClearAccountReq;
+import com.leapmotor.export.vehicle.payablelist.dto.SapClearAccountItem;
 import com.leapmotor.export.vehicle.payablelist.executor.integration.SapClearAccountProcessor;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * SAP系统开放接口
@@ -28,8 +30,8 @@ public class SapOpenController {
 
     @Operation(summary = "SAP清账结果同步")
     @PostMapping("/payableList/clearCallback")
-    public AjaxResult<Void> clearCallback(@RequestBody SapClearAccountReq req) {
-        sapClearAccountProcessor.process(req);
+    public AjaxResult<Void> clearCallback(@RequestBody List<SapClearAccountItem> clearAccountList) {
+        sapClearAccountProcessor.process(clearAccountList);
         return AjaxResult.success();
     }
 }

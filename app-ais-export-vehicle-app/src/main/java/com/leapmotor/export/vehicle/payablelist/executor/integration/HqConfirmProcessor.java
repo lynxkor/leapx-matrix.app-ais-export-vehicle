@@ -40,6 +40,10 @@ public class HqConfirmProcessor {
     private TransactionTemplate transactionTemplate;
 
     public void process(String payableListNo, String confirmResult, LocalDateTime confirmTime, String confirmRemark) {
+        // 入参校验：清单编号是定位关键字段，不进入锁与事务
+        if (StringUtils.isBlank(payableListNo)) {
+            throw new BizException("应付清单编号不能为空");
+        }
         // 按清单单号加分布式锁：
         // 同一清单的并发确认/驳回串行化，锁释放晚于事务提交
         String lockKey = "hq:confirm:" + payableListNo;
@@ -87,6 +91,9 @@ public class HqConfirmProcessor {
             db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.REJECTED.getCode());
             payableListGateway.updatePayableList(db);
+            // 同步明细表字段（单据状态、确认时间）
+            payableListDetailGateway.updateBillStatusByPayableListId(
+                    db.getId(), PayableListStatusEnum.REJECTED.getCode(), null, confirmTime);
             log.info("红旗驳回，payableListNo={}", payableListNo);
         } else if ("A".equals(confirmResult)) {
             // 确认
@@ -104,6 +111,9 @@ public class HqConfirmProcessor {
             db.setConfirmRemark(confirmRemark);
             db.setBillStatus(PayableListStatusEnum.CONFIRMED.getCode());
             payableListGateway.updatePayableList(db);
+            // 同步明细表字段（单据状态、确认时间）
+            payableListDetailGateway.updateBillStatusByPayableListId(
+                    db.getId(), PayableListStatusEnum.CONFIRMED.getCode(), null, confirmTime);
             // 发布 SAP 同步事件（异步，事务提交后执行）
             PayableListForSapDto sapPayload = buildSapPayload(db);
             eventHandlerHelper.publishAsync(

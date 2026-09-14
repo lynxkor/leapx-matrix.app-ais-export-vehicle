@@ -69,8 +69,8 @@ public class PayableListSyncHqHandler extends AbstractEventHandler {
         // 构建请求参数
         PayableListSyncHqRecordReq req = buildRequest(payableList, detailList);
 
-        // 调用红旗接口
-        HongqiResult result = hongqiGateway.syncPayableList(req);
+        // 调用红旗 EP 接口
+        HongqiResult result = hongqiGateway.syncPayableListEp(req);
         log.info("应付清单同步红旗结果: bizNo={}, result={}", bizNo, result);
 
         // 回写同步结果
@@ -134,13 +134,14 @@ public class PayableListSyncHqHandler extends AbstractEventHandler {
     }
 
     /**
-     * 回写同步红旗结果到应付清单表
+     * 回写同步红旗结果到应付清单表（只写同步维度三列）
+     *
+     * <p>不用快照全量回写：查询快照到回写之间可能跨越红旗接口网络调用，期间并发变更的单据状态、版本号等字段
+     * 会被旧快照覆盖，导致抬头与明细不一致。
      */
     private void updateSyncResult(PayableListDo payableList, String result, String message) {
-        payableList.setSyncHqTime(LocalDateTime.now());
-        payableList.setSyncHqResult(result);
-        payableList.setSyncHqMessage(truncateMessage(message));
-        payableListGateway.updatePayableList(payableList);
+        payableListGateway.updateSyncHqResultById(payableList.getId(), LocalDateTime.now(), result,
+                truncateMessage(message));
     }
 
     /**

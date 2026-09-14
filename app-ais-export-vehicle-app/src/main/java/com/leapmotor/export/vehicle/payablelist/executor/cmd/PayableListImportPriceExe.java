@@ -22,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -94,9 +96,10 @@ public class PayableListImportPriceExe {
         Map<String, PayableListDetailDo> vinMap = details.stream()
                 .collect(Collectors.toMap(PayableListDetailDo::getVin, Function.identity(), (a, b) -> a));
 
-        // 5. 校验并分组
+        // 5. 校验并分组：校验不通过的行只记录失败原因，不影响其余行入库
         List<PayableListImportPriceDto> failList = new ArrayList<>();
         List<PayableListImportPriceDto> validList = new ArrayList<>();
+        Set<String> importedVins = new HashSet<>();
 
         for (PayableListImportPriceDto item : importList) {
             StringBuilder failMsg = new StringBuilder();
@@ -112,6 +115,9 @@ public class PayableListImportPriceExe {
             // VIN校验
             if (StrUtil.isBlank(item.getVin())) {
                 failMsg.append("VIN不能为空；");
+            } else if (!importedVins.add(item.getVin())) {
+                // 同一VIN在文件中重复出现时无法确定以哪一行为准，后出现的行按失败处理
+                failMsg.append("VIN在文件中重复出现；");
             }
 
             // 价格校验：先四舍五入保留2位小数，再校验大于0
@@ -137,15 +143,16 @@ public class PayableListImportPriceExe {
             }
         }
 
-        // 6. 任一失败则全量不入库
-        if (!CollectionUtils.isEmpty(failList)) {
+        // 6. 无任何有效行时抬头无需变动，直接返回全量失败结果
+        if (CollectionUtils.isEmpty(validList)) {
+            log.info("导入最新价格无有效行，payableListId={}, fail={}", payableListId, failList.size());
             result.setSuccessNum(0);
             result.setFailNum(failList.size());
             result.setData(failList);
             return result;
         }
 
-        // 7. 更新价格
+        // 7. 更新价格（仅更新校验通过的行）
         for (PayableListImportPriceDto item : validList) {
             PayableListDetailDo detail = vinMap.get(item.getVin());
             // 更新明细价格
@@ -171,11 +178,12 @@ public class PayableListImportPriceExe {
         db.setVersion(db.getVersion() + 1);
         payableListGateway.updatePayableList(db);
 
-        log.info("导入最新价格完成，payableListId={}, total={}, fail={}", payableListId, validList.size(), failList.size());
+        log.info("导入最新价格完成，payableListId={}, success={}, fail={}", payableListId, validList.size(), failList.size());
 
-        // 9. 成功返回
+        // 9. 返回导入结果：成功行已入库，失败行仅返回失败原因、不入库
         result.setSuccessNum(validList.size());
-        result.setFailNum(0);
+        result.setFailNum(failList.size());
+        result.setData(failList);
         return result;
     }
 }

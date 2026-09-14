@@ -66,7 +66,7 @@ public class PayableListSyncHqHandlerTest {
     public void testHandle_successWriteSyncResultOnly() {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(buildPayableList());
         when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Collections.emptyList());
-        when(hongqiGateway.syncPayableList(any())).thenReturn(buildHongqiResult(200));
+        when(hongqiGateway.syncPayableListEp(any())).thenReturn(buildHongqiResult(200));
 
         assertDoesNotThrow(() -> handler.handle(buildTask()));
 
@@ -81,7 +81,7 @@ public class PayableListSyncHqHandlerTest {
     public void testHandle_failWriteSyncResultBeforeThrow() {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(buildPayableList());
         when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Collections.emptyList());
-        when(hongqiGateway.syncPayableList(any())).thenReturn(buildHongqiResult(500));
+        when(hongqiGateway.syncPayableListEp(any())).thenReturn(buildHongqiResult(500));
 
         assertThrows(BizException.class, () -> handler.handle(buildTask()));
 
@@ -95,7 +95,7 @@ public class PayableListSyncHqHandlerTest {
     public void testHandle_nullResultWriteFail() {
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(buildPayableList());
         when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Collections.emptyList());
-        when(hongqiGateway.syncPayableList(any())).thenReturn(null);
+        when(hongqiGateway.syncPayableListEp(any())).thenReturn(null);
 
         assertThrows(BizException.class, () -> handler.handle(buildTask()));
 
@@ -110,7 +110,7 @@ public class PayableListSyncHqHandlerTest {
         when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Collections.emptyList());
         HongqiResult result = buildHongqiResult(200);
         result.setMessage("x".repeat(3000));
-        when(hongqiGateway.syncPayableList(any())).thenReturn(result);
+        when(hongqiGateway.syncPayableListEp(any())).thenReturn(result);
 
         handler.handle(buildTask());
 

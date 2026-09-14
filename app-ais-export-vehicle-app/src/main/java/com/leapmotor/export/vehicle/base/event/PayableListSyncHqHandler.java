@@ -69,8 +69,8 @@ public class PayableListSyncHqHandler extends AbstractEventHandler {
         // 构建请求参数
         PayableListSyncHqRecordReq req = buildRequest(payableList, detailList);
 
-        // 调用红旗接口
-        HongqiResult result = hongqiGateway.syncPayableList(req);
+        // 调用红旗 EP 接口
+        HongqiResult result = hongqiGateway.syncPayableListEp(req);
         log.info("应付清单同步红旗结果: bizNo={}, result={}", bizNo, result);
 
         // 回写同步结果

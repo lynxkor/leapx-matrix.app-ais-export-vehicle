@@ -35,11 +35,4 @@ public interface HongqiClientApi {
     @PostMapping("/JT/MA/MA-0203/001/IVDO/receiveM1Data")
     HongqiResult<List<HongqiProductionNodeResultData>> pushProductionNodeSync(
             @RequestBody List<HongqiProductionNodeNotifyReq> request);
-
-
-    /**
-     * 应付清单同步红旗（契约待红旗提供，先占位）
-     */
-    @PostMapping("/payable/list/sync")
-    HongqiResult syncPayableList(@RequestBody PayableListSyncHqRecordReq request);
 }

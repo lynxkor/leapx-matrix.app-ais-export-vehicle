@@ -1254,8 +1254,11 @@ public class VehicleCbuSoCmdExe {
         head.setErdat(so.getReceiveOrderTime() != null
                 ? so.getReceiveOrderTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
         head.setLstatus("77-质检通过");
-        head.setLsdatum(so.getQcResultTime() != null
-                ? so.getQcResultTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
+        LocalDateTime qcResultTime = so.getQcResultTime();
+        head.setLsdatum(qcResultTime != null
+                ? qcResultTime.format(DateTimeFormatter.BASIC_ISO_DATE) : null);
+        head.setLsuzeit(qcResultTime != null
+                ? qcResultTime.format(DateTimeFormatter.ofPattern("HHmmss")) : null);
         head.setBukrs(so.getSalesCompanyCode());
         head.setKunnr(so.getCustomerCode());
         head.setRecordType(convertOrderTypeToRecordType(so.getOrderType()));

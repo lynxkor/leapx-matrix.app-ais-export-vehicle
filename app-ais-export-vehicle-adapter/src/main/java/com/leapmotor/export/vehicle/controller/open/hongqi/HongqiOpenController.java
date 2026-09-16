@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -69,16 +68,7 @@ public class HongqiOpenController {
 
 
     /**
-     * 获取红旗 EP 访问令牌（供排查问题、联调使用）
-     */
-    @Operation(summary = "获取红旗EP token")
-    @GetMapping("/getToken")
-    public AjaxResult<Object> getToken() {
-        return AjaxResult.success(hongqiEpOpenService.getToken());
-    }
-
-    /**
-     * 同步应付清单到红旗 EP（先取 token 再调接收接口，供补推数据/排查问题使用）
+     * 同步应付清单到红旗EP
      */
     @Operation(summary = "同步应付清单到红旗EP")
     @PostMapping("/payableList/sync")

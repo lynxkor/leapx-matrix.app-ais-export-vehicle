@@ -24,7 +24,7 @@ public class PayableListSyncSapReq implements Serializable {
      */
     @JsonProperty("IV_SYSID")
     @JSONField(name = "IV_SYSID")
-    private String ivSysid = "DMS";
+    private String ivSysid = "AIS";
 
     /**
      * 传入 VIN 明细（表格）

@@ -1246,7 +1246,7 @@ public class VehicleCbuSoCmdExe {
 
     private SapOrderSyncReq buildSapOrderSyncReq(VehicleCbuSoDo so, VehicleCbuSoDetailDo detail) {
         SapOrderSyncReq req = new SapOrderSyncReq();
-        req.setIvSysid("DMS");
+        req.setIvSysid("AIS");
 
         SapOrderSyncReq.IsHead head = new SapOrderSyncReq.IsHead();
         head.setSorder(so.getSoNo());

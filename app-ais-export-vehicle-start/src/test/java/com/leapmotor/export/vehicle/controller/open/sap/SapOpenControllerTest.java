@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.controller.open.sap;
 
 import com.leapmotor.export.vehicle.payablelist.dto.SapClearAccountItem;
 import com.leapmotor.export.vehicle.payablelist.executor.integration.SapClearAccountProcessor;
+import com.leapmotor.export.vehicle.payablelist.service.SapPayableListOpenService;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import org.junit.jupiter.api.DisplayName;
@@ -39,11 +40,13 @@ public class SapOpenControllerTest {
 
     @Mock
     private SapClearAccountProcessor sapClearAccountProcessor;
+    @Mock
+    private SapPayableListOpenService sapPayableListOpenService;
 
     @Test
     @DisplayName("业务成功 — 顶层数组原样封装后委托处理器，返回成功响应")
     public void testClearCallback_success() {
-        SapOpenController controller = new SapOpenController(sapClearAccountProcessor);
+        SapOpenController controller = new SapOpenController(sapClearAccountProcessor, sapPayableListOpenService);
         SapClearAccountItem item = new SapClearAccountItem();
         item.setSorder("SO20260801001");
         List<SapClearAccountItem> clearAccountList = Collections.singletonList(item);
@@ -59,7 +62,7 @@ public class SapOpenControllerTest {
     @Test
     @DisplayName("空数组 — 原样透传交由处理器给出明确提示")
     public void testClearCallback_emptyList() {
-        SapOpenController controller = new SapOpenController(sapClearAccountProcessor);
+        SapOpenController controller = new SapOpenController(sapClearAccountProcessor, sapPayableListOpenService);
 
         controller.clearCallback(Collections.emptyList());
 
@@ -69,7 +72,7 @@ public class SapOpenControllerTest {
     @Test
     @DisplayName("业务失败 — 异常冒泡交由全局异常处理器返回明确提示")
     public void testClearCallback_exceptionPropagates() {
-        SapOpenController controller = new SapOpenController(sapClearAccountProcessor);
+        SapOpenController controller = new SapOpenController(sapClearAccountProcessor, sapPayableListOpenService);
         BizException bizException = new BizException("保函应收释放失败，需人工核查：sorder=SO0001, porder=PO0001");
         doThrow(bizException).when(sapClearAccountProcessor).process(any());
         SapClearAccountItem item = new SapClearAccountItem();

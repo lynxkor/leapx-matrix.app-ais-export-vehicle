@@ -45,7 +45,8 @@ import static org.mockito.Mockito.*;
  *
  * <p>对应《红旗G117项目整车销售-应付清单管理.md》"验证应付清单SAP清账结果同步"章节测试用例：
  * 明细是否收款更新、SO状态更新、保函主数据变动、释放应收流水生成、抬头状态全收/部分收；
- * 并覆盖文档未提及但代码已实现的关键逻辑：重复清账幂等、PO关联保函应收不足、释放失败回滚，
+ * 并覆盖文档未提及但代码已实现的关键逻辑：重复清账幂等、PO关联保函应收不足（预校验拦截与执行期原子扣减守卫）、
+ * 释放失败回滚，
  * 整批预校验（逐条校验、错误聚合为一个错误原因返回、任一条有误即整批拒绝执行），
  * 以及入参校验与数据不匹配场景一律抛出业务异常（不再静默跳过）。
  *
@@ -96,6 +97,8 @@ public class SapClearAccountProcessorTest {
             return callback.doInTransaction(null);
         });
         lenient().when(distributedLockTemplate.blockLock(anyString(), anyLong(), anyLong())).thenReturn(blockLock);
+        // 原子扣减默认成功；并发不足场景由用例单独打桩返回 false 覆盖
+        lenient().when(purchaseOrderGuaranteeGateway.reducePoReceivableAmount(anyString(), any())).thenReturn(true);
     }
 
     // ==================== 正常清账流程 ====================
@@ -147,11 +150,8 @@ public class SapClearAccountProcessorTest {
                 anyString(), vinCaptor.capture());
         assertEquals(VIN, vinCaptor.getValue(), "释放应收流水应携带VIN");
 
-        // 4. PO 关联保函回写：累计应收扣减
-        ArgumentCaptor<ExportVehicleCbuPoGuaranteeDo> poCaptor = ArgumentCaptor.forClass(ExportVehicleCbuPoGuaranteeDo.class);
-        verify(purchaseOrderGuaranteeGateway).updateExportVehicleCbuPoGuarantee(poCaptor.capture());
-        assertEquals(new BigDecimal("50000"), poCaptor.getValue().getPoCurrentReceivableAmount(),
-                "PO累计应收应扣减变动金额");
+        // 4. PO 关联保函回写：原子条件更新扣减累计应收（幂等键 PG-001 + 本次变动金额）
+        verify(purchaseOrderGuaranteeGateway).reducePoReceivableAmount("PG-001", new BigDecimal("50000"));
 
         // 5. 抬头状态：全部收款 → 已收款（单调前进更新，不做全量回写）
         verify(payableListGateway).advanceBillStatus(PAYABLE_LIST_ID, PayableListStatusEnum.RECEIVED.getCode());
@@ -196,7 +196,7 @@ public class SapClearAccountProcessorTest {
 
         verify(letterGuaranteeGateway, times(2)).releaseReceivable(anyString(), any(), anyString(),
                 anyString(), anyString(), anyString(), anyString());
-        verify(purchaseOrderGuaranteeGateway, times(2)).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, times(2)).reducePoReceivableAmount(anyString(), any());
     }
 
     // ==================== 幂等与跳过场景 ====================
@@ -223,7 +223,7 @@ public class SapClearAccountProcessorTest {
         // 资金动作全部跳过（不重复扣减）
         verify(letterGuaranteeGateway, never()).releaseReceivable(anyString(), any(), anyString(),
                 anyString(), anyString(), anyString(), anyString());
-        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, never()).reducePoReceivableAmount(anyString(), any());
         // 收款状态与抬头状态仍幂等更新，保证历史脏数据可被纠正
         verify(payableListDetailGateway).updateReceiveStatusById(eq("D-001"),
                 eq(IsReceivedEnum.YES.getCode()), any());
@@ -276,7 +276,7 @@ public class SapClearAccountProcessorTest {
         // 无资金动作
         verify(letterGuaranteeGateway, never()).releaseReceivable(anyString(), any(), anyString(),
                 anyString(), anyString(), anyString(), anyString());
-        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, never()).reducePoReceivableAmount(anyString(), any());
         // 0收款时抬头与明细状态均不更新
         verify(payableListGateway, never()).advanceBillStatus(any(), any());
         verify(payableListDetailGateway, never()).advanceBillStatusByPayableListId(any(), any());
@@ -308,7 +308,7 @@ public class SapClearAccountProcessorTest {
                 () -> processor.process(buildReq(LocalDateTime.now())));
         assertTrue(exception.getMessage().contains("PO关联保函应收不足"),
                 "异常消息应包含 'PO关联保函应收不足'");
-        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, never()).reducePoReceivableAmount(anyString(), any());
         // 预校验阶段即拦截，不获取锁、不进入事务
         verify(distributedLockTemplate, never()).blockLock(anyString(), anyLong(), anyLong());
     }
@@ -335,7 +335,7 @@ public class SapClearAccountProcessorTest {
 
         assertTrue(exception.getMessage().contains("PO关联保函记录不存在"),
                 "异常消息应说明 PO 无关联保函记录");
-        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, never()).reducePoReceivableAmount(anyString(), any());
     }
 
     @Test
@@ -362,7 +362,38 @@ public class SapClearAccountProcessorTest {
         assertTrue(exception.getMessage().contains("保函应收释放失败"),
                 "异常消息应包含 '保函应收释放失败'");
         // 释放失败时不回写PO累计应收，整个SO事务回滚后由SAP重推重放
-        verify(purchaseOrderGuaranteeGateway, never()).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, never()).reducePoReceivableAmount(anyString(), any());
+        // 锁仍应在 finally 中释放
+        verify(blockLock).close();
+    }
+
+    @Test
+    @DisplayName("执行期并发扣减不足 — 原子条件更新影响行数为0时应抛异常并回滚")
+    public void testProcess_concurrentReduceInsufficient() {
+        // 流水查询按类型区分：幂等检查(40)返回空，转应收(30)返回记录
+        when(letterGuaranteeRecordGateway.listExportVehicleLetterGuaranteeRecord(any()))
+                .thenAnswer(invocation -> isReleaseReceivableQuery(invocation.getArgument(0))
+                        ? Collections.emptyList() : buildTransferRecords());
+
+        PayableListDetailDo detail = buildDetail();
+        when(payableListDetailGateway.getBySoNo(SO_NO)).thenReturn(detail);
+        when(vehicleCbuSoGateway.getVehicleCbuSoById(SO_ID)).thenReturn(buildSoDo());
+        when(payableListGateway.getPayableListById(PAYABLE_LIST_ID))
+                .thenReturn(buildHeader(PayableListStatusEnum.CONFIRMED.getCode()));
+        when(letterGuaranteeGateway.releaseReceivable(anyString(), any(), anyString(), anyString(),
+                anyString(), anyString(), anyString())).thenReturn(true);
+        // 预校验读到的余额充足（100000≥50000）；但执行期原子扣减时余额已被并发清账扣走 → 影响行数 0
+        when(purchaseOrderGuaranteeGateway.listExportVehicleCbuPoGuarantee(any()))
+                .thenReturn(Arrays.asList(buildPoGuarantee(new BigDecimal("100000"))));
+        when(purchaseOrderGuaranteeGateway.reducePoReceivableAmount(anyString(), any())).thenReturn(false);
+
+        BizException exception = assertThrows(BizException.class,
+                () -> processor.process(buildReq(LocalDateTime.now())));
+
+        assertTrue(exception.getMessage().contains("PO关联保函应收不足"),
+                "执行期并发扣减不足应抛业务异常，实际：" + exception.getMessage());
+        // 扣减失败必须中断并回滚整个SO事务，由SAP重推重放，避免"已释放但PO应收未扣"的资金不一致
+        verify(purchaseOrderGuaranteeGateway).reducePoReceivableAmount("PG-001", new BigDecimal("50000"));
         // 锁仍应在 finally 中释放
         verify(blockLock).close();
     }
@@ -790,7 +821,7 @@ public class SapClearAccountProcessorTest {
         verify(letterGuaranteeGateway, times(1)).releaseReceivable(lgCaptor.capture(), any(), anyString(),
                 eq("PO0002"), anyString(), anyString(), anyString());
         assertEquals("LG-002", lgCaptor.getValue(), "仅应释放未释放过的保函记录");
-        verify(purchaseOrderGuaranteeGateway, times(1)).updateExportVehicleCbuPoGuarantee(any());
+        verify(purchaseOrderGuaranteeGateway, times(1)).reducePoReceivableAmount("PG-002", new BigDecimal("20000"));
     }
 
     @Test

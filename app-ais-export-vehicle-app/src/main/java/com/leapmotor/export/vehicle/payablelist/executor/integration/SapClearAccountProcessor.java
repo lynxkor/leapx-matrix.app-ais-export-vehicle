@@ -374,7 +374,8 @@ public class SapClearAccountProcessor {
     }
 
     /**
-     * 回写 PO 关联保函表：poCurrentOccupiedAmount 不变，poCurrentReceivableAmount -= amount。
+     * 回写 PO 关联保函表：poCurrentOccupiedAmount 不变，poCurrentReceivableAmount 原子扣减 amount。
+     *
      */
     private void reducePoReceivable(String poNo, String lgId, BigDecimal amount) {
         ExportVehicleCbuPoGuaranteeQo qo = new ExportVehicleCbuPoGuaranteeQo();
@@ -385,17 +386,14 @@ public class SapClearAccountProcessor {
         }
         for (ExportVehicleCbuPoGuaranteeDo g : list) {
             if (lgId.equals(g.getGuaranteeId())) {
-                BigDecimal receivable = g.getPoCurrentReceivableAmount() == null
-                        ? BigDecimal.ZERO : g.getPoCurrentReceivableAmount();
-                if (receivable.compareTo(amount) < 0) {
-                    throw new BizException("PO关联保函应收不足：porder=" + poNo + ", 当前累计应收=" + receivable + ", 需释放=" + amount);
+                // 原子条件更新：影响行数 0 = 记录不存在或应收余额不足（并发下由 DB 行锁串行化，不丢失扣减）
+                boolean updated = purchaseOrderGuaranteeGateway.reducePoReceivableAmount(g.getId(), amount);
+                if (!updated) {
+                    throw new BizException("PO关联保函应收不足：porder=" + poNo
+                            + ", lgId=" + lgId + ", 需释放=" + amount);
                 }
-                ExportVehicleCbuPoGuaranteeDo update = new ExportVehicleCbuPoGuaranteeDo();
-                update.setId(g.getId());
-                update.setPoCurrentReceivableAmount(receivable.subtract(amount));
-                purchaseOrderGuaranteeGateway.updateExportVehicleCbuPoGuarantee(update);
-                log.info("PO关联保函回写：poNo={}, lgId={}, poCurrentReceivableAmount {} -> {}",
-                        poNo, lgId, receivable, update.getPoCurrentReceivableAmount());
+                log.info("PO关联保函回写：poNo={}, lgId={}, poCurrentReceivableAmount -= {}",
+                        poNo, lgId, amount);
                 return;
             }
         }

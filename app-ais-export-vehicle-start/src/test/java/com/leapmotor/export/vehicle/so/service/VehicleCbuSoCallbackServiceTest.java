@@ -6,6 +6,7 @@ import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.sap.gateway.SapGateway;
+import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
 import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import com.leapmotor.export.vehicle.base.BaseServiceTest;
 import com.leapmotor.export.vehicle.basic.gateway.ExportVehicleLetterGuaranteeGateway;
@@ -36,6 +37,7 @@ import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -48,6 +50,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -410,6 +413,62 @@ public class VehicleCbuSoCallbackServiceTest extends BaseServiceTest<VehicleCbuS
                 : syncs.stream().filter(s -> Integer.valueOf(4).equals(s.getInterfaceType())).count();
         assertEquals(0, sapCount, "保函回滚时不发布 SAP 事件，无类型4 记录");
     }
+    @Test
+    @DisplayName("SAP 同步契约 — 质检通过后 buildSapOrderSyncReq 组装请求字段正确")
+    public void testSapSync_requestContract() {
+        String poNo = "PO-SAPC-" + UUID.randomUUID().toString().substring(0, 8);
+        SoResult.SoItem soItem = createSingleSo(poNo);
+        String soNo = soItem.getSoNo();
+        String vin = "VIN" + poNo;
+
+        String custId = "CUST_SAPC_" + UUID.randomUUID().toString().substring(0, 8);
+        createApprovedLg("LG_SAPC_" + UUID.randomUUID().toString().substring(0, 8), custId, "CBU",
+                new BigDecimal("200000.00"));
+        letterGuaranteeService.freeze(buildFreezeReq(custId, "CBU", new BigDecimal("150000.00"), poNo));
+
+        SapResult successResult = new SapResult();
+        successResult.setCode("0");
+        successResult.setSuccess(true);
+        SapResult.Body body = new SapResult.Body();
+        SapResult.SapRet esRet = new SapResult.SapRet();
+        esRet.setRetCode("S");
+        esRet.setRetReason("成功");
+        body.setEsRet(esRet);
+        successResult.setBody(body);
+        when(sapGateway.syncSap(any())).thenReturn(successResult);
+
+        service.receiveProductionStatus(List.of(buildStatusReq(soNo, 5, vin)));
+        service.receiveQcResult(buildQcReq(vin, 10, "通过"));
+
+        // 等待异步 SAP 同步事件处理完成（类型4 同步记录写入）
+        awaitSyncCount(soItem.getSoId(), 4, 1, 5000);
+
+        // 捕获并断言 SAP 请求契约
+        ArgumentCaptor<SapOrderSyncReq> captor = ArgumentCaptor.forClass(SapOrderSyncReq.class);
+        verify(sapGateway).syncSap(captor.capture());
+        SapOrderSyncReq sapReq = captor.getValue();
+
+        // Head 字段断言
+        assertEquals("DMS", sapReq.getIvSysid(), "IV_SYSID 应为 DMS");
+        assertNotNull(sapReq.getIsHead(), "IS_HEAD 不应为空");
+        assertEquals(soNo, sapReq.getIsHead().getSorder(), "SORDER 应为 SO 单号");
+        assertEquals(poNo, sapReq.getIsHead().getPorder(), "PORDER 应为 PO 单号");
+        assertTrue(sapReq.getIsHead().getLstatus().startsWith("77"), "LSTATUS 应以 77 开头（质检通过）");
+        assertNotNull(sapReq.getIsHead().getErdat(), "ERDAT 应取 receiveOrderTime");
+        assertEquals(TEST_SALES_COMPANY, sapReq.getIsHead().getBukrs(), "BUKRS 应为销售公司编码");
+        assertEquals(TEST_CUSTOMER_CODE, sapReq.getIsHead().getKunnr(), "KUNNR 应为客户编码");
+        assertEquals("CBU", sapReq.getIsHead().getRecordType(), "RECORDTYPE 应为 CBU");
+        assertEquals("100-红旗CBU订单", sapReq.getIsHead().getOrderWay(), "ORDERWAY 应为 100-红旗CBU订单");
+
+        // Item 字段断言
+        assertNotNull(sapReq.getImTab(), "IM_TAB 不应为空");
+        assertEquals(1, sapReq.getImTab().size(), "IM_TAB 应有 1 行");
+        SapOrderSyncReq.ImTabItem item = sapReq.getImTab().get(0);
+        assertEquals(soNo, item.getSorderSub(), "SORDER_SUB 应为 SO 单号");
+        assertEquals(vin, item.getVhvin(), "VHVIN 应为 VIN");
+        assertEquals(BigDecimal.ONE, item.getMenge(), "MENGE 应为 1");
+    }
+
     @Test
     @DisplayName("7.4 SAP 同步失败不回滚 1008，类型4 记录 resultStatus=0")
     public void testSapSyncFailureKeepsQcPassed() {

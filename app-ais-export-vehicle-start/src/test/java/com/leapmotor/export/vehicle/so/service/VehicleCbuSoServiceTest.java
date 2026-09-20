@@ -1,13 +1,6 @@
 package com.leapmotor.export.vehicle.so.service;
 
-import com.leapmotor.export.vehicle.acl.rpc.sap.req.SapOrderSyncReq;
-import com.leapmotor.export.vehicle.acl.rpc.sap.resp.SapResult;
 import com.leapmotor.export.vehicle.base.BaseServiceTest;
-import com.leapmotor.export.vehicle.infrastructure.acl.rpc.sap.gatewayimpl.SapGatewayImpl;
-import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoDetailGateway;
-import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
-import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDetailDo;
-import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.req.SoCreateReq;
 import com.leapmotor.export.vehicle.so.resp.SoResult;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
@@ -16,11 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * CBU SO 创建 Service 集成测试
  *
+ * <p><b>注意：</b>本类未 mock SapGateway，禁止在此添加直接调用 SAP 的测试方法。
+ * SAP 相关测试请移至 {@link VehicleCbuSoCallbackServiceTest}（已 @MockBean SapGateway）。
+ *
  * @author lijianuo
  * @since 2026-07-13
  */
@@ -38,15 +32,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class VehicleCbuSoServiceTest extends BaseServiceTest<VehicleCbuSoService> {
 
     private static String testPoNo;
-
-    @Autowired
-    private SapGatewayImpl sapGateway;
-
-    @Autowired
-    private VehicleCbuSoGateway vehicleCbuSoGateway;
-
-    @Autowired
-    private VehicleCbuSoDetailGateway vehicleCbuSoDetailGateway;
 
     @Test
     @Order(1)
@@ -101,71 +86,6 @@ public class VehicleCbuSoServiceTest extends BaseServiceTest<VehicleCbuSoService
         }
         // 业务确认：item.getSoId() 返回的主表 id 可作为后续数据权限字段 owner_user_id 写入的来源
         // 详见后续 @DataPermission 接入；当前阶段 owner 字段由 SQL DEFAULT 0 兜底
-    }
-
-    @Test
-    @Order(4)
-    @DisplayName("真实SAP同步 — 按SO单号查询并同步给SAP")
-    public void testSyncSap() {
-        String soNo = "SO20260814164200507";
-
-        // 1. 从数据库查询 SO 主表
-        VehicleCbuSoDo so = vehicleCbuSoGateway.getVehicleCbuSoBySoNo(soNo);
-        assertNotNull(so, "数据库中不存在 SO 单号: " + soNo);
-
-        // 2. 按 SO 主键查询车辆明细（一车一单，明细主键与 SO 主键一致，同生产补推逻辑）
-        VehicleCbuSoDetailDo detail = vehicleCbuSoDetailGateway.getVehicleCbuSoDetailById(so.getId());
-        System.err.println("命中SO: soNo=" + so.getSoNo() + ", detail=" + (detail == null ? null : detail.getVin()));
-
-        // 3. 组装 SAP 请求（与 VehicleCbuSoCmdExe.buildSapOrderSyncReq 同构）
-        SapOrderSyncReq req = buildSapOrderSyncReq(so, detail);
-        printJson(req);
-
-        // 4. 真实调用 SAP 网关（经 Feign 直连 SAP，返回真实处理结果）
-        SapResult result = sapGateway.syncSap(req);
-        printJson(result);
-        assertNotNull(result, "SAP 返回结果不应为 null");
-    }
-
-    /**
-     * 组装 SO 同步 SAP 请求（与生产 VehicleCbuSoCmdExe 中 QC 通过后发布事件时同构）。
-     */
-    private SapOrderSyncReq buildSapOrderSyncReq(VehicleCbuSoDo so, VehicleCbuSoDetailDo detail) {
-        SapOrderSyncReq req = new SapOrderSyncReq();
-        req.setIvSysid("AIS");
-
-        SapOrderSyncReq.IsHead head = new SapOrderSyncReq.IsHead();
-        head.setSorder(so.getSoNo());
-        head.setPorder(so.getPoNo());
-        head.setErdat(so.getReceiveOrderTime() != null
-                ? so.getReceiveOrderTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
-        head.setLstatus("77");
-        head.setLsdatum(so.getQcResultTime() != null
-                ? so.getQcResultTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
-        head.setBukrs(so.getSalesCompanyCode());
-        head.setKunnr(so.getCustomerCode());
-        head.setRecordType(convertOrderTypeToRecordType(so.getOrderType()));
-        head.setOrderWay("100");
-        req.setIsHead(head);
-
-        SapOrderSyncReq.ImTabItem item = new SapOrderSyncReq.ImTabItem();
-        item.setSorderSub(so.getSoNo());
-        item.setVhcle(detail != null ? detail.getInternalVehicleNo() : null);
-        item.setVhvin(detail != null ? detail.getVin() : so.getVin());
-        item.setMatnr(detail != null ? detail.getMaterialCode() : so.getMaterialCode());
-        item.setMenge(BigDecimal.ONE);
-        item.setPriceExw(so.getVehiclePrice());
-        req.setImTab(List.of(item));
-
-        return req;
-    }
-
-    private String convertOrderTypeToRecordType(Integer orderType) {
-        if (orderType == null) {
-            return "";
-        }
-        // 当前仅 CBU 一种记录类型（SKD/CKD 映射后续补充）
-        return "CBU";
     }
 
     private SoCreateReq buildSoCreateReq(String poNo) {

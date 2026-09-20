@@ -7,7 +7,6 @@ import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.payablelist.req.PayableListDeleteVehicleReq;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -35,11 +34,11 @@ public class PayableListDeleteVehicleExe {
         // 查询应付清单
         PayableListDo payableList = payableListGateway.getPayableListById(req.getPayableListId());
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         // 校验状态（只有草稿或驳回状态可以删除）
-        PayableListStatusChecker.checkCanEdit(payableList);
+        PayableListStatusChecker.checkCanDelete(payableList);
 
         // 校验版本号（乐观锁）
         PayableListStatusChecker.checkVersion(payableList, req.getVersion());
@@ -47,7 +46,7 @@ public class PayableListDeleteVehicleExe {
         // 校验明细是否存在
         List<PayableListDetailDo> detailList = payableListDetailGateway.listByPayableListId(req.getPayableListId());
         if (detailList.isEmpty()) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单明细不存在");
+            throw new BizException("应付清单明细不存在");
         }
 
         // 校验要删除的明细ID是否属于该应付清单
@@ -55,7 +54,7 @@ public class PayableListDeleteVehicleExe {
             boolean exists = detailList.stream()
                     .anyMatch(detail -> detail.getId().equals(detailId));
             if (!exists) {
-                throw new BizException(ResultEnum.BAD_REQUEST, "明细ID[" + detailId + "]不属于该应付清单");
+                throw new BizException("明细ID[" + detailId + "]不属于该应付清单");
             }
         }
 

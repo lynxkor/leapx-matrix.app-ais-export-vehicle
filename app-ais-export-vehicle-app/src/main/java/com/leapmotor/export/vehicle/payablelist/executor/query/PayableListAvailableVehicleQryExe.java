@@ -10,14 +10,12 @@ import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
+import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,45 +34,44 @@ public class PayableListAvailableVehicleQryExe {
     private VehicleCbuSoGateway vehicleCbuSoGateway;
 
     /**
-     * 执行查询可添加车辆
+     * 执行查询可添加车辆（分页）
      *
      * @param req 查询请求
-     * @return 可添加车辆列表
+     * @return 可添加车辆分页结果
      */
-    public List<SoOrderForPayableDto> execute(PayableListQueryAvailableVehiclesReq req) {
+    public PageResult<SoOrderForPayableDto> execute(PayableListQueryAvailableVehiclesReq req) {
         // 查询应付清单
         PayableListDo payableList = payableListGateway.getPayableListById(req.getPayableListId());
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
-        // 查询质检通过的车辆（复用月度生成的查询逻辑）
+        // 查询所有已绑定到应付清单的SO订单ID（SQL 层排除）
+        List<String> boundSoIds = payableListDetailGateway.listAllBoundSoIds();
+
+        // 分页查询质检通过的车辆（主表+明细联表查询；VIN/SO 单值模糊、已绑定 SO 排除）
         VehicleCbuSoQo qo = new VehicleCbuSoQo();
         qo.setQcResult(VehicleCbuSoQcResultEnum.PASSED.getCode());
         qo.setCustomerCode(payableList.getCustomerCode());
         qo.setVinLike(req.getVin());
         qo.setSoNoLike(req.getSoNo());
-        List<VehicleCbuSoDo> qcPassedList = vehicleCbuSoGateway.listVehicleCbuSo(qo);
+        qo.setExcludeIds(boundSoIds);
+        qo.setPageNum(req.getPageNum());
+        qo.setPageSize(req.getPageSize());
+        PageResult<VehicleCbuSoDo> page = vehicleCbuSoGateway.pageSoList(qo);
 
-        if (qcPassedList.isEmpty()) {
-            log.info("查询可添加车辆：无符合条件的车辆，payableListId={}", req.getPayableListId());
-            return List.of();
-        }
-
-        // 查询所有已绑定到应付清单的SO订单ID
-        List<String> boundSoIds = payableListDetailGateway.listAllBoundSoIds();
-        Set<String> boundSoIdSet = new HashSet<>(boundSoIds);
-
-        // 过滤出未绑定的车辆
-        List<SoOrderForPayableDto> availableVehicles = qcPassedList.stream()
-                .filter(so -> !boundSoIdSet.contains(so.getId()))
+        // 转换当前页数据
+        List<SoOrderForPayableDto> records = page.getRecords().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
 
-        log.info("查询可添加车辆成功，payableListId={}, customerCode={}, total={}, available={}",
-                req.getPayableListId(), payableList.getCustomerCode(), qcPassedList.size(), availableVehicles.size());
+        log.info("查询可添加车辆成功，payableListId={}, customerCode={}, total={}",
+                req.getPayableListId(), payableList.getCustomerCode(), page.getTotal());
 
-        return availableVehicles;
+        PageResult<SoOrderForPayableDto> result = new PageResult<>();
+        result.setRecords(records);
+        result.setTotal(page.getTotal());
+        return result;
     }
 
     /**
@@ -97,7 +94,7 @@ public class PayableListAvailableVehicleQryExe {
         dto.setVehiclePrice(soDo.getVehiclePrice());
         dto.setFrozenAmount(soDo.getFrozenAmount());
         dto.setReceivableAmount(soDo.getReceivableAmount());
-        dto.setQcResultTime(soDo.getQcResultTime());
+        dto.setQcPassTime(soDo.getQcResultTime());
         dto.setPoCreateTime(soDo.getReceiveOrderTime());
         dto.setSaleMarket(soDo.getSalesMarket());
         dto.setModelYear(soDo.getModelYear());

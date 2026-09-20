@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 应付清单明细查询对象
@@ -23,6 +24,71 @@ public class PayableListDetailQo extends LpBaseQo implements Serializable {
      * 关联应付清单ID
      */
     private String payableListId;
+
+    /**
+     * 客户编码
+     */
+    private String customerCode;
+
+    /**
+     * 应付清单编号
+     */
+    private List<String> payableListNoList;
+
+    /**
+     * 应付清单编号（单条模糊查询）
+     */
+    private String payableListNoLike;
+
+    /**
+     * 单据状态列表（多选）
+     */
+    private List<String> billStatusList;
+
+    /**
+     * 生成月份 yyyyMM
+     */
+    private String generateMonth;
+
+    /**
+     * VIN号（多选）
+     */
+    private List<String> vinList;
+
+    /**
+     * 应付清单ID列表（由应付清单编号转换得到，内部使用）
+     */
+    private List<String> payableListIds;
+
+    /**
+     * 创建时间开始
+     */
+    private LocalDateTime createTimeStart;
+
+    /**
+     * 创建时间结束
+     */
+    private LocalDateTime createTimeEnd;
+
+    /**
+     * 提交时间开始
+     */
+    private LocalDateTime submitTimeStart;
+
+    /**
+     * 提交时间结束
+     */
+    private LocalDateTime submitTimeEnd;
+
+    /**
+     * 确认时间开始
+     */
+    private LocalDateTime confirmTimeStart;
+
+    /**
+     * 确认时间结束
+     */
+    private LocalDateTime confirmTimeEnd;
 
     /**
      * SO订单号

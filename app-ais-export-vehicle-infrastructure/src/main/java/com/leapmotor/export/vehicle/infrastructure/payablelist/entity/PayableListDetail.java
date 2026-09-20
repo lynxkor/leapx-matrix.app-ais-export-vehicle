@@ -30,6 +30,12 @@ public class PayableListDetail extends LpBaseEntity implements Serializable {
     private String payableListId;
 
     /**
+     * 应付清单编号
+     */
+    @TableField(exist = false)
+    private String payableListNo;
+
+    /**
      * 明细编号，规则：YX+年月日+6位流水号
      */
     @TableField("detail_no")

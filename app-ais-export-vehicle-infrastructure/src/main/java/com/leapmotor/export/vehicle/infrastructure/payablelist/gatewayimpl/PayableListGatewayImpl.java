@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.infrastructure.payablelist.gatewayimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.convertor.PayableListStructMapper;
@@ -16,6 +17,7 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -110,7 +112,34 @@ public class PayableListGatewayImpl implements PayableListGateway {
     }
 
     @Override
-    public int deleteById(String id) {
-        return payableListMapper.deleteById(id);
+    public int advanceBillStatus(String payableListId, String billStatus) {
+        // 仅当目标状态编码大于当前状态时才更新
+        LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(PayableList::getId, payableListId)
+                .lt(PayableList::getBillStatus, billStatus)
+                .set(PayableList::getBillStatus, billStatus);
+        return payableListMapper.update(null, updateWrapper);
     }
+
+    @Override
+    public int updateSyncHqResultById(String payableListId, LocalDateTime syncHqTime, String syncHqResult, String syncHqMessage) {
+        LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(PayableList::getId, payableListId)
+                .set(syncHqTime != null, PayableList::getSyncHqTime, syncHqTime)
+                .set(syncHqResult != null, PayableList::getSyncHqResult, syncHqResult)
+                .set(syncHqMessage != null, PayableList::getSyncHqMessage, syncHqMessage);
+        return payableListMapper.update(null, updateWrapper);
+    }
+
+    @Override
+    public int updateSyncSapResultById(String payableListId, LocalDateTime syncSapTime, String syncSapResult, String syncSapMessage) {
+        // 只写同步结果三列，避免查询快照全量回写把并发变更的单据状态、版本号等字段覆盖回旧值
+        LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(PayableList::getId, payableListId)
+                .set(syncSapTime != null, PayableList::getSyncSapTime, syncSapTime)
+                .set(syncSapResult != null, PayableList::getSyncSapResult, syncSapResult)
+                .set(syncSapMessage != null, PayableList::getSyncSapMessage, syncSapMessage);
+        return payableListMapper.update(null, updateWrapper);
+    }
+
 }

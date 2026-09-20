@@ -138,13 +138,53 @@ public interface PayableListDetailGateway {
     BigDecimal sumAmountByPayableListId(String payableListId);
 
     /**
-     * 根据应付清单ID批量更新明细状态
+     * 根据应付清单ID批量更新明细表冗余字段
+     *
+     * 只更新本次业务实际变更的字段：入参为 null 表示本次不涉及该字段，明细表对应列保持原值。
+     * 如提交场景只传提交日期、确认/驳回场景只传确认时间，二者互不覆盖。
      *
      * @param payableListId 应付清单ID
-     * @param billStatus    单据状态
-     * @param submitDate    提交日期
-     * @param confirmTime   确认时间
+     * @param billStatus    单据状态（null 表示不更新）
+     * @param submitDate    提交日期（null 表示不更新）
+     * @param confirmTime   确认时间（null 表示不更新）
      * @return 影响行数
      */
     int updateBillStatusByPayableListId(String payableListId, String billStatus, LocalDateTime submitDate, LocalDateTime confirmTime);
+
+    /**
+     * 根据应付清单ID同步明细表冗余字段（仅更新非 null 字段）
+     *
+     * <p>抬头字段变更后用于明细冗余列对齐，入参为 null 表示本次不涉及该字段，明细表对应列保持原值。
+     * 支持的冗余列：单据状态、客户编码/名称、生成月份、提交日期、确认时间。
+     *
+     * @param payableListId   应付清单ID
+     * @param redundantFields 待同步的冗余字段载体（仅使用上述字段）
+     * @return 影响行数
+     */
+    int updateRedundantFieldsByPayableListId(String payableListId, PayableListDetailDo redundantFields);
+
+    /**
+     * 根据应付清单ID按状态编码同步明细冗余单据状态
+     *
+     * 仅当目标状态编码大于明细当前状态时才更新，用于清账等并发统计场景，
+     * 避免明细冗余单据状态回退（如已收款60 被后算出的部分收款50 覆盖）。
+     *
+     * @param payableListId 应付清单ID
+     * @param billStatus    目标单据状态
+     * @return 影响行数（0 表示明细状态均不小于目标状态，未更新）
+     */
+    int advanceBillStatusByPayableListId(String payableListId, String billStatus);
+
+    /**
+     * 根据明细ID更新收款状态与收款时间
+     *
+     * 只更新收款维度的两个字段，避免全量回写快照覆盖明细表的其它列（尤其是冗余列）；
+     * 收款时间为 null 表示不更新该字段。
+     *
+     * @param id          明细ID
+     * @param isReceived  是否收款：0=否/1=是
+     * @param receiveTime 收款时间（null 表示不更新）
+     * @return 影响行数
+     */
+    int updateReceiveStatusById(String id, Integer isReceived, LocalDateTime receiveTime);
 }

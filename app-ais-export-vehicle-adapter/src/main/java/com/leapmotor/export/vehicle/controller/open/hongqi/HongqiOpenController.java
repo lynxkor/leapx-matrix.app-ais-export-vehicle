@@ -1,7 +1,9 @@
 package com.leapmotor.export.vehicle.controller.open.hongqi;
 
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 import com.leapmotor.export.vehicle.payablelist.dto.HqConfirmReq;
 import com.leapmotor.export.vehicle.payablelist.executor.integration.HqConfirmProcessor;
+import com.leapmotor.export.vehicle.payablelist.service.HongqiEpOpenService;
 import com.leapmotor.export.vehicle.po.req.HongqiCbuPurchaseOrderReq;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoReceiveQcReq;
@@ -33,6 +35,7 @@ public class HongqiOpenController {
     private ExportVehicleCbuPoService purchaseOrderService;
     private VehicleCbuSoService vehicleCbuSoService;
     private HqConfirmProcessor hqConfirmProcessor;
+    private HongqiEpOpenService hongqiEpOpenService;
 
     /**
      * 红旗CBU订单采购申请 → 创建草稿PO订单（主表+明细联保存）
@@ -59,7 +62,17 @@ public class HongqiOpenController {
     @Operation(summary = "应付清单红旗确认结果反馈")
     @PostMapping("/payableList/confirmCallback")
     public AjaxResult<Void> confirmCallback(@RequestBody HqConfirmReq req) {
-        hqConfirmProcessor.process(req.getPayableListNo(), req.getConfirmResult(), req.getConfirmTime(), req.getConfirmRemark());
+        hqConfirmProcessor.process(req.getPayableListNo(), req.getStatus(), req.getOperateTime(), req.getRemark());
         return AjaxResult.success();
+    }
+
+
+    /**
+     * 同步应付清单到红旗EP
+     */
+    @Operation(summary = "同步应付清单到红旗EP")
+    @PostMapping("/payableList/sync")
+    public AjaxResult<Object> syncPayableList(@RequestBody PayableListSyncHqRecordReq req) {
+        return AjaxResult.success(hongqiEpOpenService.syncPayableList(req));
     }
 }

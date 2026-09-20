@@ -7,12 +7,11 @@ import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
-import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.export.vehicle.base.util.PayableListStatusChecker;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +20,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -80,11 +82,11 @@ public class PayableListImportPriceExe {
         // 3. 查询应付清单并校验
         PayableListDo db = payableListGateway.getPayableListById(payableListId);
         if (db == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
         // 乐观锁校验
         if (db.getVersion() == null || !db.getVersion().equals(version)) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "数据已被他人修改，请刷新后重试");
+            throw new BizException("数据已被他人修改，请刷新后重试");
         }
         // 状态前置校验
         PayableListStatusChecker.checkEditable(db);
@@ -94,9 +96,10 @@ public class PayableListImportPriceExe {
         Map<String, PayableListDetailDo> vinMap = details.stream()
                 .collect(Collectors.toMap(PayableListDetailDo::getVin, Function.identity(), (a, b) -> a));
 
-        // 5. 校验并分组
+        // 5. 校验并分组：校验不通过的行只记录失败原因，不影响其余行入库
         List<PayableListImportPriceDto> failList = new ArrayList<>();
         List<PayableListImportPriceDto> validList = new ArrayList<>();
+        Set<String> importedVins = new HashSet<>();
 
         for (PayableListImportPriceDto item : importList) {
             StringBuilder failMsg = new StringBuilder();
@@ -112,13 +115,19 @@ public class PayableListImportPriceExe {
             // VIN校验
             if (StrUtil.isBlank(item.getVin())) {
                 failMsg.append("VIN不能为空；");
+            } else if (!importedVins.add(item.getVin())) {
+                // 同一VIN在文件中重复出现时无法确定以哪一行为准，后出现的行按失败处理
+                failMsg.append("VIN在文件中重复出现；");
             }
 
-            // 价格校验
+            // 价格校验：先四舍五入保留2位小数，再校验大于0
             if (item.getPrice() == null) {
                 failMsg.append("价格不能为空；");
-            } else if (item.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-                failMsg.append("价格必须大于0；");
+            } else {
+                item.setPrice(item.getPrice().setScale(2, RoundingMode.HALF_UP));
+                if (item.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                    failMsg.append("价格必须大于0；");
+                }
             }
 
             // VIN是否在清单明细中
@@ -134,24 +143,25 @@ public class PayableListImportPriceExe {
             }
         }
 
-        // 6. 任一失败则全量不入库
-        if (!CollectionUtils.isEmpty(failList)) {
+        // 6. 无任何有效行时抬头无需变动，直接返回全量失败结果
+        if (CollectionUtils.isEmpty(validList)) {
+            log.info("导入最新价格无有效行，payableListId={}, fail={}", payableListId, failList.size());
             result.setSuccessNum(0);
             result.setFailNum(failList.size());
             result.setData(failList);
             return result;
         }
 
-        // 7. 更新价格
+        // 7. 更新价格（仅更新校验通过的行）
         for (PayableListImportPriceDto item : validList) {
             PayableListDetailDo detail = vinMap.get(item.getVin());
             // 更新明细价格
             detail.setPrice(item.getPrice());
             payableListDetailGateway.updatePayableListDetail(detail);
-            // 同步更新 SO 车辆售价
+            // 同步更新 SO 车辆售价（以更新后的明细价格为权威来源）
             VehicleCbuSoDo soDo = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getSoId());
             if (soDo != null) {
-                soDo.setVehiclePrice(item.getPrice());
+                soDo.setVehiclePrice(detail.getPrice());
                 vehicleCbuSoGateway.updateVehicleCbuSo(soDo);
             } else {
                 log.warn("导入价格：SO主表不存在，soId={}", detail.getSoId());
@@ -168,11 +178,12 @@ public class PayableListImportPriceExe {
         db.setVersion(db.getVersion() + 1);
         payableListGateway.updatePayableList(db);
 
-        log.info("导入最新价格完成，payableListId={}, total={}, fail={}", payableListId, validList.size(), failList.size());
+        log.info("导入最新价格完成，payableListId={}, success={}, fail={}", payableListId, validList.size(), failList.size());
 
-        // 9. 成功返回
+        // 9. 返回导入结果：成功行已入库，失败行仅返回失败原因、不入库
         result.setSuccessNum(validList.size());
-        result.setFailNum(0);
+        result.setFailNum(failList.size());
+        result.setData(failList);
         return result;
     }
 }

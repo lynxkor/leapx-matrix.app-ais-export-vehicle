@@ -4,6 +4,7 @@ import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.export.vehicle.po.model.ExportVehicleCbuPoGuaranteeDo;
 import com.leapmotor.export.vehicle.po.query.ExportVehicleCbuPoGuaranteeQo;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
@@ -94,4 +95,13 @@ public interface ExportVehicleCbuPoGuaranteeGateway  {
      * @return 结果
      */
     boolean enableOrDisableExportVehicleCbuPoGuaranteeByIds(LpBaseParam param);
+
+    /**
+     * 原子扣减 PO 关联保函当前应收金额：
+     *
+     * @param id     记录ID
+     * @param amount 扣减金额（必须大于 0）
+     * @return 是否扣减成功；false 表示记录不存在或当前应收金额不足
+     */
+    boolean reducePoReceivableAmount(String id, BigDecimal amount);
 }

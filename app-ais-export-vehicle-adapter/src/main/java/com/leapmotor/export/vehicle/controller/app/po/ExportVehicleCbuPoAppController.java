@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.controller.app.po;
 
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoResp;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoService;
 import org.springframework.web.bind.annotation.*;
 import lombok.AllArgsConstructor;
+import java.util.Objects;
 
 /**
  * PO订单主表 移动端接口控制器
@@ -36,8 +38,11 @@ public class ExportVehicleCbuPoAppController {
     @Operation(summary = "PO订单主表详情信息")
     @ResourcePermission("app:po:purchaseOrder:get")
     @PostMapping(value = "/get")
-    public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody String id) {
-        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(id));
+    public AjaxResult<ExportVehicleCbuPoResp> getExportVehicleCbuPoById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(purchaseOrderService.getExportVehicleCbuPoById(param.getId()));
     }
 
 }

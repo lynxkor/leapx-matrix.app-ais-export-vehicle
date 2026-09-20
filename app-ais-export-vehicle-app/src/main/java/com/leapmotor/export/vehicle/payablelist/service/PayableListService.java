@@ -2,8 +2,8 @@ package com.leapmotor.export.vehicle.payablelist.service;
 
 import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
-import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 
@@ -65,21 +65,14 @@ public interface PayableListService {
      */
     ExcelBaseResult importPrice(ImportExcelDTO dto);
 
-    /**
-     * 删除应付清单
-     *
-     * @param ids ID列表
-     * @return 结果
-     */
-    boolean deletePayableListByIds(List<String> ids);
 
     /**
-     * 查询可添加车辆
+     * 查询可添加车辆（分页）
      *
      * @param req 查询请求
-     * @return 可添加车辆列表
+     * @return 可添加车辆分页结果
      */
-    List<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req);
+    PageResult<SoOrderForPayableDto> queryAvailableVehicles(PayableListQueryAvailableVehiclesReq req);
 
     /**
      * 添加车辆

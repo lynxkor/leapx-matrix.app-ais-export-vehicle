@@ -76,11 +76,18 @@ public class SapOrderSyncReq implements Serializable {
         private String lstatus;
 
         /**
-         * 订单状态日期，格式 YYYYMMDD
+         * 订单状态日期（质检通过日期），格式 YYYYMMDD
          */
         @JsonProperty("LSDATUM")
         @JSONField(name = "LSDATUM")
         private String lsdatum;
+
+        /**
+         * 订单状态时间（质检通过时间），格式 HHMMSS
+         */
+        @JsonProperty("LSUZEIT")
+        @JSONField(name = "LSUZEIT")
+        private String lsuzeit;
 
         /**
          * 销售公司

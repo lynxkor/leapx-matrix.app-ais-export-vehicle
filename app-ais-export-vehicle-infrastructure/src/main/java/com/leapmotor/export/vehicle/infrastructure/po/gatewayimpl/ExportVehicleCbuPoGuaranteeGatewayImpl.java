@@ -1,5 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.po.gatewayimpl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -12,7 +13,9 @@ import com.leapmotor.export.vehicle.infrastructure.po.convertor.ExportVehicleCbu
 import com.leapmotor.export.vehicle.infrastructure.po.dao.ExportVehicleCbuPoGuaranteeDao;
 import com.leapmotor.export.vehicle.infrastructure.po.mapper.ExportVehicleCbuPoGuaranteeMapper;
 import com.leapmotor.export.vehicle.infrastructure.po.entity.ExportVehicleCbuPoGuarantee;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
@@ -104,6 +107,19 @@ public class ExportVehicleCbuPoGuaranteeGatewayImpl implements ExportVehicleCbuP
             purchaseOrderGuaranteeDao.updateById(purchaseOrderGuarantee);
         }
         return true;
+    }
+
+    @Override
+    public boolean reducePoReceivableAmount(String id, BigDecimal amount) {
+        if (StringUtils.isBlank(id) || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        // 原子条件更新
+        LambdaUpdateWrapper<ExportVehicleCbuPoGuarantee> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ExportVehicleCbuPoGuarantee::getId, id)
+                .ge(ExportVehicleCbuPoGuarantee::getPoCurrentReceivableAmount, amount)
+                .setSql("po_current_receivable_amount = po_current_receivable_amount - " + amount.toPlainString());
+        return purchaseOrderGuaranteeMapper.update(null, updateWrapper) > 0;
     }
 }
 

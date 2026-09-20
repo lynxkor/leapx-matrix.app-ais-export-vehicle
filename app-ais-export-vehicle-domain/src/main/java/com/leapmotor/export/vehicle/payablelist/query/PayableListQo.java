@@ -26,6 +26,16 @@ public class PayableListQo extends LpBaseQo implements Serializable {
     private String payableListNo;
 
     /**
+     * 应付清单编号（单条模糊查询）
+     */
+    private String payableListNoLike;
+
+    /**
+     * 应付清单编号列表（批量精确查询）
+     */
+    private List<String> payableListNos;
+
+    /**
      * 单据状态（支持多个状态查询）
      */
     private List<String> billStatusList;

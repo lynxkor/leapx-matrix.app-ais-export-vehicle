@@ -4,11 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.gateway.HongqiGateway;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.request.CbuApprovalResultReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotifyReq;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiEpReceiveResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
 import com.leapmotor.export.vehicle.infrastructure.acl.rpc.hongqi.client.HongqiClientApi;
+import com.leapmotor.export.vehicle.infrastructure.acl.rpc.hongqi.client.HongqiEpClientApi;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ import java.util.List;
 public class HongqiGatewayImpl implements HongqiGateway {
 
     private HongqiClientApi hongqiClientApi;
+
+    private HongqiEpClientApi hongqiEpClientApi;
 
     @Override
     public HongqiResult<HongqiResultData> pushCbuApprovalResult(CbuApprovalResultReq req) {
@@ -61,17 +65,21 @@ public class HongqiGatewayImpl implements HongqiGateway {
     }
 
     @Override
-    public HongqiResult syncPayableList(PayableListSyncHqReq req) {
+    public HongqiResult syncPayableListEp(PayableListSyncHqRecordReq req) {
         try {
-            log.info("应付清单同步红旗, request:{}", req);
-            HongqiResult result = hongqiClientApi.syncPayableList(req);
-            log.info("应付清单同步红旗, request:{}, response:{}", req, result);
+            HongqiEpReceiveResult ep = hongqiEpClientApi.receivePayableList(req);
+            log.info("应付清单同步红旗EP-返回: {}", JSON.toJSONString(ep));
+            HongqiResult result = new HongqiResult();
+            result.setCode(ep.getCode());
+            result.setMessage(ep.getMsg());
+            result.setData(ep.getData());
+            result.setSuccess(ep.getCode() != null && ep.getCode() == 200);
             return result;
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            log.error("应付清单同步红旗异常：{}", e.getMessage());
-            throw new BizException("应付清单同步红旗异常：" + e.getMessage());
+            log.error("应付清单同步红旗EP异常：{}", e.getMessage(), e);
+            throw new BizException("应付清单同步红旗EP异常：" + e.getMessage());
         }
     }
 }

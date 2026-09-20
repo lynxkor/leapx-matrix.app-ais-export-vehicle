@@ -24,6 +24,12 @@ public class PayableListPageParam extends LpBaseParam implements Serializable {
     @Schema(description = "应付清单编号")
     private String payableListNo;
 
+    @Schema(description = "应付清单编号（单条模糊查询）")
+    private String payableListNoLike;
+
+    @Schema(description = "应付清单编号列表（批量精确查询）")
+    private List<String> payableListNos;
+
     @Schema(description = "单据状态列表")
     private List<String> billStatusList;
 

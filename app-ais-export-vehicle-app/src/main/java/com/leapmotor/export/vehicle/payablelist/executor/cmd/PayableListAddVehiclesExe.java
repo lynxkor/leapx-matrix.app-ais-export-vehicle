@@ -10,7 +10,6 @@ import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoQcResultEnum;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
 import com.leapmotor.export.vehicle.so.query.VehicleCbuSoQo;
-import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.platform.ais.common.serial.support.NoGenerator;
 import lombok.AllArgsConstructor;
@@ -20,10 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 应付清单添加车辆执行器
@@ -45,44 +41,36 @@ public class PayableListAddVehiclesExe {
         // 查询应付清单
         PayableListDo payableList = payableListGateway.getPayableListById(req.getPayableListId());
         if (payableList == null) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "应付清单不存在");
+            throw new BizException("应付清单不存在");
         }
 
         // 校验状态（只有草稿或驳回状态可以添加）
         PayableListStatusChecker.checkCanEdit(payableList);
 
-        // 查询质检通过的车辆
+        // 查询质检通过的车辆（主表+明细联表查询，聚合 VIN/物料/销售市场等车辆明细字段）
         VehicleCbuSoQo qo = new VehicleCbuSoQo();
         qo.setQcResult(VehicleCbuSoQcResultEnum.PASSED.getCode());
         qo.setIds(req.getVehicleIds());
-        List<VehicleCbuSoDo> soOrders = vehicleCbuSoGateway.listVehicleCbuSo(qo);
+
+        // 已绑定到应付清单的 SO 通过 NOT IN 排除，避免内存过滤
+        List<String> boundSoIds = payableListDetailGateway.listAllBoundSoIds();
+        qo.setExcludeIds(boundSoIds);
+
+        List<VehicleCbuSoDo> soOrders = vehicleCbuSoGateway.listSoList(qo);
 
         if (soOrders.isEmpty()) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "未找到符合条件的车辆");
-        }
-
-        // 查询所有已绑定的SO订单ID
-        List<String> boundSoIds = payableListDetailGateway.listAllBoundSoIds();
-        Set<String> boundSoIdSet = new HashSet<>(boundSoIds);
-
-        // 过滤已绑定的SO订单
-        List<VehicleCbuSoDo> availableSoOrders = soOrders.stream()
-                .filter(so -> !boundSoIdSet.contains(so.getId()))
-                .collect(Collectors.toList());
-
-        if (availableSoOrders.isEmpty()) {
-            throw new BizException(ResultEnum.BAD_REQUEST, "所选车辆均已绑定到其他应付清单");
+            throw new BizException("所选车辆均已绑定到其他应付清单");
         }
 
         // 创建应付清单明细
-        List<PayableListDetailDo> detailDos = buildDetailList(req.getPayableListId(), availableSoOrders, payableList);
+        List<PayableListDetailDo> detailDos = buildDetailList(req.getPayableListId(), soOrders, payableList);
         payableListDetailGateway.addBatchPayableListDetail(detailDos);
 
         // 重新计算统计信息
         updatePayableListStatistics(req.getPayableListId(), payableList);
 
         log.info("应付清单添加车辆成功，payableListId={}, addedCount={}, totalVehicles={}, totalAmount={}",
-                req.getPayableListId(), availableSoOrders.size(), payableList.getTotalVehicles(), payableList.getTotalAmount());
+                req.getPayableListId(), soOrders.size(), payableList.getTotalVehicles(), payableList.getTotalAmount());
         return req.getPayableListId();
     }
 

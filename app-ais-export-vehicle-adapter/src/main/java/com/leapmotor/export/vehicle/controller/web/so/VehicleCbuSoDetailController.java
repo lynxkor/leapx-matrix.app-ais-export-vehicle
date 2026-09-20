@@ -56,8 +56,11 @@ public class VehicleCbuSoDetailController {
     @Operation(summary = "SO车辆明细表详情信息")
     @ResourcePermission(value = "web:so:vehicleCbuSoDetail:get", desc = "SO车辆明细表详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<VehicleCbuSoDetailResp> getVehicleCbuSoDetailById(@RequestBody String id) {
-        return AjaxResult.success(vehicleCbuSoDetailService.getVehicleCbuSoDetailById(id));
+    public AjaxResult<VehicleCbuSoDetailResp> getVehicleCbuSoDetailById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(vehicleCbuSoDetailService.getVehicleCbuSoDetailById(param.getId()));
     }
 
     @Operation(summary = "SO车辆明细表新增/编辑")

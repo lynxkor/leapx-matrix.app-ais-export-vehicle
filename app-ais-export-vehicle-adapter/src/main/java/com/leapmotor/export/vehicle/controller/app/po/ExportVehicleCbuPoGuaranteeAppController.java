@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.controller.app.po;
 
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import com.leapmotor.export.vehicle.po.resp.ExportVehicleCbuPoGuaranteeResp;
 import com.leapmotor.export.vehicle.po.service.ExportVehicleCbuPoGuaranteeService;
 import org.springframework.web.bind.annotation.*;
 import lombok.AllArgsConstructor;
+import java.util.Objects;
 
 /**
  * PO-保函关联表(一个PO多保函) 移动端接口控制器
@@ -36,8 +38,11 @@ public class ExportVehicleCbuPoGuaranteeAppController {
     @Operation(summary = "PO-保函关联表(一个PO多保函)详情信息")
     @ResourcePermission("app:po:purchaseOrderGuarantee:get")
     @PostMapping(value = "/get")
-    public AjaxResult<ExportVehicleCbuPoGuaranteeResp> getExportVehicleCbuPoGuaranteeById(@RequestBody String id) {
-        return AjaxResult.success(purchaseOrderGuaranteeService.getExportVehicleCbuPoGuaranteeById(id));
+    public AjaxResult<ExportVehicleCbuPoGuaranteeResp> getExportVehicleCbuPoGuaranteeById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(purchaseOrderGuaranteeService.getExportVehicleCbuPoGuaranteeById(param.getId()));
     }
 
 }

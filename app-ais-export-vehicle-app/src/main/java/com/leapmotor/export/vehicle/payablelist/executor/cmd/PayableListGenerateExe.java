@@ -19,10 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -46,37 +44,28 @@ public class PayableListGenerateExe {
         String generateMonth = LocalDateTime.now().minusMonths(1)
                 .format(DateTimeFormatter.ofPattern("yyyyMM"));
 
-        // 查询质检通过的车辆
+        // 查询质检通过的车辆（主表+明细联表查询，聚合 VIN/物料/销售市场等车辆明细字段）
         VehicleCbuSoQo qo = new VehicleCbuSoQo();
         qo.setQcResult(VehicleCbuSoQcResultEnum.PASSED.getCode());
-        List<VehicleCbuSoDo> qcPassedList = vehicleCbuSoGateway.listVehicleCbuSo(qo);
 
-        if (qcPassedList.isEmpty()) {
-            log.info("月度生成：无质检通过的车辆，任务结束");
-            return;
-        }
-
-        // 查询已绑定的 SO 订单 ID 列表
+        // 已绑定到应付清单的 SO 通过 NOT IN 排除，避免内存过滤
         List<String> boundSoIds = payableListDetailGateway.listAllBoundSoIds();
-        Set<String> boundSoIdSet = new HashSet<>(boundSoIds);
+        qo.setExcludeIds(boundSoIds);
 
-        // 过滤出未绑定的车辆
-        List<VehicleCbuSoDo> unboundList = qcPassedList.stream()
-                .filter(so -> !boundSoIdSet.contains(so.getId()))
-                .toList();
+        List<VehicleCbuSoDo> soList = vehicleCbuSoGateway.listSoList(qo);
 
-        if (unboundList.isEmpty()) {
-            log.info("月度生成：质检通过的车辆均已绑定，任务结束");
+        if (soList.isEmpty()) {
+            log.info("月度生成：无质检通过且未绑定的车辆，任务结束");
             return;
         }
 
         // 转换为 DTO
-        List<SoOrderForPayableDto> soList = unboundList.stream()
+        List<SoOrderForPayableDto> soDtos = soList.stream()
                 .map(this::convertToDto)
                 .toList();
 
         // 按客户编码分组
-        Map<String, List<SoOrderForPayableDto>> customerGroups = soList.stream()
+        Map<String, List<SoOrderForPayableDto>> customerGroups = soDtos.stream()
                 .collect(Collectors.groupingBy(SoOrderForPayableDto::getCustomerCode));
 
         for (Map.Entry<String, List<SoOrderForPayableDto>> entry : customerGroups.entrySet()) {
@@ -122,7 +111,7 @@ public class PayableListGenerateExe {
                 detail.setMaterialCode(so.getMaterialCode());
                 detail.setMaterialDesc(so.getMaterialDesc());
                 detail.setPrice(so.getVehiclePrice());
-                detail.setQcPassTime(so.getQcResultTime());
+                detail.setQcPassTime(so.getQcPassTime());
                 detail.setIsReceived(0);
 
                 // 从SO获取的其他信息
@@ -167,7 +156,7 @@ public class PayableListGenerateExe {
         dto.setVehiclePrice(soDo.getVehiclePrice());
         dto.setFrozenAmount(soDo.getFrozenAmount());
         dto.setReceivableAmount(soDo.getReceivableAmount());
-        dto.setQcResultTime(soDo.getQcResultTime());
+        dto.setQcPassTime(soDo.getQcResultTime());
         dto.setPoCreateTime(soDo.getReceiveOrderTime());
         dto.setSaleMarket(soDo.getSalesMarket());
         dto.setModelYear(soDo.getModelYear());

@@ -2,9 +2,10 @@ package com.leapmotor.export.vehicle.controller.web.payablelist;
 
 import com.leapmotor.export.vehicle.payablelist.dto.SoOrderForPayableDto;
 import com.leapmotor.export.vehicle.payablelist.req.*;
-import com.leapmotor.export.vehicle.payablelist.resp.ExcelBaseResult;
 import com.leapmotor.export.vehicle.payablelist.resp.PayableListResp;
 import com.leapmotor.export.vehicle.payablelist.service.PayableListService;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
 import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
@@ -16,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 应付清单管理 PC端接口
@@ -41,8 +43,11 @@ public class PayableListManagementController {
     @Operation(summary = "应付清单详情查询")
     @ResourcePermission(value = "web:payableList:payableListManagement:get", desc = "应付清单详情查询")
     @PostMapping("/get")
-    public AjaxResult<PayableListResp> get(@RequestBody String id) {
-        return AjaxResult.success(payableListService.getPayableListById(id));
+    public AjaxResult<PayableListResp> get(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(payableListService.getPayableListById(param.getId()));
     }
 
     @Operation(summary = "提交应付清单")
@@ -69,7 +74,7 @@ public class PayableListManagementController {
     @Operation(summary = "查询可添加车辆")
     @ResourcePermission(value = "web:payableList:payableListManagement:queryAvailableVehicles", desc = "查询可添加车辆")
     @PostMapping("/queryAvailableVehicles")
-    public AjaxResult<List<SoOrderForPayableDto>> queryAvailableVehicles(@RequestBody PayableListQueryAvailableVehiclesReq req) {
+    public AjaxResult<PageResult<SoOrderForPayableDto>> queryAvailableVehicles(@RequestBody PayableListQueryAvailableVehiclesReq req) {
         return AjaxResult.success(payableListService.queryAvailableVehicles(req));
     }
 
@@ -94,11 +99,4 @@ public class PayableListManagementController {
         return AjaxResult.success(payableListService.importPrice(dto));
     }
 
-    @Operation(summary = "删除应付清单")
-    @ResourcePermission(value = "web:payableList:payableListManagement:delete", desc = "删除应付清单")
-    @PostMapping("/delete")
-    public AjaxResult<Void> delete(@RequestBody List<String> ids) {
-        payableListService.deletePayableListByIds(ids);
-        return AjaxResult.success();
-    }
 }

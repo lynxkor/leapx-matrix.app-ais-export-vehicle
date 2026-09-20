@@ -1,6 +1,7 @@
 package com.leapmotor.export.vehicle.infrastructure.payablelist.gatewayimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.export.vehicle.infrastructure.payablelist.convertor.PayableListDetailStructMapper;
@@ -87,10 +88,9 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
 
     @Override
     public PageResult<PayableListDetailDo> pagePayableListDetail(PayableListDetailQo qo) {
-        Page<PayableListDetail> page = new Page<>(qo.getPageNum(), qo.getPageSize());
-        QueryWrapper<PayableListDetail> queryWrapper = payableListDetailDao.buildQueryWrapper(qo);
-        Page<PayableListDetail> result = payableListDetailMapper.selectPage(page, queryWrapper);
-        return PageUtils.transferPage(PayableListDetailStructMapper.INSTANCE::dataObjectsToDomains, result);
+        Page<PayableListDetailDo> page = new Page<>(qo.getPageNum(), qo.getPageSize());
+        Page<PayableListDetailDo> result = payableListDetailMapper.pageDetailWithListNo(page, qo);
+        return PageUtils.transferPage(r -> r, result);
     }
 
     @Override
@@ -174,14 +174,57 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
 
     @Override
     public int updateBillStatusByPayableListId(String payableListId, String billStatus, LocalDateTime submitDate, LocalDateTime confirmTime) {
-        UpdateWrapper<PayableListDetail> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.lambda().eq(PayableListDetail::getPayableListId, payableListId);
+        PayableListDetailDo redundantFields = new PayableListDetailDo();
+        redundantFields.setBillStatus(billStatus);
+        redundantFields.setSubmitDate(submitDate);
+        redundantFields.setConfirmTime(confirmTime);
+        return updateRedundantFieldsByPayableListId(payableListId, redundantFields);
+    }
 
-        PayableListDetail update = new PayableListDetail();
-        update.setBillStatus(billStatus);
-        update.setSubmitDate(submitDate);
-        update.setConfirmTime(confirmTime);
+    @Override
+    public int updateReceiveStatusById(String id, Integer isReceived, LocalDateTime receiveTime) {
+        // 只更新收款维度的两个字段，避免全量回写快照覆盖明细其它列（尤其是冗余列）
+        LambdaUpdateWrapper<PayableListDetail> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(PayableListDetail::getId, id)
+                .set(PayableListDetail::getIsReceived, isReceived)
+                .set(receiveTime != null, PayableListDetail::getReceiveTime, receiveTime);
+        return payableListDetailMapper.update(null, updateWrapper);
+    }
 
-        return payableListDetailMapper.update(update, updateWrapper);
+    @Override
+    public int updateRedundantFieldsByPayableListId(String payableListId, PayableListDetailDo redundantFields) {
+        // 只更新本次业务实际变更的字段：入参为 null 表示本次不涉及该字段，明细表对应列保持原值
+        if (redundantFields == null || isAllNull(redundantFields)) {
+            return 0;
+        }
+        LambdaUpdateWrapper<PayableListDetail> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(PayableListDetail::getPayableListId, payableListId)
+                .set(redundantFields.getBillStatus() != null, PayableListDetail::getBillStatus, redundantFields.getBillStatus())
+                .set(redundantFields.getCustomerCode() != null, PayableListDetail::getCustomerCode, redundantFields.getCustomerCode())
+                .set(redundantFields.getCustomerName() != null, PayableListDetail::getCustomerName, redundantFields.getCustomerName())
+                .set(redundantFields.getGenerateMonth() != null, PayableListDetail::getGenerateMonth, redundantFields.getGenerateMonth())
+                .set(redundantFields.getSubmitDate() != null, PayableListDetail::getSubmitDate, redundantFields.getSubmitDate())
+                .set(redundantFields.getConfirmTime() != null, PayableListDetail::getConfirmTime, redundantFields.getConfirmTime());
+
+        return payableListDetailMapper.update(null, updateWrapper);
+    }
+
+    @Override
+    public int advanceBillStatusByPayableListId(String payableListId, String billStatus) {
+        // 仅当目标状态编码大于明细当前状态时才更新，避免明细冗余单据状态回退
+        LambdaUpdateWrapper<PayableListDetail> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(PayableListDetail::getPayableListId, payableListId)
+                .lt(PayableListDetail::getBillStatus, billStatus)
+                .set(PayableListDetail::getBillStatus, billStatus);
+        return payableListDetailMapper.update(null, updateWrapper);
+    }
+
+    /**
+     * 待同步的冗余字段是否全部为 null（无字段可更新）
+     */
+    private boolean isAllNull(PayableListDetailDo redundantFields) {
+        return redundantFields.getBillStatus() == null && redundantFields.getCustomerCode() == null
+                && redundantFields.getCustomerName() == null && redundantFields.getGenerateMonth() == null
+                && redundantFields.getSubmitDate() == null && redundantFields.getConfirmTime() == null;
     }
 }

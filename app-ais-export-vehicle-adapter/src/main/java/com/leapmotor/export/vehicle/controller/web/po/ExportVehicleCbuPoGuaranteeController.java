@@ -51,11 +51,14 @@ public class ExportVehicleCbuPoGuaranteeController {
         return AjaxResult.success(purchaseOrderGuaranteeService.pageExportVehicleCbuPoGuarantee(purchaseOrderGuaranteeParam));
     }
 
-    @Operation(summary = "PO-保函关联表(一个PO多保函)详情信息")
-    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:get",desc="PO-保函关联表(一个PO多保函)详情信息")
+    @Operation(summary = "PO-保函关联表 (一个PO多保函)详情信息")
+    @ResourcePermission(value="web:po:exportVehicleCbuPoGuarantee:get",desc="PO-保函关联表 (一个PO多保函)详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<ExportVehicleCbuPoGuaranteeResp> getExportVehicleCbuPoGuaranteeById(@RequestBody String id) {
-        return AjaxResult.success(purchaseOrderGuaranteeService.getExportVehicleCbuPoGuaranteeById(id));
+    public AjaxResult<ExportVehicleCbuPoGuaranteeResp> getExportVehicleCbuPoGuaranteeById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(purchaseOrderGuaranteeService.getExportVehicleCbuPoGuaranteeById(param.getId()));
     }
 
     @Operation(summary = "PO-保函关联表(一个PO多保函)新增/编辑")

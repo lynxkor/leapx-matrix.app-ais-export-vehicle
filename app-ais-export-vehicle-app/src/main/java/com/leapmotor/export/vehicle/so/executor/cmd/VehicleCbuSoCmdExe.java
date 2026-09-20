@@ -1246,20 +1246,23 @@ public class VehicleCbuSoCmdExe {
 
     private SapOrderSyncReq buildSapOrderSyncReq(VehicleCbuSoDo so, VehicleCbuSoDetailDo detail) {
         SapOrderSyncReq req = new SapOrderSyncReq();
-        req.setIvSysid("DMS");
+        req.setIvSysid("AIS");
 
         SapOrderSyncReq.IsHead head = new SapOrderSyncReq.IsHead();
         head.setSorder(so.getSoNo());
         head.setPorder(so.getPoNo());
         head.setErdat(so.getReceiveOrderTime() != null
                 ? so.getReceiveOrderTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
-        head.setLstatus("77");
-        head.setLsdatum(so.getQcResultTime() != null
-                ? so.getQcResultTime().format(DateTimeFormatter.BASIC_ISO_DATE) : null);
+        head.setLstatus("77-质检通过");
+        LocalDateTime qcResultTime = so.getQcResultTime();
+        head.setLsdatum(qcResultTime != null
+                ? qcResultTime.format(DateTimeFormatter.BASIC_ISO_DATE) : null);
+        head.setLsuzeit(qcResultTime != null
+                ? qcResultTime.format(DateTimeFormatter.ofPattern("HHmmss")) : null);
         head.setBukrs(so.getSalesCompanyCode());
         head.setKunnr(so.getCustomerCode());
         head.setRecordType(convertOrderTypeToRecordType(so.getOrderType()));
-        head.setOrderWay("100");
+        head.setOrderWay("100-红旗CBU订单");
         req.setIsHead(head);
 
         SapOrderSyncReq.ImTabItem item = new SapOrderSyncReq.ImTabItem();

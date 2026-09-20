@@ -5,7 +5,7 @@ import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.HongqiProductionNodeNotif
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiProductionNodeResultData;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResult;
 import com.leapmotor.export.vehicle.acl.rpc.hongqi.response.HongqiResultData;
-import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqReq;
+import com.leapmotor.export.vehicle.acl.rpc.hongqi.req.PayableListSyncHqRecordReq;
 
 import java.util.List;
 
@@ -36,10 +36,10 @@ public interface HongqiGateway {
     HongqiResult<List<HongqiProductionNodeResultData>> pushProductionNodeSync(List<HongqiProductionNodeNotifyReq> req);
 
     /**
-     * 应付清单同步红旗。
+     * 应付清单同步红旗 EP（走出口网关 /external/hongqi-ep，token 与固定请求头由网关注入）。
      *
-     * @param req 应付清单同步请求
-     * @return 红旗返回
+     * @param req 应付清单同步请求（records 结构为 EP 文档格式，复用 PayableListSyncHqRecordReq）
+     * @return 统一响应壳（code=200 成功）
      */
-    HongqiResult syncPayableList(PayableListSyncHqReq req);
+    HongqiResult syncPayableListEp(PayableListSyncHqRecordReq req);
 }

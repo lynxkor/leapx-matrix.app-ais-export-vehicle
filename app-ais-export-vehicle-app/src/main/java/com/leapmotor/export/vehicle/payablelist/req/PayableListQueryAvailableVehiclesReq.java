@@ -1,6 +1,8 @@
 package com.leapmotor.export.vehicle.payablelist.req;
 
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 
@@ -11,7 +13,8 @@ import java.io.Serializable;
  * @since 2026-08-10
  */
 @Data
-public class PayableListQueryAvailableVehiclesReq implements Serializable {
+@EqualsAndHashCode(callSuper = true)
+public class PayableListQueryAvailableVehiclesReq extends LpBaseParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -21,12 +24,12 @@ public class PayableListQueryAvailableVehiclesReq implements Serializable {
     private String payableListId;
 
     /**
-     * VIN号（模糊查询）
+     * VIN号（精确查询）
      */
     private String vin;
 
     /**
-     * SO订单号（模糊查询）
+     * SO订单号（精确查询）
      */
     private String soNo;
 }

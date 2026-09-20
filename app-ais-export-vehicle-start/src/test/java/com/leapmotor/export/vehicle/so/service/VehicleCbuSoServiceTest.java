@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * CBU SO 创建 Service 集成测试
  *
+ * <p><b>注意：</b>本类未 mock SapGateway，禁止在此添加直接调用 SAP 的测试方法。
+ * SAP 相关测试请移至 {@link VehicleCbuSoCallbackServiceTest}（已 @MockBean SapGateway）。
+ *
  * @author lijianuo
  * @since 2026-07-13
  */

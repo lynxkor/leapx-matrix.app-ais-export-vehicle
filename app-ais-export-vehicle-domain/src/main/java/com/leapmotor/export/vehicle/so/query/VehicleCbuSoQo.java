@@ -2,16 +2,14 @@ package com.leapmotor.export.vehicle.so.query;
 
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoQcResultEnum;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseQo;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import lombok.EqualsAndHashCode;
-import lombok.Data;
-
-import java.io.Serializable;
 
 /**
  *
@@ -256,6 +254,11 @@ public class VehicleCbuSoQo extends LpBaseQo implements Serializable {
      * 内部车辆号列表（批量精确查询）
      */
     private List<String> internalVehicleNos;
+
+    /**
+     * 排除的SO主键ID列表（NOT IN，用于过滤已绑定应付清单的SO）
+     */
+    private List<String> excludeIds;
 
     /**
      * APS最新同步结果：0失败、1成功

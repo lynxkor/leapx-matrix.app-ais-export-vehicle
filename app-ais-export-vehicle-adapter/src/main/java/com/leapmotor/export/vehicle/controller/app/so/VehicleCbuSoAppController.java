@@ -2,6 +2,7 @@ package com.leapmotor.export.vehicle.controller.app.so;
 
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
+import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import com.leapmotor.export.vehicle.so.resp.VehicleCbuSoResp;
 import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import org.springframework.web.bind.annotation.*;
 import lombok.AllArgsConstructor;
+import java.util.Objects;
 
 /**
  * CBU整车销售订单主表 移动端接口控制器
@@ -36,8 +38,11 @@ public class VehicleCbuSoAppController {
     @Operation(summary = "CBU整车销售订单主表详情信息")
     @ResourcePermission("app:so:vehicleCbuSo:get")
     @PostMapping(value = "/get")
-    public AjaxResult<VehicleCbuSoResp> getVehicleCbuSoById(@RequestBody String id) {
-        return AjaxResult.success(vehicleCbuSoService.getVehicleCbuSoById(id));
+    public AjaxResult<VehicleCbuSoResp> getVehicleCbuSoById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(vehicleCbuSoService.getVehicleCbuSoById(param.getId()));
     }
 
 }

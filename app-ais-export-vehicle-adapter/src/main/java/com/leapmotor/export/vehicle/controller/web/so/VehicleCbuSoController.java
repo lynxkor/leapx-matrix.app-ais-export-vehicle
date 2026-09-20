@@ -62,15 +62,21 @@ public class VehicleCbuSoController {
     @Operation(summary = "CBU整车销售订单主表详情信息")
     @ResourcePermission(value = "web:so:vehicleCbuSo:get", desc = "CBU整车销售订单主表详情信息")
     @PostMapping(value = "/get")
-    public AjaxResult<VehicleCbuSoResp> getVehicleCbuSoById(@RequestBody String id) {
-        return AjaxResult.success(vehicleCbuSoService.getVehicleCbuSoById(id));
+    public AjaxResult<VehicleCbuSoResp> getVehicleCbuSoById(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(vehicleCbuSoService.getVehicleCbuSoById(param.getId()));
     }
 
     @Operation(summary = "CBU整车销售订单聚合详情")
     @ResourcePermission(value = "web:so:vehicleCbuSo:detail", desc = "CBU整车销售订单聚合详情")
     @PostMapping("/detail")
-    public AjaxResult<VehicleCbuSoDetailAggregateResp> detail(@RequestBody String id) {
-        return AjaxResult.success(vehicleCbuSoService.detail(id));
+    public AjaxResult<VehicleCbuSoDetailAggregateResp> detail(@RequestBody LpBaseParam param) {
+        if (Objects.isNull(param) || Objects.isNull(param.getId())) {
+            return AjaxResult.fail("参数ID不能为空");
+        }
+        return AjaxResult.success(vehicleCbuSoService.detail(param.getId()));
     }
 
     @Operation(summary = "CBU整车销售订单下发生产")

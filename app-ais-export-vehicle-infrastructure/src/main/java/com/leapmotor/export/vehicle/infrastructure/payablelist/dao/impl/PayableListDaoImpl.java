@@ -27,6 +27,9 @@ public class PayableListDaoImpl extends ServiceImpl<PayableListMapper, PayableLi
         QueryWrapper<PayableList> queryWrapper = PayableListDao.super.buildBasicQueryWrapper(query);
         queryWrapper.lambda()
                 .like(StringUtils.isNotBlank(query.getPayableListNo()), PayableList::getPayableListNo, query.getPayableListNo())
+                .like(StringUtils.isNotBlank(query.getPayableListNoLike()), PayableList::getPayableListNo, query.getPayableListNoLike())
+                .in(query.getPayableListNos() != null && !query.getPayableListNos().isEmpty(),
+                        PayableList::getPayableListNo, query.getPayableListNos())
                 .in(query.getBillStatusList() != null && !query.getBillStatusList().isEmpty(),
                         PayableList::getBillStatus, query.getBillStatusList())
                 .eq(StringUtils.isNotBlank(query.getCustomerCode()), PayableList::getCustomerCode, query.getCustomerCode())

@@ -1,13 +1,15 @@
 package com.leapmotor.export.vehicle.acl.rpc.sap.req;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 应付清单同步SAP请求
+ * 应付清单同步 SAP 请求（按 SAP 接口文档 ZSD_DMS_G117_PAYLIST）。
+ *
  *
  * @author 赵吴涯
  * @since 2026-07-21
@@ -18,78 +20,53 @@ public class PayableListSyncSapReq implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 应付清单编号
+     * 系统标识，默认 DMS
      */
-    private String payableListNo;
+    @JsonProperty("IV_SYSID")
+    @JSONField(name = "IV_SYSID")
+    private String ivSysid = "AIS";
 
     /**
-     * 客户编码
+     * 传入 VIN 明细（表格）
      */
-    private String customerCode;
+    @JsonProperty("IM_TAB")
+    @JSONField(name = "IM_TAB")
+    private List<ImTabItem> imTab;
 
     /**
-     * 客户名称
-     */
-    private String customerName;
-
-    /**
-     * 生成月份
-     */
-    private String generateMonth;
-
-    /**
-     * 车辆总数量
-     */
-    private Integer totalVehicles;
-
-    /**
-     * 金额合计
-     */
-    private BigDecimal totalAmount;
-
-    /**
-     * 明细列表
-     */
-    private List<Detail> details;
-
-    /**
-     * 明细信息
+     * IM_TAB 行项目
      */
     @Data
-    public static class Detail implements Serializable {
-        /**
-         * SO订单号
-         */
-        private String soNo;
+    public static class ImTabItem implements Serializable {
+
+        private static final long serialVersionUID = 1L;
 
         /**
-         * PO单号
+         * 付款清单编号（应付清单编号）
          */
-        private String poNo;
+        @JsonProperty("PAYNR")
+        @JSONField(name = "PAYNR")
+        private String paynr;
 
         /**
-         * VIN号
+         * 红旗 PO
          */
-        private String vin;
+        @JsonProperty("PORDER")
+        @JSONField(name = "PORDER")
+        private String porder;
 
         /**
-         * 整车物料编码
+         * 销服 SO
          */
-        private String materialCode;
+        @JsonProperty("SORDER")
+        @JSONField(name = "SORDER")
+        private String sorder;
 
         /**
-         * 物料描述
+         * VIN 码
          */
-        private String materialDesc;
-
-        /**
-         * 车辆价格
-         */
-        private BigDecimal price;
-
-        /**
-         * 质检通过时间
-         */
-        private String qcPassTime;
+        @JsonProperty("VHVIN")
+        @JSONField(name = "VHVIN")
+        private String vhvin;
     }
 }

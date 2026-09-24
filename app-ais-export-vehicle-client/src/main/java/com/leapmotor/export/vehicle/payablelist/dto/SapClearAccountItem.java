@@ -49,10 +49,10 @@ public class SapClearAccountItem implements Serializable {
     private String vhvin;
 
     /**
-     * 清账日期，格式 yyyy-MM-dd HH:mm:ss
+     * 清账日期，格式 yyyy-MM-dd（可含 yyyy-MM-dd HH:mm:ss）
      */
     @JsonProperty("augdt")
     @JSONField(name = "augdt")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd[' 'HH:mm:ss]")
     private LocalDateTime augdt;
 }

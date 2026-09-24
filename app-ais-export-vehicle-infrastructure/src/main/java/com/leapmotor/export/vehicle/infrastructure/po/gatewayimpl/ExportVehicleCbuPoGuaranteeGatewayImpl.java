@@ -1,6 +1,6 @@
 package com.leapmotor.export.vehicle.infrastructure.po.gatewayimpl;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
@@ -114,10 +114,10 @@ public class ExportVehicleCbuPoGuaranteeGatewayImpl implements ExportVehicleCbuP
         if (StringUtils.isBlank(id) || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return false;
         }
-        // 原子条件更新
-        LambdaUpdateWrapper<ExportVehicleCbuPoGuarantee> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(ExportVehicleCbuPoGuarantee::getId, id)
-                .ge(ExportVehicleCbuPoGuarantee::getPoCurrentReceivableAmount, amount)
+        // 原子条件更新：eq 引用的 getId 定义在基类 LpBaseEntity，MyBatis-Plus Lambda 解析会定位到基类
+        UpdateWrapper<ExportVehicleCbuPoGuarantee> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", id)
+                .ge("po_current_receivable_amount", amount)
                 .setSql("po_current_receivable_amount = po_current_receivable_amount - " + amount.toPlainString());
         return purchaseOrderGuaranteeMapper.update(null, updateWrapper) > 0;
     }

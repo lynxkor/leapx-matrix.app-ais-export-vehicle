@@ -31,6 +31,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -131,11 +132,11 @@ public class SapClearAccountProcessorTest {
         received.setIsReceived(IsReceivedEnum.YES.getCode());
         when(payableListDetailGateway.listByPayableListId(PAYABLE_LIST_ID)).thenReturn(Arrays.asList(received));
 
-        processor.process(buildReq(LocalDateTime.of(2026, 8, 20, 15, 0, 0)));
+        processor.process(buildReq(LocalDateTime.of(2026, 8, 20, 0, 0, 0)));
 
         // 1. 明细更新：只写收款状态与收款时间（条件 SET，不覆盖其它列）
         verify(payableListDetailGateway).updateReceiveStatusById("D-001", IsReceivedEnum.YES.getCode(),
-                LocalDateTime.of(2026, 8, 20, 15, 0, 0));
+                LocalDateTime.of(2026, 8, 20, 0, 0, 0));
 
         // 2. SO 状态更新为已收款
         ArgumentCaptor<VehicleCbuSoDo> soCaptor = ArgumentCaptor.forClass(VehicleCbuSoDo.class);
@@ -558,12 +559,12 @@ public class SapClearAccountProcessorTest {
         item1.setPaynr(PAYABLE_LIST_NO);
         item1.setSorder(SO_NO);
         item1.setVhvin(VIN);
-        item1.setAugdt(LocalDateTime.now());
+        item1.setAugdt(LocalDate.now());
         SapClearAccountItem item2 = new SapClearAccountItem();
         item2.setPaynr(PAYABLE_LIST_NO);
         item2.setSorder(SO_NO);
         item2.setVhvin(VIN);
-        item2.setAugdt(LocalDateTime.now());
+        item2.setAugdt(LocalDate.now());
         List<SapClearAccountItem> clearAccountList = Arrays.asList(item1, item2);
 
         BizException exception = assertThrows(BizException.class, () -> processor.process(clearAccountList));
@@ -597,12 +598,12 @@ public class SapClearAccountProcessorTest {
         item1.setSorder(SO_NO);
         item1.setPaynr(PAYABLE_LIST_NO);
         item1.setVhvin(VIN);
-        item1.setAugdt(LocalDateTime.now());
+        item1.setAugdt(LocalDate.now());
         SapClearAccountItem item2 = new SapClearAccountItem();
         item2.setSorder("SO0002");
         item2.setPaynr(PAYABLE_LIST_NO);
         item2.setVhvin(VIN);
-        item2.setAugdt(LocalDateTime.now());
+        item2.setAugdt(LocalDate.now());
         List<SapClearAccountItem> clearAccountList = Arrays.asList(item1, item2);
 
         BizException exception = assertThrows(BizException.class, () -> processor.process(clearAccountList));
@@ -691,12 +692,12 @@ public class SapClearAccountProcessorTest {
         item1.setPaynr(PAYABLE_LIST_NO);
         item1.setSorder("SO0001");
         item1.setVhvin(VIN);
-        item1.setAugdt(LocalDateTime.now());
+        item1.setAugdt(LocalDate.now());
         SapClearAccountItem item2 = new SapClearAccountItem();
         item2.setPaynr(PAYABLE_LIST_NO);
         item2.setSorder("SO0002");
         item2.setVhvin(VIN);
-        item2.setAugdt(LocalDateTime.now());
+        item2.setAugdt(LocalDate.now());
         List<SapClearAccountItem> clearAccountList = Arrays.asList(item1, item2);
 
         processor.process(clearAccountList);
@@ -859,7 +860,7 @@ public class SapClearAccountProcessorTest {
         item.setPaynr(PAYABLE_LIST_NO);
         item.setSorder(SO_NO);
         item.setVhvin(VIN);
-        item.setAugdt(receiveTime);
+        item.setAugdt(receiveTime.toLocalDate());
         return Arrays.asList(item);
     }
 

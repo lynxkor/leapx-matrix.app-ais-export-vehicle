@@ -147,14 +147,14 @@ public class SapClearAccountProcessor {
         Set<String> releasedKeys = listReleasedKeys(item.getSorder());
 
         // 更新明细收款状态与收款时间（只写收款字段，重复执行写入相同值）
-        payableListDetailGateway.updateReceiveStatusById(detail.getId(), IsReceivedEnum.YES.getCode(), item.getAugdt());
+        payableListDetailGateway.updateReceiveStatusById(detail.getId(), IsReceivedEnum.YES.getCode(), item.getAugdt().atStartOfDay());
         // 更新 SO 状态为已收款
         VehicleCbuSoDo soDo = vehicleCbuSoGateway.getVehicleCbuSoById(detail.getSoId());
         if (soDo == null) {
             throw new BizException("sorder=" + item.getSorder() + " 的SO记录不存在（soId=" + detail.getSoId() + "）");
         }
         soDo.setOrderStatus(VehicleCbuSoStatusEnum.RECEIVED.getCode());
-        soDo.setReceiveTime(item.getAugdt());
+        soDo.setReceiveTime(item.getAugdt().atStartOfDay());
         vehicleCbuSoGateway.updateVehicleCbuSo(soDo);
 
         // 查询该SO对应的保函转应收记录

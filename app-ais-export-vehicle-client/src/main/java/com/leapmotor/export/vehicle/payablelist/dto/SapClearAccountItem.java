@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
  * SAP清账车辆项
@@ -49,10 +49,10 @@ public class SapClearAccountItem implements Serializable {
     private String vhvin;
 
     /**
-     * 清账日期，格式 yyyy-MM-dd HH:mm:ss
+     * 清账日期，格式 yyyy-MM-dd
      */
     @JsonProperty("augdt")
     @JSONField(name = "augdt")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime augdt;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate augdt;
 }

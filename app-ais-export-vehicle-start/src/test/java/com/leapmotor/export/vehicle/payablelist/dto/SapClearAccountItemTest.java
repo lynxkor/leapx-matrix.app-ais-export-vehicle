@@ -9,7 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,9 +30,9 @@ public class SapClearAccountItemTest {
     /** SAP 实际回调报文：顶层数组，键名为小写，同一清单下多条 SO */
     private static final String SAP_REQUEST = "["
             + "{\"paynr\":\"PL20260801001\",\"porder\":\"HQ20260801001\",\"sorder\":\"SO20260801001\","
-            + "\"vhvin\":\"LGWEF4A52JJ123456\",\"augdt\":\"2026-07-31 10:03:49\"},"
+            + "\"vhvin\":\"LGWEF4A52JJ123456\",\"augdt\":\"2026-07-31\"},"
             + "{\"paynr\":\"PL20260801001\",\"porder\":\"HQ20260801001\",\"sorder\":\"SO20260801002\","
-            + "\"vhvin\":\"LGWEF4A52JJ123457\",\"augdt\":\"2026-07-31 10:03:49\"}"
+            + "\"vhvin\":\"LGWEF4A52JJ123457\",\"augdt\":\"2026-07-31\"}"
             + "]";
 
     @Test
@@ -51,8 +51,8 @@ public class SapClearAccountItemTest {
         assertEquals("HQ20260801001", item.getPorder(), "porder 应映射为PO订单号");
         assertEquals("SO20260801001", item.getSorder(), "sorder 应映射为SO订单号");
         assertEquals("LGWEF4A52JJ123456", item.getVhvin(), "vhvin 应映射为车辆VIN号");
-        assertEquals(LocalDateTime.of(2026, 7, 31, 10, 3, 49), item.getAugdt(),
-                "augdt 应按 yyyy-MM-dd HH:mm:ss 解析为清账日期");
+        assertEquals(LocalDate.of(2026, 7, 31), item.getAugdt(),
+                "augdt 应按 yyyy-MM-dd 解析为清账日期");
         assertEquals("SO20260801002", list.get(1).getSorder(), "第二条 sorder 应正确映射");
     }
 
@@ -68,6 +68,6 @@ public class SapClearAccountItemTest {
         assertEquals("HQ20260801001", item.getPorder(), "porder 应映射");
         assertEquals("SO20260801001", item.getSorder(), "sorder 应映射");
         assertEquals("LGWEF4A52JJ123456", item.getVhvin(), "vhvin 应映射");
-        assertEquals(LocalDateTime.of(2026, 7, 31, 10, 3, 49), item.getAugdt(), "augdt 应映射");
+        assertEquals(LocalDate.of(2026, 7, 31), item.getAugdt(), "augdt 应映射");
     }
 }

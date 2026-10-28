@@ -3,11 +3,9 @@ package com.leapmotor.export.vehicle.payablelist.executor.integration;
 import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
 import com.leapmotor.export.vehicle.base.event.enums.SapEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
-import com.leapmotor.export.vehicle.payablelist.dto.PayableListForSapDto;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.platform.ais.common.redis.BlockLock;
@@ -19,8 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 红旗确认结果处理器
@@ -115,12 +111,11 @@ public class HqConfirmProcessor {
             payableListDetailGateway.updateBillStatusByPayableListId(
                     db.getId(), PayableListStatusEnum.CONFIRMED.getCode(), null, confirmTime);
             // 发布 SAP 同步事件（异步，事务提交后执行）
-            PayableListForSapDto sapPayload = buildSapPayload(db);
             eventHandlerHelper.publishAsync(
                 ThirdTargetPlatformEnum.SAP,
                 SapEventTypeEnum.PAYABLE_LIST_SYNC_SAP_SUBMIT,
                 db.getPayableListNo(),
-                sapPayload
+                (Object) null
             );
 
             log.info("红旗确认通过，payableListNo={}，已发布SAP同步事件", payableListNo);
@@ -141,34 +136,5 @@ public class HqConfirmProcessor {
         } catch (Exception e) {
             log.warn("释放锁异常, lockKey={}, 可能已提前过期, msg={}", lockKey, e.getMessage());
         }
-    }
-
-    /**
-     * 构建 SAP 同步数据
-     */
-    private PayableListForSapDto buildSapPayload(PayableListDo db) {
-        PayableListForSapDto dto = new PayableListForSapDto();
-        dto.setPayableListNo(db.getPayableListNo());
-        dto.setCustomerCode(db.getCustomerCode());
-        dto.setCustomerName(db.getCustomerName());
-        dto.setTotalAmount(db.getTotalAmount());
-
-        // 查询明细列表
-        List<PayableListDetailDo> detailList = payableListDetailGateway.listByPayableListId(db.getId());
-        if (detailList != null && !detailList.isEmpty()) {
-            List<PayableListForSapDto.PayableListDetailForSapDto> details = detailList.stream()
-                .map(detail -> {
-                    PayableListForSapDto.PayableListDetailForSapDto detailDto = new PayableListForSapDto.PayableListDetailForSapDto();
-                    detailDto.setSoNo(detail.getSoNo());
-                    detailDto.setPoNo(detail.getPoNo());
-                    detailDto.setVin(detail.getVin());
-                    detailDto.setPrice(detail.getPrice());
-                    return detailDto;
-                })
-                .collect(Collectors.toList());
-            dto.setDetails(details);
-        }
-
-        return dto;
     }
 }

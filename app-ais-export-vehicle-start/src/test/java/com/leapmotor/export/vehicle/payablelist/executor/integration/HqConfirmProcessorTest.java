@@ -3,11 +3,9 @@ package com.leapmotor.export.vehicle.payablelist.executor.integration;
 import com.leapmotor.export.vehicle.base.event.EventHandlerHelper;
 import com.leapmotor.export.vehicle.base.event.enums.SapEventTypeEnum;
 import com.leapmotor.export.vehicle.base.event.enums.ThirdTargetPlatformEnum;
-import com.leapmotor.export.vehicle.payablelist.dto.PayableListForSapDto;
 import com.leapmotor.export.vehicle.payablelist.enums.PayableListStatusEnum;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
-import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
 import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
 import com.leapmotor.platform.ais.common.redis.BlockLock;
@@ -24,9 +22,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -99,8 +94,6 @@ public class HqConfirmProcessorTest {
     public void testProcess_confirmSuccess() {
         PayableListDo db = buildPayableList(PayableListStatusEnum.SUBMITTED.getCode());
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
-        when(payableListDetailGateway.listByPayableListId(db.getId()))
-                .thenReturn(buildDetails(db.getId()));
 
         LocalDateTime confirmTime = LocalDateTime.of(2026, 8, 20, 10, 30, 0);
         processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE, confirmTime, "确认通过");
@@ -116,21 +109,17 @@ public class HqConfirmProcessorTest {
         verify(payableListDetailGateway).updateBillStatusByPayableListId(
                 eq(db.getId()), eq(PayableListStatusEnum.CONFIRMED.getCode()), isNull(), eq(confirmTime));
 
-        // SAP 同步事件发布（payload 带抬头与明细信息）
-        ArgumentCaptor<PayableListForSapDto> payloadCaptor = ArgumentCaptor.forClass(PayableListForSapDto.class);
+        // SAP 同步事件发布：只携带清单编号，载荷不预构建（明细由消费端回查）
+        ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(eventHandlerHelper).publishAsync(
                 eq(ThirdTargetPlatformEnum.SAP),
                 eq(SapEventTypeEnum.PAYABLE_LIST_SYNC_SAP_SUBMIT),
                 eq(PAYABLE_LIST_NO),
                 payloadCaptor.capture());
-        PayableListForSapDto payload = payloadCaptor.getValue();
-        assertEquals(PAYABLE_LIST_NO, payload.getPayableListNo(), "事件载荷应携带清单编号");
-        assertEquals("CUST001", payload.getCustomerCode(), "事件载荷应携带客户编码");
-        assertNotNull(payload.getDetails(), "事件载荷应携带明细列表");
-        assertEquals(2, payload.getDetails().size(), "事件载荷明细数量应与清单明细一致");
-        assertEquals("SO0001", payload.getDetails().get(0).getSoNo(), "事件载荷明细应携带SO单号");
-        assertEquals("PO0001", payload.getDetails().get(0).getPoNo(), "事件载荷明细应携带PO单号");
-        assertEquals("LFZ_001", payload.getDetails().get(0).getVin(), "事件载荷明细应携带VIN");
+        assertNull(payloadCaptor.getValue(), "事件载荷应为 null：全量明细不再写入定长 data_param");
+
+        // 确认环节不应发生明细查询：明细属于消费端职责，此处查了也不用
+        verify(payableListDetailGateway, never()).listByPayableListId(anyString());
     }
 
     @Test
@@ -143,7 +132,7 @@ public class HqConfirmProcessorTest {
                 LocalDateTime.now(), "重复确认");
 
         verify(payableListGateway, never()).updatePayableList(any());
-        verify(eventHandlerHelper, never()).publishAsync(any(), any(), any(), any());
+        verifyNoInteractions(eventHandlerHelper);
         verify(payableListDetailGateway, never()).updateBillStatusByPayableListId(any(), any(), any(), any());
     }
 
@@ -159,7 +148,7 @@ public class HqConfirmProcessorTest {
         assertTrue(exception.getMessage().contains("当前状态不允许确认"),
                 "异常消息应包含 '当前状态不允许确认'");
         verify(payableListGateway, never()).updatePayableList(any());
-        verify(eventHandlerHelper, never()).publishAsync(any(), any(), any(), any());
+        verifyNoInteractions(eventHandlerHelper);
     }
 
     // ==================== 驳回场景 ====================
@@ -185,7 +174,7 @@ public class HqConfirmProcessorTest {
                 eq(db.getId()), eq(PayableListStatusEnum.REJECTED.getCode()), isNull(), eq(confirmTime));
 
         // 驳回不发布 SAP 事件
-        verify(eventHandlerHelper, never()).publishAsync(any(), any(), any(), any());
+        verifyNoInteractions(eventHandlerHelper);
     }
 
     @Test
@@ -256,26 +245,23 @@ public class HqConfirmProcessorTest {
     }
 
     @Test
-    @DisplayName("确认成功 — 清单无明细时payload明细为空且仍发布SAP事件")
+    @DisplayName("确认成功 — 清单无明细时仍发布事件，明细缺失由消费端拦截")
     public void testProcess_confirmSuccessNoDetails() {
         PayableListDo db = buildPayableList(PayableListStatusEnum.SUBMITTED.getCode());
         when(payableListGateway.getPayableListByNo(PAYABLE_LIST_NO)).thenReturn(db);
-        when(payableListDetailGateway.listByPayableListId(db.getId()))
-                .thenReturn(Collections.emptyList());
 
         processor.process(PAYABLE_LIST_NO, CONFIRM_RESULT_APPROVE,
                 LocalDateTime.of(2026, 8, 20, 10, 30, 0), "确认通过");
 
-        // 事件仍正常发布，payload 不含明细但不抛异常
-        ArgumentCaptor<PayableListForSapDto> payloadCaptor = ArgumentCaptor.forClass(PayableListForSapDto.class);
+        // 事件照常发布：确认环节不查明细，因此"无明细"不会在此处暴露或阻断；
+        // 明细是否存在、是否完整由 PayableListSyncSapHandler 回查时校验并抛错重试
+        ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(eventHandlerHelper).publishAsync(
                 eq(ThirdTargetPlatformEnum.SAP),
                 eq(SapEventTypeEnum.PAYABLE_LIST_SYNC_SAP_SUBMIT),
                 eq(PAYABLE_LIST_NO),
                 payloadCaptor.capture());
-        PayableListForSapDto payload = payloadCaptor.getValue();
-        assertEquals(PAYABLE_LIST_NO, payload.getPayableListNo(), "事件载荷应携带清单编号");
-        assertNull(payload.getDetails(), "清单无明细时事件载荷明细应为空");
+        assertNull(payloadCaptor.getValue(), "无明细时事件载荷同样为 null");
     }
 
     @Test
@@ -316,23 +302,5 @@ public class HqConfirmProcessorTest {
         db.setCustomerName("测试客户");
         db.setTotalAmount(new BigDecimal("300000.00"));
         return db;
-    }
-
-    private List<PayableListDetailDo> buildDetails(String payableListId) {
-        PayableListDetailDo d1 = new PayableListDetailDo();
-        d1.setId("D-001");
-        d1.setPayableListId(payableListId);
-        d1.setSoNo("SO0001");
-        d1.setPoNo("PO0001");
-        d1.setVin("LFZ_001");
-        d1.setPrice(new BigDecimal("150000.00"));
-        PayableListDetailDo d2 = new PayableListDetailDo();
-        d2.setId("D-002");
-        d2.setPayableListId(payableListId);
-        d2.setSoNo("SO0002");
-        d2.setPoNo("PO0002");
-        d2.setVin("LFZ_002");
-        d2.setPrice(new BigDecimal("150000.00"));
-        return Arrays.asList(d1, d2);
     }
 }

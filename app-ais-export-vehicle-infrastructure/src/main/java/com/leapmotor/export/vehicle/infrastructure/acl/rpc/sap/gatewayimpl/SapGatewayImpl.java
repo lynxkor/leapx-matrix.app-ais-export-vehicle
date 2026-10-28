@@ -49,7 +49,7 @@ public class SapGatewayImpl implements SapGateway {
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            log.error("应付清单同步SAP异常：{}", e.getMessage());
+            log.error("应付清单同步SAP异常", e);
             throw new BizException("应付清单同步SAP异常：" + e.getMessage());
         }
     }

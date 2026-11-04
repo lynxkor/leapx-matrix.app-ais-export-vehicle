@@ -4,9 +4,12 @@ import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.response.LpOptionalResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.platform.ais.common.idempotent.annotation.RepeatSubmit;
 import com.leapmotor.platform.ais.common.permission.annotation.ResourcePermission;
 import com.leapmotor.paltform.ais.common.model.enums.BooleanEnum;
+
 import org.springframework.validation.annotation.Validated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -138,5 +141,13 @@ public class VehicleCbuSoController {
         }
         vehicleCbuSoService.enableOrDisableVehicleCbuSoByIds(param);
         return AjaxResult.success();
+    }
+
+    @Operation(summary = "SO订单导入最新价格")
+    @ResourcePermission(value = "web:so:vehicleCbuSo:importPrice", desc = "SO订单导入最新价格")
+    @RepeatSubmit
+    @PostMapping("/importPrice")
+    public AjaxResult<ExcelBaseResult> importPrice(@RequestBody ImportExcelDTO dto) {
+        return AjaxResult.success(vehicleCbuSoService.importPrice(dto));
     }
 }

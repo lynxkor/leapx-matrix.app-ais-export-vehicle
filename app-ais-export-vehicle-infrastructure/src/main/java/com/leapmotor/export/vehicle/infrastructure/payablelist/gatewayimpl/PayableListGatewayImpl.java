@@ -64,6 +64,24 @@ public class PayableListGatewayImpl implements PayableListGateway {
     }
 
     @Override
+    public List<PayableListDo> listByIds(Collection<String> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return java.util.Collections.emptyList();
+        }
+        List<PayableList> payableLists = payableListMapper.selectBatchIds(ids);
+        return PayableListStructMapper.INSTANCE.dataObjectsToDomains(payableLists);
+    }
+
+    @Override
+    public int updateBatchById(List<PayableListDo> payableListDos) {
+        if (CollectionUtils.isEmpty(payableListDos)) {
+            return 0;
+        }
+        List<PayableList> payableLists = PayableListStructMapper.INSTANCE.domainToDataObjects(payableListDos);
+        return payableListDao.updateBatchById(payableLists) ? payableLists.size() : 0;
+    }
+
+    @Override
     public PayableListDo getPayableListById(String id) {
         PayableList payableList = payableListMapper.selectById(id);
         return PayableListStructMapper.INSTANCE.dataObjectToDomain(payableList);

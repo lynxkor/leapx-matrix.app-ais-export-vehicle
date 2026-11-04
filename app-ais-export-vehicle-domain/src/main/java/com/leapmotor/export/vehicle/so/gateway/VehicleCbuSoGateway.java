@@ -50,6 +50,14 @@ public interface VehicleCbuSoGateway {
     String updateVehicleCbuSo(VehicleCbuSoDo vehicleCbuSoDo);
 
     /**
+     * 批量按ID修改VehicleCbuSo（仅更新入参非null字段，避免全量回写覆盖并发变更）
+     *
+     * @param vehicleCbuSoDos 待更新领域对象列表（须携带ID与待更新字段）
+     * @return 影响行数
+     */
+    int updateBatchById(List<VehicleCbuSoDo> vehicleCbuSoDos);
+
+    /**
      * 查询VehicleCbuSo
      *
      * @param id

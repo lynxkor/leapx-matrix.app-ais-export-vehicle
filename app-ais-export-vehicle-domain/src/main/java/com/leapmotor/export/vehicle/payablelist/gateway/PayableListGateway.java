@@ -41,6 +41,22 @@ public interface PayableListGateway {
     String updatePayableList(PayableListDo payableListDo);
 
     /**
+     * 按ID列表批量查询应付清单
+     *
+     * @param ids 主键ID列表
+     * @return 应付清单领域对象列表
+     */
+    List<PayableListDo> listByIds(Collection<String> ids);
+
+    /**
+     * 批量按ID修改应付清单（仅更新入参非null字段，避免全量回写覆盖并发变更）
+     *
+     * @param payableListDos 待更新领域对象列表（须携带ID与待更新字段）
+     * @return 影响行数
+     */
+    int updateBatchById(List<PayableListDo> payableListDos);
+
+    /**
      * 根据ID查询应付清单
      *
      * @param id 主键ID

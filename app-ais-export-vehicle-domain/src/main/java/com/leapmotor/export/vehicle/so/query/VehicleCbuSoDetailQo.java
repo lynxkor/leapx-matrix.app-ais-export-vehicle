@@ -3,6 +3,7 @@ package com.leapmotor.export.vehicle.so.query;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseQo;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.EqualsAndHashCode;
 import lombok.Data;
@@ -26,6 +27,11 @@ public class VehicleCbuSoDetailQo extends LpBaseQo implements Serializable {
      * 关联SO单号
      */
     private String soNo;
+
+    /**
+     * 关联SO单号批量查询
+     */
+    private List<String> soNos;
 
     /**
      * 内部车辆号，从APS获取

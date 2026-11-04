@@ -42,6 +42,14 @@ public interface PayableListDetailGateway {
     String updatePayableListDetail(PayableListDetailDo detailDo);
 
     /**
+     * 批量按ID修改应付清单明细（仅更新入参非null字段，避免全量回写覆盖并发变更）
+     *
+     * @param detailDos 待更新领域对象列表（须携带ID与待更新字段）
+     * @return 影响行数
+     */
+    int updateBatchById(List<PayableListDetailDo> detailDos);
+
+    /**
      * 根据ID查询应付清单明细
      *
      * @param id 主键ID

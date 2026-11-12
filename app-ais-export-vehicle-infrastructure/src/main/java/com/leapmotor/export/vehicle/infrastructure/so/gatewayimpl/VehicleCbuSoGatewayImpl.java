@@ -89,6 +89,15 @@ public class VehicleCbuSoGatewayImpl implements VehicleCbuSoGateway {
     }
 
     @Override
+    public int updateBatchById(List<VehicleCbuSoDo> vehicleCbuSoDos) {
+        if (CollectionUtils.isEmpty(vehicleCbuSoDos)) {
+            return 0;
+        }
+        List<VehicleCbuSo> vehicleCbuSos = VehicleCbuSoStructMapper.INSTANCE.domainToDataObjects(vehicleCbuSoDos);
+        return vehicleCbuSoDao.updateBatchById(vehicleCbuSos) ? vehicleCbuSoDos.size() : 0;
+    }
+
+    @Override
     public VehicleCbuSoDo getVehicleCbuSoById(String id) {
         VehicleCbuSo vehicleCbuSo = vehicleCbuSoDao.getById(id);
         return VehicleCbuSoStructMapper.INSTANCE.dataObjectToDomain(vehicleCbuSo);

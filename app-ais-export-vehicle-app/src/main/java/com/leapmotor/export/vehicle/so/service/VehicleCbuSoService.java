@@ -2,6 +2,8 @@ package com.leapmotor.export.vehicle.so.service;
 
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoParam;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoIssueReq;
 import com.leapmotor.export.vehicle.so.req.VehicleCbuSoCancelReq;
@@ -154,5 +156,13 @@ public interface VehicleCbuSoService {
      * @param req 补推请求
      */
     VehicleCbuSoOperateResult reissueSap(VehicleCbuSoReissueSapReq req);
+
+    /**
+     * SO订单导入最新价格（平台导入服务回调）
+     *
+     * @param dto 平台导入回调参数（Excel行数据JSON）
+     * @return 导入结果（成功数/失败数/失败明细）
+     */
+    ExcelBaseResult importPrice(ImportExcelDTO dto);
 
 }

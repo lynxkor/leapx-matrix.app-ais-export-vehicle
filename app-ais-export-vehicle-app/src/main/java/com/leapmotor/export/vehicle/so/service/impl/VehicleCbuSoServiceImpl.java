@@ -6,6 +6,7 @@ import com.leapmotor.export.nexus.company.response.CompanyResponse;
 import com.leapmotor.export.vehicle.so.convertor.VehicleCbuSoDTOStructMapper;
 import com.leapmotor.export.vehicle.so.convertor.VehicleCbuSoDetailDTOStructMapper;
 import com.leapmotor.export.vehicle.so.executor.cmd.VehicleCbuSoCmdExe;
+import com.leapmotor.export.vehicle.so.executor.cmd.SoImportPriceExe;
 import com.leapmotor.export.vehicle.so.executor.query.VehicleCbuSoQryExe;
 import com.leapmotor.export.vehicle.so.gateway.VehicleCbuSoGateway;
 import com.leapmotor.export.vehicle.so.model.VehicleCbuSoDo;
@@ -28,6 +29,8 @@ import com.leapmotor.export.vehicle.so.service.VehicleCbuSoService;
 import com.leapmotor.paltform.ais.common.model.base.LpBaseParam;
 import com.leapmotor.paltform.ais.common.model.enums.ResultEnum;
 import com.leapmotor.paltform.ais.common.model.exception.BizException;
+import com.leapmotor.paltform.ais.common.model.excel.in.ExcelBaseResult;
+import com.leapmotor.paltform.ais.common.model.excel.in.ImportExcelDTO;
 import com.leapmotor.paltform.ais.common.model.response.AjaxResult;
 import com.leapmotor.paltform.ais.common.model.response.PageResult;
 import lombok.AllArgsConstructor;
@@ -58,6 +61,7 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     private VehicleCbuSoQryExe vehicleCbuSoQryExe;
     private VehicleCbuSoGateway vehicleCbuSoGateway;
     private CompanyApi companyApi;
+    private SoImportPriceExe soImportPriceExe;
 
     @Override
     public VehicleCbuSoResp getVehicleCbuSoById(String id) {
@@ -141,6 +145,11 @@ public class VehicleCbuSoServiceImpl implements VehicleCbuSoService {
     @Override
     public VehicleCbuSoOperateResult reissueSap(VehicleCbuSoReissueSapReq req) {
         return vehicleCbuSoCmdExe.reissueSap(req);
+    }
+
+    @Override
+    public ExcelBaseResult importPrice(ImportExcelDTO dto) {
+        return soImportPriceExe.execute(dto);
     }
 
     @Override

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leapmotor.export.vehicle.infrastructure.pricechangerecord.mapper.PriceChangeRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.leapmotor.export.vehicle.infrastructure.pricechangerecord.entity.PriceChangeRecord">
+        <id column="id" property="id"/>
+        <result column="serial_no" property="serialNo"/>
+        <result column="vin" property="vin"/>
+        <result column="so_no" property="soNo"/>
+        <result column="before_price" property="beforePrice"/>
+        <result column="after_price" property="afterPrice"/>
+        <result column="payable_list_no" property="payableListNo"/>
+        <result column="status_desc" property="statusDesc"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modifier_name" property="modifierName"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_status" property="deleteStatus"/>
+        <result column="status" property="status"/>
+        <result column="owner_user_id" property="ownerUserId"/>
+        <result column="owner_org_id" property="ownerOrgId"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, serial_no, vin, so_no, before_price, after_price, payable_list_no,
+        status_desc, creator, creator_name, create_time, modifier, modifier_name,
+        update_time, delete_status, status, owner_user_id, owner_org_id
+    </sql>
+
+    <sql id="Where_Clause">
+        <where>
+            m.delete_status = 0
+            <if test="qo.vins != null and qo.vins.size() > 0">
+                AND m.vin IN
+                <foreach collection="qo.vins" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.soNos != null and qo.soNos.size() > 0">
+                AND m.so_no IN
+                <foreach collection="qo.soNos" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="qo.createTimeStart != null">
+                AND m.create_time &gt;= #{qo.createTimeStart}
+            </if>
+            <if test="qo.createTimeEnd != null">
+                AND m.create_time &lt;= #{qo.createTimeEnd}
+            </if>
+        </where>
+    </sql>
+
+    <select id="pagePriceChangeRecord" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM export_vehicle_price_change_record m
+        <include refid="Where_Clause"/>
+        ORDER BY m.create_time DESC
+    </select>
+
+</mapper>

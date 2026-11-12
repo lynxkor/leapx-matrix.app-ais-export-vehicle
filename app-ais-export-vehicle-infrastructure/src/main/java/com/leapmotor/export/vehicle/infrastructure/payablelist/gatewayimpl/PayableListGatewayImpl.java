@@ -64,6 +64,24 @@ public class PayableListGatewayImpl implements PayableListGateway {
     }
 
     @Override
+    public List<PayableListDo> listByIds(Collection<String> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return java.util.Collections.emptyList();
+        }
+        List<PayableList> payableLists = payableListMapper.selectBatchIds(ids);
+        return PayableListStructMapper.INSTANCE.dataObjectsToDomains(payableLists);
+    }
+
+    @Override
+    public int updateBatchById(List<PayableListDo> payableListDos) {
+        if (CollectionUtils.isEmpty(payableListDos)) {
+            return 0;
+        }
+        List<PayableList> payableLists = PayableListStructMapper.INSTANCE.domainToDataObjects(payableListDos);
+        return payableListDao.updateBatchById(payableLists) ? payableLists.size() : 0;
+    }
+
+    @Override
     public PayableListDo getPayableListById(String id) {
         PayableList payableList = payableListMapper.selectById(id);
         return PayableListStructMapper.INSTANCE.dataObjectToDomain(payableList);
@@ -119,6 +137,21 @@ public class PayableListGatewayImpl implements PayableListGateway {
                 .lt(PayableList::getBillStatus, billStatus)
                 .set(PayableList::getBillStatus, billStatus);
         return payableListMapper.update(null, updateWrapper);
+    }
+
+    @Override
+    public int recalcTotalAmountAndBumpVersion(Collection<String> payableListIds) {
+        // 子查询以抬头表全名关联本行ID，金额与版本号在单条UPDATE内原子变更；明细过滤delete_status与逻辑删除查询语义一致
+        int rows = 0;
+        for (String payableListId : payableListIds) {
+            LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(PayableList::getId, payableListId)
+                    .setSql("total_amount = (SELECT COALESCE(SUM(price), 0) FROM export_vehicle_payable_list_detail"
+                            + " WHERE payable_list_id = export_vehicle_payable_list.id AND delete_status = 0)")
+                    .setSql("version = version + 1");
+            rows += payableListMapper.update(null, updateWrapper);
+        }
+        return rows;
     }
 
     @Override

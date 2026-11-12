@@ -74,6 +74,15 @@ public class PayableListDetailGatewayImpl implements PayableListDetailGateway {
     }
 
     @Override
+    public int updateBatchById(List<PayableListDetailDo> detailDos) {
+        if (CollectionUtils.isEmpty(detailDos)) {
+            return 0;
+        }
+        List<PayableListDetail> details = PayableListDetailStructMapper.INSTANCE.domainToDataObjects(detailDos);
+        return payableListDetailDao.updateBatchById(details) ? detailDos.size() : 0;
+    }
+
+    @Override
     public PayableListDetailDo getPayableListDetailById(String id) {
         PayableListDetail detail = payableListDetailMapper.selectById(id);
         return PayableListDetailStructMapper.INSTANCE.dataObjectToDomain(detail);

@@ -41,6 +41,22 @@ public interface PayableListGateway {
     String updatePayableList(PayableListDo payableListDo);
 
     /**
+     * 按ID列表批量查询应付清单
+     *
+     * @param ids 主键ID列表
+     * @return 应付清单领域对象列表
+     */
+    List<PayableListDo> listByIds(Collection<String> ids);
+
+    /**
+     * 批量按ID修改应付清单（仅更新入参非null字段，避免全量回写覆盖并发变更）
+     *
+     * @param payableListDos 待更新领域对象列表（须携带ID与待更新字段）
+     * @return 影响行数
+     */
+    int updateBatchById(List<PayableListDo> payableListDos);
+
+    /**
      * 根据ID查询应付清单
      *
      * @param id 主键ID
@@ -100,6 +116,18 @@ public interface PayableListGateway {
      * @return 影响行数（0 表示当前状态不小于目标状态，未更新）
      */
     int advanceBillStatus(String payableListId, String billStatus);
+
+    /**
+     * 重算应付清单总额并递增版本号（语句内聚合，单条 UPDATE 原子完成）
+     *
+     * total_amount 由子查询 SUM(price) 在语句内聚合，避免"读取-计算-回写"间隙被并发写方覆盖导致总额丢失更新；
+     * version 以 SQL 端自增（version = version + 1），保证乐观锁版本号单调不回退。
+     * 仅更新这两列，不影响单据状态等其它字段。
+     *
+     * @param payableListIds 应付清单ID列表
+     * @return 影响行数
+     */
+    int recalcTotalAmountAndBumpVersion(Collection<String> payableListIds);
 
     /**
      * 按ID更新同步红旗结果

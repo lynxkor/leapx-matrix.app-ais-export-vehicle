@@ -118,6 +118,18 @@ public interface PayableListGateway {
     int advanceBillStatus(String payableListId, String billStatus);
 
     /**
+     * 重算应付清单总额并递增版本号（语句内聚合，单条 UPDATE 原子完成）
+     *
+     * total_amount 由子查询 SUM(price) 在语句内聚合，避免"读取-计算-回写"间隙被并发写方覆盖导致总额丢失更新；
+     * version 以 SQL 端自增（version = version + 1），保证乐观锁版本号单调不回退。
+     * 仅更新这两列，不影响单据状态等其它字段。
+     *
+     * @param payableListIds 应付清单ID列表
+     * @return 影响行数
+     */
+    int recalcTotalAmountAndBumpVersion(Collection<String> payableListIds);
+
+    /**
      * 按ID更新同步红旗结果
      *
      * 事件处理器回写同步结果时使用：只更新同步列。

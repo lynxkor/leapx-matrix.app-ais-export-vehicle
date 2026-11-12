@@ -132,11 +132,9 @@ public class SoImportPriceExe {
             return result;
         }
 
-        // 按应付清单ID分组，用于加锁和重算
+        // 按应付清单ID分组，用于加锁；有效行可能在锁内缩减，锁内联动范围以重查后为准
         List<String> validSoNos = validList.stream().map(c -> c.getSo().getSoNo()).collect(Collectors.toList());
         List<PayableListDetailDo> relatedDetails = payableListDetailGateway.listBySoNos(validSoNos);
-        Map<String, PayableListDetailDo> soNoToDetail = relatedDetails.stream()
-                .collect(Collectors.toMap(PayableListDetailDo::getSoNo, d -> d, (a, b) -> a));
         Set<String> payableListIds = new HashSet<>();
         for (PayableListDetailDo detail : relatedDetails) {
             payableListIds.add(detail.getPayableListId());
@@ -145,6 +143,7 @@ public class SoImportPriceExe {
         // 先获取分布式锁，再在锁内开启并提交事务，确保锁释放晚于事务提交（并发读不到未提交数据）
         Long userId = LoginUserUtils.getCurrentUserOrSysDefault().getUserId();
         List<BlockLock> locks = new ArrayList<>();
+        List<SoImportPriceContext> staleFailList = new ArrayList<>();
         try {
             locks.add(distributedLockTemplate.blockLock("so:importPrice:user:" + userId, 30000, 60000));
             for (String plId : payableListIds) {
@@ -152,8 +151,7 @@ public class SoImportPriceExe {
             }
 
             transactionTemplate.execute(status -> {
-                refreshSoSnapshot(validList);
-                doImport(validList, soNoToDetail, payableListIds);
+                doImportInLockTransaction(validList, relatedDetails, staleFailList);
                 return null;
             });
         } finally {
@@ -162,10 +160,47 @@ public class SoImportPriceExe {
             }
         }
 
+        failList.addAll(staleFailList);
         result.setSuccessNum(validList.size());
         result.setFailNum(failList.size());
         result.setData(buildFailData(failList));
         return result;
+    }
+
+    /**
+     * 锁内事务体：刷新SO快照后重查状态守卫，再对仍有效的行执行导入更新。
+     *
+     * 锁外校验与事务提交间存在并发窗口（应付清单清账置SO为已收款、SO作废流程均不持有导入维度锁），
+     * 若不重查，SO被并发置为已收款/已作废后仍会被改价并重算其应付清单总额，绕过"已收款、已作废不可改价"闸门；
+     * 重查失败的行移入 staleFailList，与校验失败行同样进入失败文件。
+     */
+    private void doImportInLockTransaction(List<SoImportPriceContext> validList,
+                                           List<PayableListDetailDo> relatedDetails,
+                                           List<SoImportPriceContext> staleFailList) {
+        refreshSoSnapshot(validList);
+        for (SoImportPriceContext ctx : validList) {
+            ctx.checkOrderStatus();
+        }
+        List<SoImportPriceContext> newlyFailed = validList.stream()
+                .filter(ctx -> !ctx.isValid())
+                .collect(Collectors.toList());
+        validList.removeIf(ctx -> !ctx.isValid());
+        staleFailList.addAll(newlyFailed);
+        if (validList.isEmpty()) {
+            return;
+        }
+        Set<String> effectiveSoNos = validList.stream()
+                .map(SoImportPriceContext::getSoNo)
+                .collect(Collectors.toSet());
+        List<PayableListDetailDo> effectiveDetails = relatedDetails.stream()
+                .filter(d -> effectiveSoNos.contains(d.getSoNo()))
+                .collect(Collectors.toList());
+        Map<String, PayableListDetailDo> effectiveSoNoToDetail = effectiveDetails.stream()
+                .collect(Collectors.toMap(PayableListDetailDo::getSoNo, d -> d, (a, b) -> a));
+        Set<String> effectivePayableListIds = effectiveDetails.stream()
+                .map(PayableListDetailDo::getPayableListId)
+                .collect(Collectors.toSet());
+        doImport(validList, effectiveSoNoToDetail, effectivePayableListIds);
     }
 
     /**
@@ -192,7 +227,7 @@ public class SoImportPriceExe {
     private void doImport(List<SoImportPriceContext> validList,
                           Map<String, PayableListDetailDo> soNoToDetail,
                           Set<String> payableListIds) {
-        // 批量查应付清单抬头（取编号与版本号）
+        // 批量查应付清单抬头（取编号，用于变更记录关联）
         Map<String, PayableListDo> plMap = payableListIds.isEmpty() ? Collections.emptyMap()
                 : payableListGateway.listByIds(payableListIds).stream()
                         .collect(Collectors.toMap(PayableListDo::getId, p -> p, (a, b) -> a));
@@ -267,21 +302,10 @@ public class SoImportPriceExe {
             priceChangeRecordGateway.addBatchPriceChangeRecord(changeRecords);
         }
 
-        // 重算应付清单总额：SQL聚合 + 批量稀疏更新（仅 totalAmount/version）
-        List<PayableListDo> plUpdates = new ArrayList<>();
-        for (String plId : payableListIds) {
-            BigDecimal totalAmount = payableListDetailGateway.sumAmountByPayableListId(plId);
-            PayableListDo plUpdate = new PayableListDo();
-            plUpdate.setId(plId);
-            plUpdate.setTotalAmount(totalAmount);
-            PayableListDo pl = plMap.get(plId);
-            if (pl != null && pl.getVersion() != null) {
-                plUpdate.setVersion(pl.getVersion() + 1);
-            }
-            plUpdates.add(plUpdate);
-        }
-        if (!plUpdates.isEmpty()) {
-            payableListGateway.updateBatchById(plUpdates);
+        // 语句内聚合重算应付清单总额并递增版本号：单条UPDATE原子完成，
+        // 消除"读取-计算-回写"间隙被加车/移车等并发写方覆盖导致的总额丢失更新与版本号回退
+        if (!payableListIds.isEmpty()) {
+            payableListGateway.recalcTotalAmountAndBumpVersion(payableListIds);
         }
     }
 

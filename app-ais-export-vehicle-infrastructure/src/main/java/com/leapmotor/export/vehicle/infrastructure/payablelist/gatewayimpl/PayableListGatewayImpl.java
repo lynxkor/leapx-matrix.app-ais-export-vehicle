@@ -140,6 +140,21 @@ public class PayableListGatewayImpl implements PayableListGateway {
     }
 
     @Override
+    public int recalcTotalAmountAndBumpVersion(Collection<String> payableListIds) {
+        // 子查询以抬头表全名关联本行ID，金额与版本号在单条UPDATE内原子变更；明细过滤delete_status与逻辑删除查询语义一致
+        int rows = 0;
+        for (String payableListId : payableListIds) {
+            LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(PayableList::getId, payableListId)
+                    .setSql("total_amount = (SELECT COALESCE(SUM(price), 0) FROM export_vehicle_payable_list_detail"
+                            + " WHERE payable_list_id = export_vehicle_payable_list.id AND delete_status = 0)")
+                    .setSql("version = version + 1");
+            rows += payableListMapper.update(null, updateWrapper);
+        }
+        return rows;
+    }
+
+    @Override
     public int updateSyncHqResultById(String payableListId, LocalDateTime syncHqTime, String syncHqResult, String syncHqMessage) {
         LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(PayableList::getId, payableListId)

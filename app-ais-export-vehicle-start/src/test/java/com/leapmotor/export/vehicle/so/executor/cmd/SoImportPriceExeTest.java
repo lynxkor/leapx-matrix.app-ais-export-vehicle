@@ -3,6 +3,8 @@ package com.leapmotor.export.vehicle.so.executor.cmd;
 import com.alibaba.fastjson.JSONObject;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListDetailGateway;
 import com.leapmotor.export.vehicle.payablelist.gateway.PayableListGateway;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDetailDo;
+import com.leapmotor.export.vehicle.payablelist.model.PayableListDo;
 import com.leapmotor.export.vehicle.pricechangerecord.gateway.PriceChangeRecordGateway;
 import com.leapmotor.export.vehicle.so.dto.SoImportPriceDto;
 import com.leapmotor.export.vehicle.so.enums.VehicleCbuSoStatusEnum;
@@ -33,6 +35,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -372,6 +375,7 @@ public class SoImportPriceExeTest {
                 verify(priceChangeRecordGateway, never()).addBatchPriceChangeRecord(any());
                 verify(payableListDetailGateway, never()).updateBatchById(any());
                 verify(payableListGateway, never()).updateBatchById(any());
+                verify(payableListGateway, never()).recalcTotalAmountAndBumpVersion(any());
 
                 // 锁释放必须晚于事务提交（事务模板先于锁close执行）
                 InOrder inOrder = inOrder(transactionTemplate, blockLock);
@@ -406,6 +410,146 @@ public class SoImportPriceExeTest {
                 assertEquals(1, result.getSuccessNum());
                 verify(payableListGateway, never()).listByIds(any());
                 verify(payableListDetailGateway, never()).sumAmountByPayableListId(anyString());
+                verify(payableListGateway, never()).recalcTotalAmountAndBumpVersion(any());
+            }
+        }
+
+        @Test
+        @DisplayName("锁内重查状态 — SO在锁等待期间被置为已收款后该行转失败且不更新")
+        void execute_soReceivedDuringLockWait_rowFailsInLock() {
+            VehicleCbuSoDo staleSnapshot = buildSo("SO001", VehicleCbuSoStatusEnum.NOT_ISSUED.getCode());
+            staleSnapshot.setId("SO-ID-001");
+            staleSnapshot.setVehiclePrice(new BigDecimal("100.00"));
+            VehicleCbuSoDo receivedSnapshot = buildSo("SO001", VehicleCbuSoStatusEnum.RECEIVED.getCode());
+            receivedSnapshot.setId("SO-ID-001");
+            receivedSnapshot.setVehiclePrice(new BigDecimal("100.00"));
+
+            // 第一次调用=锁外校验读到未收款快照；第二次调用=锁内refreshSoSnapshot重读到已收款
+            when(vehicleCbuSoGateway.listVehicleCbuSo(any(VehicleCbuSoQo.class)))
+                    .thenReturn(List.of(staleSnapshot))
+                    .thenReturn(List.of(receivedSnapshot));
+            when(payableListDetailGateway.listBySoNos(any()))
+                    .thenReturn(Collections.emptyList());
+
+            try (MockedStatic<LoginUserUtils> loginMock = mockLoginUser()) {
+                mockLock();
+                mockTransactionExecution();
+
+                ImportExcelDTO dto = new ImportExcelDTO();
+                dto.setExcel(JSONObject.toJSONString(List.of(buildImportDto("SO001", new BigDecimal("200.00")))));
+
+                ExcelBaseResult result = executor.execute(dto);
+
+                assertEquals(0, result.getSuccessNum());
+                assertEquals(1, result.getFailNum());
+                verify(vehicleCbuSoGateway, never()).updateBatchById(any());
+                verify(priceChangeRecordGateway, never()).addBatchPriceChangeRecord(any());
+                verify(payableListGateway, never()).recalcTotalAmountAndBumpVersion(any());
+
+                @SuppressWarnings("unchecked")
+                List<SoImportPriceDto> data = (List<SoImportPriceDto>) result.getData();
+                assertEquals(1, data.size());
+                assertEquals("SO001", data.get(0).getSoNo());
+                assertEquals("SO订单不存在或状态为已收款、已作废，请确认", data.get(0).getFailReason());
+            }
+        }
+
+        @Test
+        @DisplayName("锁内重查状态 — 部分行被置为已收款时仅更新有效行且计数正确")
+        void execute_partialReceivedDuringLockWait_updatesOnlyValidRows() {
+            VehicleCbuSoDo so1 = buildSo("SO001", VehicleCbuSoStatusEnum.NOT_ISSUED.getCode());
+            so1.setId("SO-ID-001");
+            so1.setVehiclePrice(new BigDecimal("100.00"));
+            VehicleCbuSoDo so2 = buildSo("SO002", VehicleCbuSoStatusEnum.NOT_ISSUED.getCode());
+            so2.setId("SO-ID-002");
+            so2.setVehiclePrice(new BigDecimal("100.00"));
+            VehicleCbuSoDo so2Received = buildSo("SO002", VehicleCbuSoStatusEnum.RECEIVED.getCode());
+            so2Received.setId("SO-ID-002");
+            so2Received.setVehiclePrice(new BigDecimal("100.00"));
+
+            when(vehicleCbuSoGateway.listVehicleCbuSo(any(VehicleCbuSoQo.class)))
+                    .thenReturn(List.of(so1, so2))
+                    .thenReturn(List.of(so1, so2Received));
+            when(vehicleCbuSoDetailGateway.listVehicleCbuSoDetail(any(VehicleCbuSoDetailQo.class)))
+                    .thenReturn(Collections.emptyList());
+            when(payableListDetailGateway.listBySoNos(any()))
+                    .thenReturn(Collections.emptyList());
+
+            try (MockedStatic<LoginUserUtils> loginMock = mockLoginUser()) {
+                mockLock();
+                mockTransactionExecution();
+
+                ImportExcelDTO dto = new ImportExcelDTO();
+                dto.setExcel(JSONObject.toJSONString(List.of(
+                        buildImportDto("SO001", new BigDecimal("100.00")),
+                        buildImportDto("SO002", new BigDecimal("200.00")))));
+
+                ExcelBaseResult result = executor.execute(dto);
+
+                assertEquals(1, result.getSuccessNum());
+                assertEquals(1, result.getFailNum());
+
+                ArgumentCaptor<List<VehicleCbuSoDo>> soCaptor = ArgumentCaptor.forClass(List.class);
+                verify(vehicleCbuSoGateway).updateBatchById(soCaptor.capture());
+                assertEquals(1, soCaptor.getValue().size());
+                assertEquals("SO-ID-001", soCaptor.getValue().get(0).getId());
+
+                @SuppressWarnings("unchecked")
+                List<SoImportPriceDto> data = (List<SoImportPriceDto>) result.getData();
+                assertEquals(1, data.size());
+                assertEquals("SO002", data.get(0).getSoNo());
+                assertEquals("SO订单不存在或状态为已收款、已作废，请确认", data.get(0).getFailReason());
+            }
+        }
+
+        @Test
+        @DisplayName("SO关联应付清单 — 同步明细价格且总额改为语句内原子重算")
+        void execute_linkedPayableList_recalculatesAtomically() {
+            VehicleCbuSoDo so = buildSo("SO001", VehicleCbuSoStatusEnum.NOT_ISSUED.getCode());
+            so.setId("SO-ID-001");
+            so.setVehiclePrice(new BigDecimal("100.00"));
+
+            PayableListDetailDo detail = new PayableListDetailDo();
+            detail.setId("DETAIL-001");
+            detail.setSoNo("SO001");
+            detail.setPayableListId("PL-001");
+            PayableListDo payableList = new PayableListDo();
+            payableList.setId("PL-001");
+            payableList.setPayableListNo("YF20261100001");
+
+            when(vehicleCbuSoGateway.listVehicleCbuSo(any(VehicleCbuSoQo.class)))
+                    .thenReturn(List.of(so));
+            when(vehicleCbuSoDetailGateway.listVehicleCbuSoDetail(any(VehicleCbuSoDetailQo.class)))
+                    .thenReturn(Collections.emptyList());
+            when(payableListDetailGateway.listBySoNos(any()))
+                    .thenReturn(List.of(detail));
+            when(payableListGateway.listByIds(anyCollection()))
+                    .thenReturn(List.of(payableList));
+
+            try (MockedStatic<LoginUserUtils> loginMock = mockLoginUser()) {
+                mockLock();
+                mockTransactionExecution();
+
+                ImportExcelDTO dto = new ImportExcelDTO();
+                dto.setExcel(JSONObject.toJSONString(List.of(buildImportDto("SO001", new BigDecimal("100.00")))));
+
+                ExcelBaseResult result = executor.execute(dto);
+
+                assertEquals(1, result.getSuccessNum());
+
+                ArgumentCaptor<List<PayableListDetailDo>> detailCaptor = ArgumentCaptor.forClass(List.class);
+                verify(payableListDetailGateway).updateBatchById(detailCaptor.capture());
+                assertEquals(1, detailCaptor.getValue().size());
+                assertEquals("DETAIL-001", detailCaptor.getValue().get(0).getId());
+                assertEquals(new BigDecimal("100.00"), detailCaptor.getValue().get(0).getPrice());
+
+                ArgumentCaptor<Collection<String>> plIdsCaptor = ArgumentCaptor.forClass(Collection.class);
+                verify(payableListGateway).recalcTotalAmountAndBumpVersion(plIdsCaptor.capture());
+                assertEquals(1, plIdsCaptor.getValue().size());
+                assertTrue(plIdsCaptor.getValue().contains("PL-001"));
+
+                verify(priceChangeRecordGateway, never()).addBatchPriceChangeRecord(any());
+                verify(payableListGateway, never()).updateBatchById(any());
             }
         }
     }

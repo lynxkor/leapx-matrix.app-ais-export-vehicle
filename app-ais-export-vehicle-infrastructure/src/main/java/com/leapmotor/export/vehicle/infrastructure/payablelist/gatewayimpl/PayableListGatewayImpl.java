@@ -142,10 +142,12 @@ public class PayableListGatewayImpl implements PayableListGateway {
     @Override
     public int recalcTotalAmountAndBumpVersion(Collection<String> payableListIds) {
         // 子查询以抬头表全名关联本行ID，金额与版本号在单条UPDATE内原子变更；明细过滤delete_status与逻辑删除查询语义一致
+        // 须用 UpdateWrapper 字符串列名：update(null, LambdaUpdateWrapper) 时平台 AutoFieldsInterceptor 会对空实体
+        // 追加 LpBaseEntity::getModifier 等 lambda 列，基类无 TableInfo 缓存导致运行时异常（见 ExportVehicleCbuPoGuaranteeGatewayImpl 同款注释）
         int rows = 0;
         for (String payableListId : payableListIds) {
-            LambdaUpdateWrapper<PayableList> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(PayableList::getId, payableListId)
+            UpdateWrapper<PayableList> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", payableListId)
                     .setSql("total_amount = (SELECT COALESCE(SUM(price), 0) FROM export_vehicle_payable_list_detail"
                             + " WHERE payable_list_id = export_vehicle_payable_list.id AND delete_status = 0)")
                     .setSql("version = version + 1");

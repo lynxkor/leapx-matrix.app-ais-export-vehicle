@@ -11,7 +11,7 @@ import com.leapmotor.paltform.ais.common.model.enums.IBaseEnum;
  * <p>必填 NOT NULL,新增时无默认值,调用方必须显式赋值。
  */
 public enum LgTypeEnum implements IBaseEnum<String> {
-    PREPAYMENT ("PREPAYMENT", "预付款保函");
+    PREPAYMENT ("PREPAYMENT", "付款保函");
 
     private final String code;
     private final String message;
